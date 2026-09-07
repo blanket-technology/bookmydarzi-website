@@ -10,14 +10,9 @@
   --color-cream-deep: #efece4;
   --color-gold: #c99a3d;
   --color-gold-deep: #b4832e;
-  --color-gold-pale: #e9d7ae;
   --color-muted: #667085;
-  /* Deep charcoal-plum, used for the hero/night sections instead of flat
-     #171717 - has enough warmth to sit next to the gold without going cold. */
-  --color-charcoal: #1c1a1f;
 
-  --font-sans: var(--font-sans), Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-display), "Iowan Old Style", Georgia, serif;
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 :root {
@@ -61,19 +56,6 @@ a {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-marquee {
-  animation: marquee 32s linear infinite;
 }
 
 /* Respect reduced-motion preference for the site's own animation classes. */
