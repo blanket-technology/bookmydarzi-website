@@ -155,7 +155,12 @@ export default async function ServiceLineDetailPage({
       </div>
 
       <section className="mt-14">
-        <h2 className="text-2xl font-black tracking-tight">Choose your tier</h2>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="text-2xl font-black tracking-tight">Choose your tier</h2>
+          <span className="text-xs font-semibold text-gray-400">
+            {stitchingTypes.length} option{stitchingTypes.length === 1 ? "" : "s"}
+          </span>
+        </div>
         <p className="mt-2 text-sm text-gray-500">
           Every tier is stitched to your exact measurements by a verified tailor. Measurements
           are taken by our team at pickup - no guesswork on your end.
@@ -169,13 +174,13 @@ export default async function ServiceLineDetailPage({
               className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
             >
               {tier.image_url && (
-                <div className="relative h-40 w-full overflow-hidden">
+                <div className="relative h-44 w-full overflow-hidden">
                   <Image
                     src={tier.image_url}
                     alt={tier.name}
                     fill
                     sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
               )}
@@ -189,9 +194,13 @@ export default async function ServiceLineDetailPage({
                   )}
                 </div>
 
-                <p className="mt-2 min-h-10 text-sm leading-6 text-gray-500">
-                  {tier.description ||
-                    `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
+                {/* Same threshold-based fallback as the services grid card -
+                    a short backend label (e.g. "Suit") next to a full
+                    sentence on a sibling tier reads as unfinished. */}
+                <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
+                  {tier.description && tier.description.trim().length >= 20
+                    ? tier.description
+                    : `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
                 </p>
 
                 <ul className="mt-4 space-y-1.5">
