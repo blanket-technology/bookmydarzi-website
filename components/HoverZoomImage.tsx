@@ -80,7 +80,7 @@ export default function HoverZoomImage({ src, alt, priority, className }: HoverZ
           aria-hidden
         >
           <div
-            className="h-full w-full bg-no-repeat"
+            className="h-full w-full rounded-3xl bg-no-repeat bg-clip-padding [background-attachment:local]"
             style={{
               backgroundImage: `url(${src})`,
               backgroundSize: `${ZOOM_FACTOR * 100}%`,
