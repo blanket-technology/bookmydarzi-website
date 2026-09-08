@@ -150,8 +150,14 @@ export default async function Home() {
               key={line.id}
               className="group rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:-translate-y-1 hover:shadow-xl"
             >
+              {/* aspect-square + object-cover, not a fixed h-64 - the
+                  catalog's photos are a genuine mix of portrait/landscape
+                  shots (checked across the real data), so a fixed-height
+                  wide box crops some of them oddly (e.g. a pair of trousers
+                  shot portrait). Square is the best universal crop target
+                  across that mix, same fix already applied on /services. */}
               {line.image_url ? (
-                <div className="relative h-64 w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
                   <Image
                     src={line.image_url}
                     alt={line.name}
@@ -162,7 +168,7 @@ export default async function Home() {
                 </div>
               ) : (
                 <div
-                  className={`flex h-64 items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
+                  className={`flex aspect-square items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
                 >
                   <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
                     Popular
