@@ -1,13 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type WheelEvent } from "react";
 import { createPortal } from "react-dom";
-import { Download, X } from "lucide-react";
+import { Download, Minus, Plus, X } from "lucide-react";
 
-/** Full-screen zoom overlay for a chat image attachment. Replaces the
- * previous behavior of opening the image in a new browser tab - keeps the
- * customer inside the chat panel/site, with a proper backdrop-dismiss,
- * Escape-to-close, and a direct download action. */
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 4;
+const ZOOM_STEP = 0.25;
+
+function clampZoom(z: number): number {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+}
+
+/** Full-screen zoom overlay, shared by chat image attachments and product
+ * photos. Includes a manual +/- zoom control with a live percentage
+ * readout (drag-to-pan once zoomed past 100%, mouse-wheel also zooms) -
+ * the inline hover-magnifier elsewhere on the page is only a quick preview,
+ * this is the "zoom in as far as you want" surface. */
 export default function ImageLightbox({
   src,
   onClose,
@@ -25,9 +34,57 @@ export default function ImageLightbox({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const draggingRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const setZoomClamped = (next: number) => {
+    const z = clampZoom(next);
+    setZoom(z);
+    // Snapping back to 100% also recenters - otherwise a pan offset from a
+    // previous zoom level would leave the image visibly off-center at 100%.
+    if (z === MIN_ZOOM) setPan({ x: 0, y: 0 });
+  };
+
+  const zoomIn = () => setZoomClamped(zoom + ZOOM_STEP);
+  const zoomOut = () => setZoomClamped(zoom - ZOOM_STEP);
+
+  const handleWheel = (e: WheelEvent<HTMLImageElement>) => {
+    e.preventDefault();
+    setZoomClamped(zoom + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP));
+  };
+
+  const handleMouseDown = (e: ReactMouseEvent<HTMLImageElement>) => {
+    if (zoom === MIN_ZOOM) return;
+    e.preventDefault();
+    draggingRef.current = { startX: e.clientX, startY: e.clientY, panX: pan.x, panY: pan.y };
+    setIsDragging(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
+      const drag = draggingRef.current;
+      if (!drag) return;
+      setPan({ x: drag.panX + (e.clientX - drag.startX), y: drag.panY + (e.clientY - drag.startY) });
+    };
+    const handleMouseUp = () => {
+      draggingRef.current = null;
+      setIsDragging(false);
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      if (e.key === "+" || e.key === "=") zoomIn();
+      if (e.key === "-" || e.key === "_") zoomOut();
     };
     window.addEventListener("keydown", onKeyDown);
     // Lock page scroll while the lightbox is open.
@@ -37,14 +94,18 @@ export default function ImageLightbox({
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onClose, zoom]);
 
   if (!mounted) return null;
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-      onClick={onClose}
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-black/85 p-4 backdrop-blur-sm"
+      onClick={() => {
+        // A click that ends a drag shouldn't also close the lightbox.
+        if (!isDragging) onClose();
+      }}
       role="dialog"
       aria-modal="true"
       aria-label="Image preview"
@@ -75,8 +136,42 @@ export default function ImageLightbox({
         src={src}
         alt="Attachment preview"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[88vh] max-w-[92vw] cursor-zoom-out rounded-lg object-contain shadow-2xl"
+        onMouseDown={handleMouseDown}
+        onWheel={handleWheel}
+        draggable={false}
+        className={`max-h-[88vh] max-w-[92vw] rounded-lg object-contain shadow-2xl transition-transform duration-100 ${
+          zoom > MIN_ZOOM ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-zoom-out"
+        }`}
+        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
       />
+
+      {/* Pro zoom control - +/- with a live percentage, not just a fixed
+          hover-magnifier factor. Click targets are large enough for touch
+          too, even though drag-to-pan above is mouse-only. */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/10 p-1.5 backdrop-blur"
+      >
+        <button
+          onClick={zoomOut}
+          disabled={zoom <= MIN_ZOOM}
+          aria-label="Zoom out"
+          className="grid h-9 w-9 place-items-center rounded-full text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <Minus size={16} />
+        </button>
+        <span className="w-14 text-center text-xs font-bold tabular-nums text-white">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          onClick={zoomIn}
+          disabled={zoom >= MAX_ZOOM}
+          aria-label="Zoom in"
+          className="grid h-9 w-9 place-items-center rounded-full text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
     </div>,
     document.body,
   );
