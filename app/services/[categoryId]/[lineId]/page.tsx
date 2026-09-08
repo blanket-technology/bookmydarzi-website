@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowRight,
@@ -10,7 +11,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
-import ZoomableImage from "@/components/ZoomableImage";
+import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 
@@ -58,16 +59,12 @@ export default async function ServiceLineDetailPage({
       <div className="mt-6 grid gap-10 md:grid-cols-2 md:items-start">
         <div>
           {heroImage ? (
-            <div className="relative h-80 w-full overflow-hidden rounded-3xl border border-black/5 md:h-[420px]">
-              <ZoomableImage
-                src={heroImage}
-                alt={line.name}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-                priority
-              />
-            </div>
+            <HoverZoomImage
+              src={heroImage}
+              alt={line.name}
+              priority
+              className="h-80 w-full rounded-3xl border border-black/5 md:h-[420px]"
+            />
           ) : (
             <div className="flex h-80 items-end rounded-3xl bg-gradient-to-br from-stone-200 to-stone-300 p-6 md:h-[420px]">
               <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
@@ -167,7 +164,7 @@ export default async function ServiceLineDetailPage({
             >
               {tier.image_url && (
                 <div className="relative h-40 w-full overflow-hidden">
-                  <ZoomableImage
+                  <Image
                     src={tier.image_url}
                     alt={tier.name}
                     fill
