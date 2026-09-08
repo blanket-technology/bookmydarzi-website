@@ -8,6 +8,7 @@ import { useChatStore } from "@/lib/chat/useChatStore";
 import { useChatWS } from "@/lib/chat/useChatWS";
 import { useChatOpenRequest } from "@/lib/chat/openChat";
 import { uploadChatAttachment } from "@/lib/chat/chatService";
+import { groupMessagesForDisplay } from "@/lib/chat/groupMessages";
 import type { LocalChatMessage } from "@/lib/chat/types";
 import StatusBanner from "./StatusBanner";
 import MessageBubble from "./MessageBubble";
@@ -337,14 +338,23 @@ export default function ChatWidget() {
                   </div>
                 ) : (
                   <div className="flex flex-col gap-0.5">
-                    {messages.map((m) => (
-                      <MessageBubble
-                        key={`${m.id}-${m.client_id ?? ""}`}
-                        message={m}
-                        isOwn={m.sender_type === "customer"}
-                        isRead={m.sender_type === "customer" && m.seq <= peerReadUpToSeq}
-                        onRetry={m.deliveryStatus === "failed" ? () => handleRetry(m) : undefined}
-                      />
+                    {groupMessagesForDisplay(messages).map(({ message: m, showSenderLabel, dateLabel }) => (
+                      <div key={`${m.id}-${m.client_id ?? ""}`}>
+                        {dateLabel && (
+                          <div className="my-2 flex items-center justify-center">
+                            <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-muted">
+                              {dateLabel}
+                            </span>
+                          </div>
+                        )}
+                        <MessageBubble
+                          message={m}
+                          isOwn={m.sender_type === "customer"}
+                          isRead={m.sender_type === "customer" && m.seq <= peerReadUpToSeq}
+                          onRetry={m.deliveryStatus === "failed" ? () => handleRetry(m) : undefined}
+                          showSenderLabel={showSenderLabel}
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
