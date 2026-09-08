@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowRight,
@@ -11,6 +10,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
+import ZoomableImage from "@/components/ZoomableImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import AddToCartButton from "./AddToCartButton";
 
@@ -54,7 +54,7 @@ export default async function TierDetailPage({
         <div>
           {tier.image_url ? (
             <div className="relative h-80 w-full overflow-hidden rounded-3xl border border-black/5 md:h-[420px]">
-              <Image
+              <ZoomableImage
                 src={tier.image_url}
                 alt={tier.name}
                 fill
@@ -179,7 +179,14 @@ export default async function TierDetailPage({
               >
                 <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-stone-200 to-stone-300">
                   {t.image_url && (
-                    <Image src={t.image_url} alt={t.name} fill sizes="64px" className="object-cover" />
+                    <ZoomableImage
+                      src={t.image_url}
+                      alt={t.name}
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      hideZoomIcon
+                    />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

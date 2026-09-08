@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import {
   ArrowRight,
@@ -11,6 +10,7 @@ import {
   Sparkles,
   Truck,
 } from "lucide-react";
+import ZoomableImage from "@/components/ZoomableImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 
@@ -59,7 +59,7 @@ export default async function ServiceLineDetailPage({
         <div>
           {heroImage ? (
             <div className="relative h-80 w-full overflow-hidden rounded-3xl border border-black/5 md:h-[420px]">
-              <Image
+              <ZoomableImage
                 src={heroImage}
                 alt={line.name}
                 fill
@@ -167,7 +167,7 @@ export default async function ServiceLineDetailPage({
             >
               {tier.image_url && (
                 <div className="relative h-40 w-full overflow-hidden">
-                  <Image
+                  <ZoomableImage
                     src={tier.image_url}
                     alt={tier.name}
                     fill

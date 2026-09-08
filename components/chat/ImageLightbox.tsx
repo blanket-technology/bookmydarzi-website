@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Download, X } from "lucide-react";
 
 /** Full-screen zoom overlay for a chat image attachment. Replaces the
@@ -14,6 +15,16 @@ export default function ImageLightbox({
   src: string;
   onClose: () => void;
 }) {
+  // Renders through a portal to document.body rather than in place - a
+  // ZoomableImage click site is frequently inside a <Link>/<a> (service
+  // cards, chat bubbles), and this lightbox's own <a download> and <button>
+  // would otherwise nest inside that ancestor <a>, which is invalid HTML
+  // (confirmed via a real hydration-error console warning) and breaks the
+  // download link's own clickability inside some browsers' <a>-in-<a>
+  // handling. Portaling to body sidesteps the ancestor entirely.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -28,7 +39,9 @@ export default function ImageLightbox({
     };
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -64,6 +77,7 @@ export default function ImageLightbox({
         onClick={(e) => e.stopPropagation()}
         className="max-h-[88vh] max-w-[92vw] cursor-zoom-out rounded-lg object-contain shadow-2xl"
       />
-    </div>
+    </div>,
+    document.body,
   );
 }
