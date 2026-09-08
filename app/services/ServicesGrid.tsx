@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, ArrowRight } from "lucide-react";
+import ZoomableImage from "@/components/ZoomableImage";
 import type { CatalogCategory, CatalogServiceLine } from "@/lib/types/catalog";
 
 const CARD_BACKGROUNDS = [
@@ -133,7 +133,7 @@ function ServiceCard({
     >
       {showImage ? (
         <div className="relative m-2 h-28 w-[calc(100%-1rem)] overflow-hidden rounded-xl sm:m-3 sm:h-52 sm:w-[calc(100%-1.5rem)] sm:rounded-2xl">
-          <Image
+          <ZoomableImage
             src={line.image_url!}
             alt={line.name}
             fill
