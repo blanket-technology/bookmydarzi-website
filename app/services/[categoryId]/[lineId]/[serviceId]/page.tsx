@@ -54,14 +54,17 @@ export default async function TierDetailPage({
       <div className="mt-6 grid gap-10 md:grid-cols-2 md:items-start">
         <div>
           {tier.image_url ? (
+            // Same square-box fix as the category page's hero - see that
+            // file's comment for why (catalog photos are a genuine mix of
+            // portrait/landscape, a square box minimizes average margin).
             <HoverZoomImage
               src={tier.image_url}
               alt={tier.name}
               priority
-              className="h-80 w-full rounded-3xl border border-black/5 md:h-[420px]"
+              className="aspect-square w-full max-w-md rounded-3xl border border-black/5"
             />
           ) : (
-            <div className="flex h-80 items-end rounded-3xl bg-gradient-to-br from-stone-200 to-stone-300 p-6 md:h-[420px]">
+            <div className="flex aspect-square w-full max-w-md items-end rounded-3xl bg-gradient-to-br from-stone-200 to-stone-300 p-6">
               <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
                 {line.name}
               </span>

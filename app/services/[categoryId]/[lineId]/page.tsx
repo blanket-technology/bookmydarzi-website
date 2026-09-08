@@ -59,14 +59,20 @@ export default async function ServiceLineDetailPage({
       <div className="mt-6 grid gap-10 md:grid-cols-2 md:items-start">
         <div>
           {heroImage ? (
+            // Catalog product photography is genuinely mixed - some shots
+            // are portrait, most are wide landscape (checked across the
+            // real catalog: ratios from 0.67 to 2.21). No single fixed
+            // ratio fills every photo with zero margin; a square box
+            // minimizes the average empty space across that mix better
+            // than either extreme.
             <HoverZoomImage
               src={heroImage}
               alt={line.name}
               priority
-              className="h-80 w-full rounded-3xl border border-black/5 md:h-[420px]"
+              className="aspect-square w-full max-w-md rounded-3xl border border-black/5"
             />
           ) : (
-            <div className="flex h-80 items-end rounded-3xl bg-gradient-to-br from-stone-200 to-stone-300 p-6 md:h-[420px]">
+            <div className="flex aspect-square w-full max-w-md items-end rounded-3xl bg-gradient-to-br from-stone-200 to-stone-300 p-6">
               <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
                 {category.name}
               </span>
