@@ -60,8 +60,8 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
   return (
     <>
       <div className="mt-8 max-w-2xl">
-        <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3">
-          <Search size={18} className="text-gray-400" />
+        <div className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-3 transition-colors focus-within:border-[#171717]">
+          <Search size={18} className="shrink-0 text-gray-400" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -71,12 +71,12 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         {categoryNames.map((name) => (
           <button
             key={name}
             onClick={() => setCat(name)}
-            className={`rounded-full px-5 py-2.5 text-sm font-bold ${
+            className={`rounded-full px-5 py-2.5 text-sm font-bold transition-colors ${
               cat === name ? "bg-[#171717] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -84,6 +84,9 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
             {name}
           </button>
         ))}
+        <span className="ml-auto hidden text-xs font-semibold text-gray-400 sm:block">
+          {filtered.length} service{filtered.length === 1 ? "" : "s"}
+        </span>
       </div>
 
       {filtered.length === 0 ? (
@@ -126,55 +129,65 @@ function ServiceCard({
   const [imgError, setImgError] = useState(false);
   const showImage = line.image_url && !imgError;
 
+  // A handful of catalog lines have a real description; most only carry a
+  // short backend label (e.g. "Suit") that reads as broken/unfinished next
+  // to cards with a full sentence. Falling back below a length threshold
+  // (not just "if empty") keeps every card in a row at the same visual
+  // weight instead of some looking sparse.
+  const description =
+    line.description && line.description.trim().length >= 20
+      ? line.description
+      : `Professional ${line.name.toLowerCase()}, tailored to your exact measurements.`;
+
   return (
     <Link
       href={`/services/${categoryId}/${line.id}`}
-      className="group overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm hover:-translate-y-1 hover:shadow-xl sm:rounded-3xl"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl"
     >
       {showImage ? (
-        <div className="relative m-2 h-28 w-[calc(100%-1rem)] overflow-hidden rounded-xl sm:m-3 sm:h-52 sm:w-[calc(100%-1.5rem)] sm:rounded-2xl">
+        <div className="relative aspect-square w-full overflow-hidden">
           <Image
             src={line.image_url!}
             alt={line.name}
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
             loading={index < 4 ? "eager" : "lazy"}
             onError={() => setImgError(true)}
           />
         </div>
       ) : (
         <div
-          className={`m-2 flex h-28 items-end rounded-xl bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-2.5 sm:m-3 sm:h-52 sm:rounded-2xl sm:p-4`}
+          className={`flex aspect-square w-full items-end bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-3 sm:p-4`}
         >
-          <span className="rounded-full bg-white/90 px-2 py-1 text-[9px] font-black uppercase tracking-wider sm:px-3 sm:py-1.5 sm:text-[10px]">
+          <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider sm:px-3 sm:py-1.5 sm:text-[10px]">
             {categoryName}
           </span>
         </div>
       )}
-      <div className="p-3 pt-1.5 sm:p-5 sm:pt-2">
-        <h2 className="text-sm font-black leading-tight sm:text-xl">{line.name}</h2>
-        <p className="mt-1 hidden text-sm leading-6 text-gray-500 sm:mt-2 sm:block sm:min-h-12">
-          {line.description || `Professional ${line.name.toLowerCase()} with custom measurements.`}
+      <div className="flex flex-1 flex-col p-3 sm:p-5">
+        <h2 className="text-sm font-black leading-tight sm:text-lg">{line.name}</h2>
+        <p className="mt-1.5 hidden flex-1 text-sm leading-6 text-gray-500 sm:block">
+          {description}
         </p>
-        <div className="mt-2 flex items-center justify-between sm:mt-5">
+        <div className="mt-2 flex items-end justify-between border-t border-black/5 pt-2.5 sm:mt-4 sm:pt-4">
           <div>
             {line.starting_price != null ? (
               <>
                 <p className="text-[8px] font-bold uppercase tracking-wide text-gray-400 sm:text-[10px]">
                   From
                 </p>
-                <span className="text-base font-black sm:text-2xl">
+                <span className="text-base font-black sm:text-xl">
                   ₹{line.starting_price.toLocaleString("en-IN")}
                 </span>
               </>
             ) : (
-              <span className="text-sm font-black sm:text-2xl">On request</span>
+              <span className="text-sm font-black sm:text-xl">On request</span>
             )}
           </div>
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gray-100 group-hover:bg-[#171717] group-hover:text-white sm:h-10 sm:w-10">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-100 transition-colors group-hover:bg-[#171717] group-hover:text-white sm:h-10 sm:w-10">
             <ArrowRight size={14} className="sm:hidden" />
-            <ArrowRight size={17} className="hidden sm:block" />
+            <ArrowRight size={16} className="hidden sm:block" />
           </span>
         </div>
       </div>
