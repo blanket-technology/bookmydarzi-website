@@ -15,9 +15,9 @@ export default function ImageLightbox({
   src: string;
   onClose: () => void;
 }) {
-  // Renders through a portal to document.body rather than in place - a
-  // ZoomableImage click site is frequently inside a <Link>/<a> (service
-  // cards, chat bubbles), and this lightbox's own <a download> and <button>
+  // Renders through a portal to document.body rather than in place - the
+  // trigger is frequently inside a <Link>/<a> (service detail hero on
+  // mobile, chat bubbles), and this lightbox's own <a download> and <button>
   // would otherwise nest inside that ancestor <a>, which is invalid HTML
   // (confirmed via a real hydration-error console warning) and breaks the
   // download link's own clickability inside some browsers' <a>-in-<a>
