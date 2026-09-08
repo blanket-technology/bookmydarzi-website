@@ -51,24 +51,38 @@ export default function HoverZoomImage({ src, alt, priority, className }: HoverZ
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
       onMouseMove={handleMouseMove}
+      // Desktop opens the full lightbox (with its +/- pro zoom controls) on
+      // click too, not just touch devices - the inline hover-magnify above
+      // is a quick preview, this is how a desktop user gets to "zoom as
+      // much as I want" rather than being stuck at the fixed ZOOM_FACTOR.
+      onClick={() => setLightboxOpen(true)}
     >
+      {/* object-contain, not object-cover - a product photo (e.g. a full
+          lehenga shot much taller than it is wide) must never be cropped to
+          fill a fixed-aspect box; letterboxing on the shorter axis instead
+          is the only way every garment shows in full. bg-cream matches the
+          site's neutral background so the letterbox bars don't read as an
+          error state. */}
       <Image
         src={src}
         alt={alt}
         fill
         sizes="(min-width: 768px) 50vw, 100vw"
-        className="object-cover"
+        className="object-contain bg-cream"
         priority={priority}
       />
 
       {/* Zoomed crop, drawn over the same box on hover - can never overflow
-          it since it's sized/positioned identically to the base image. */}
+          it since it's sized/positioned identically to the base image.
+          contain (not a fixed %) keeps the zoomed view's letterboxing
+          aligned with the base image's, then scaled up by ZOOM_FACTOR so
+          the two never visually mismatch. */}
       {isHovering && (
         <div
-          className="pointer-events-none absolute inset-0 hidden bg-no-repeat [@media(hover:hover)]:block"
+          className="pointer-events-none absolute inset-0 hidden bg-cream bg-no-repeat [@media(hover:hover)]:block"
           style={{
             backgroundImage: `url(${src})`,
-            backgroundSize: `${ZOOM_FACTOR * 100}%`,
+            backgroundSize: `${ZOOM_FACTOR * 100}% auto`,
             backgroundPosition: `${cursorPct.x}% ${cursorPct.y}%`,
           }}
         />
