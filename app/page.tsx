@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -14,6 +15,18 @@ import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogServiceLine } from "@/lib/types/catalog";
 import { getTestimonials } from "@/lib/services/testimonials";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
+
+export const metadata: Metadata = {
+  title: "Doorstep Tailoring & Alterations in Delhi NCR",
+  description:
+    "Book professional tailoring and alteration services online. Fabric picked up from your home in Noida & Delhi NCR, stitched by a verified tailor, delivered back to your door.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "BookMyDarzi - Doorstep Tailoring & Alterations",
+    description: "Fabric picked up, stitched by a verified tailor, delivered back to your door.",
+    url: "/",
+  },
+};
 
 const CARD_BACKGROUNDS = [
   "from-stone-200 to-stone-300",

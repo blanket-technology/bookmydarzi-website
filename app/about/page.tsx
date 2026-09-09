@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -14,9 +15,12 @@ import {
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import { getTestimonials } from "@/lib/services/testimonials";
 
-export const metadata = {
-  title: "About Us - BookMyDarzi",
-  description: "The story behind BookMyDarzi, India's doorstep tailoring platform.",
+export const metadata: Metadata = {
+  title: "About Us",
+  description:
+    "BookMyDarzi is Delhi NCR's doorstep tailoring platform - verified tailors, fabric pickup from your home, and every order tracked from pickup to delivery.",
+  alternates: { canonical: "/about" },
+  openGraph: { title: "About BookMyDarzi", url: "/about" },
 };
 
 const HOW_IT_WORKS = [

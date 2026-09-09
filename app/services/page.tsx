@@ -1,9 +1,19 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BadgeCheck, MapPin, ShieldCheck, Truck } from "lucide-react";
 import { getCatalogTree } from "@/lib/services/catalog";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
+import { breadcrumbJsonLd } from "@/lib/seo";
 import ServicesGrid from "./ServicesGrid";
+
+export const metadata: Metadata = {
+  title: "All Tailoring Services",
+  description:
+    "Browse every stitching and alteration service BookMyDarzi offers in Noida & Delhi NCR - blouses, suits, kurtas, alterations and more, with upfront pricing and doorstep pickup.",
+  alternates: { canonical: "/services" },
+  openGraph: { title: "All Tailoring Services | BookMyDarzi", url: "/services" },
+};
 
 // Server Component: fetches the real catalog tree server-side (fast, SEO
 // friendly, public endpoint - no auth needed) and hands it to the client
@@ -13,6 +23,17 @@ export default async function ServicesPage() {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Services", path: "/services" },
+            ]),
+          ),
+        }}
+      />
       <div className="mx-auto max-w-7xl px-5 pt-10 lg:px-8">
         <div className="rounded-[2rem] bg-cream p-7 md:p-10">
           <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">BookMyDarzi</p>
