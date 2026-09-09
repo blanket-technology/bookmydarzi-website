@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -14,6 +15,46 @@ import {
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
+
+type LinePageParams = { categoryId: string; lineId: string };
+
+async function findLine(categoryId: string, lineId: string) {
+  const { categories } = await getCatalogTree();
+  const category = categories.find((c) => String(c.id) === categoryId);
+  const line = category?.service_lines.find((l) => String(l.id) === lineId);
+  return { category, line };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<LinePageParams>;
+}): Promise<Metadata> {
+  const { categoryId, lineId } = await params;
+  const { category, line } = await findLine(categoryId, lineId);
+  if (!category || !line) return {};
+
+  const title = `${line.name} - ${category.name}`;
+  const description =
+    line.description ||
+    `Book ${line.name.toLowerCase()} in Noida & Delhi NCR. Fabric picked up from your door, stitched by a verified tailor${
+      line.starting_price != null ? `, starting from ₹${line.starting_price.toLocaleString("en-IN")}` : ""
+    }.`;
+  const path = `/services/${category.id}/${line.id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title,
+      description,
+      url: path,
+      images: line.image_url ? [{ url: line.image_url }] : undefined,
+    },
+  };
+}
 
 // No dedicated single-service-line endpoint exists on the backend (verified
 // against app/api/v1/endpoints/catalog.py) - only /categories/tree and
@@ -22,13 +63,10 @@ import type { CatalogStitchingType } from "@/lib/types/catalog";
 export default async function ServiceLineDetailPage({
   params,
 }: {
-  params: Promise<{ categoryId: string; lineId: string }>;
+  params: Promise<LinePageParams>;
 }) {
   const { categoryId, lineId } = await params;
-  const { categories } = await getCatalogTree();
-
-  const category = categories.find((c) => String(c.id) === categoryId);
-  const line = category?.service_lines.find((l) => String(l.id) === lineId);
+  const { category, line } = await findLine(categoryId, lineId);
 
   if (!category || !line) {
     notFound();
@@ -48,6 +86,25 @@ export default async function ServiceLineDetailPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Services", path: "/services" },
+              { name: category.name, path: `/services/${category.id}/${line.id}` },
+            ]),
+            serviceJsonLd({
+              name: line.name,
+              description: line.description || `Book ${line.name} in Noida & Delhi NCR.`,
+              path: `/services/${category.id}/${line.id}`,
+              imageUrl: heroImage,
+              price: cheapest?.base_price ?? line.starting_price ?? 0,
+            }),
+          ]),
+        }}
+      />
       <nav className="text-xs font-semibold text-gray-500">
         <Link href="/services" className="hover:text-gold-deep">
           Services

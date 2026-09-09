@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { faqJsonLd } from "@/lib/seo";
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -71,6 +72,10 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 export default function FaqPage() {
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(FAQS)) }}
+      />
       <section className="bg-[#f8f6f1]">
         <div className="mx-auto max-w-3xl px-5 py-16 text-center lg:px-8">
           <p className="text-xs font-black uppercase tracking-[.2em] text-[#b4832e]">Help center</p>

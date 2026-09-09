@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -13,7 +14,46 @@ import {
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
+import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 import AddToCartButton from "./AddToCartButton";
+
+type TierPageParams = { categoryId: string; lineId: string; serviceId: string };
+
+async function findTier(categoryId: string, lineId: string, serviceId: string) {
+  const { categories } = await getCatalogTree();
+  const category = categories.find((c) => String(c.id) === categoryId);
+  const line = category?.service_lines.find((l) => String(l.id) === lineId);
+  const tier = line?.stitching_types.find((t) => String(t.service_id) === serviceId);
+  return { category, line, tier };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<TierPageParams>;
+}): Promise<Metadata> {
+  const { categoryId, lineId, serviceId } = await params;
+  const { category, line, tier } = await findTier(categoryId, lineId, serviceId);
+  if (!category || !line || !tier) return {};
+
+  const title = `${tier.name} - ₹${tier.base_price.toLocaleString("en-IN")}`;
+  const description =
+    tier.description ||
+    `Book ${tier.name.toLowerCase()} online - ₹${tier.base_price.toLocaleString("en-IN")}, delivered in ${tier.estimated_delivery_days} day${tier.estimated_delivery_days === 1 ? "" : "s"}. Doorstep pickup in Noida & Delhi NCR, stitched by a verified tailor.`;
+  const path = `/services/${category.id}/${line.id}/${tier.service_id}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: {
+      title: `${tier.name} | BookMyDarzi`,
+      description,
+      url: path,
+      images: tier.image_url ? [{ url: tier.image_url }] : undefined,
+    },
+  };
+}
 
 // Same data-source approach as the parent service-line page: no dedicated
 // single-tier endpoint exists on the backend, so this locates the tier
@@ -21,14 +61,10 @@ import AddToCartButton from "./AddToCartButton";
 export default async function TierDetailPage({
   params,
 }: {
-  params: Promise<{ categoryId: string; lineId: string; serviceId: string }>;
+  params: Promise<TierPageParams>;
 }) {
   const { categoryId, lineId, serviceId } = await params;
-  const { categories } = await getCatalogTree();
-
-  const category = categories.find((c) => String(c.id) === categoryId);
-  const line = category?.service_lines.find((l) => String(l.id) === lineId);
-  const tier = line?.stitching_types.find((t) => String(t.service_id) === serviceId);
+  const { category, line, tier } = await findTier(categoryId, lineId, serviceId);
 
   if (!category || !line || !tier) {
     notFound();
@@ -40,6 +76,26 @@ export default async function TierDetailPage({
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: "Services", path: "/services" },
+              { name: line.name, path: `/services/${category.id}/${line.id}` },
+              { name: tier.name, path: `/services/${category.id}/${line.id}/${tier.service_id}` },
+            ]),
+            serviceJsonLd({
+              name: tier.name,
+              description: tier.description || `Book ${tier.name} in Noida & Delhi NCR.`,
+              path: `/services/${category.id}/${line.id}/${tier.service_id}`,
+              imageUrl: tier.image_url,
+              price: tier.base_price,
+            }),
+          ]),
+        }}
+      />
       <nav className="text-xs font-semibold text-gray-500">
         <Link href="/services" className="hover:text-gold-deep">
           Services
