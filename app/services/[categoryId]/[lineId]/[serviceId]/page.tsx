@@ -13,9 +13,9 @@ import {
   Truck,
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
-import { getCatalogTree } from "@/lib/services/catalog";
+import { getCatalogTree, getServiceAddons } from "@/lib/services/catalog";
 import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
-import AddToCartButton from "./AddToCartButton";
+import ServiceActions from "./ServiceActions";
 
 type TierPageParams = { categoryId: string; lineId: string; serviceId: string };
 
@@ -69,6 +69,8 @@ export default async function TierDetailPage({
   if (!category || !line || !tier) {
     notFound();
   }
+
+  const addons = await getServiceAddons(tier.service_id);
 
   const otherTiers = line.stitching_types
     .filter((t) => t.service_id !== tier.service_id)
@@ -201,25 +203,16 @@ export default async function TierDetailPage({
             </div>
           </div>
 
-          <div className="mt-7 flex flex-wrap gap-3">
-            <AddToCartButton
-              serviceId={tier.service_id}
-              name={tier.name}
-              imageUrl={tier.image_url ?? null}
-              basePrice={tier.base_price}
-              categoryName={category.name}
-              serviceLineName={line.name}
-              estimatedDeliveryDays={tier.estimated_delivery_days}
-            />
-            <Link
-              href={`/book-now?service_id=${tier.service_id}&name=${encodeURIComponent(tier.name)}${
-                tier.image_url ? `&image=${encodeURIComponent(tier.image_url)}` : ""
-              }`}
-              className="inline-flex items-center rounded-xl bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black"
-            >
-              Book Now <ArrowRight className="ml-2" size={16} />
-            </Link>
-          </div>
+          <ServiceActions
+            serviceId={tier.service_id}
+            name={tier.name}
+            imageUrl={tier.image_url ?? null}
+            basePrice={tier.base_price}
+            categoryName={category.name}
+            serviceLineName={line.name}
+            estimatedDeliveryDays={tier.estimated_delivery_days}
+            addons={addons}
+          />
         </div>
       </div>
 

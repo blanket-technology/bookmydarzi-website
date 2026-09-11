@@ -59,3 +59,17 @@ export interface CatalogCategory {
 export interface CatalogCategoriesTreeResponse {
   categories: CatalogCategory[];
 }
+
+// GET /services/{id}/addons - app/api/v1/endpoints/catalog.py's
+// get_service_addons. Optional, separately-priced extras scoped to one
+// specific service (e.g. Shirt Repair's own Button Replacement/Shoulder
+// Adjustment/Length Shortening), not part of the catalog tree response.
+export interface ServiceAddon {
+  id: number;
+  service_id: number;
+  name: string;
+  description?: string | null;
+  price: number;
+  display_order: number;
+  is_active: boolean;
+}
