@@ -1,10 +1,11 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Loader2, PencilLine } from "lucide-react";
 import { useState } from "react";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { AddressLocationField } from "@/components/AddressLocationField";
 import { useAddressLocation } from "@/lib/useAddressLocation";
+import { usePincodeLookup } from "@/lib/usePincodeLookup";
 import type { Address, AddressPayload, AddressType } from "@/lib/types/account";
 
 // Extracted from app/cart/page.tsx (the only place this form previously
@@ -44,9 +45,27 @@ export function InlineAddressForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const location = useAddressLocation();
+  const pincodeLookup = usePincodeLookup();
+  // City/State lock once a pincode resolves them (matches Amazon/Flipkart/
+  // Myntra) - "Edit manually" is the escape hatch if the lookup is ever
+  // wrong, so this can never trap someone who genuinely needs to correct it.
+  const [cityStateLocked, setCityStateLocked] = useState(false);
 
   const set = <K extends keyof AddressPayload>(key: K, value: AddressPayload[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const handlePincodeChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
+    set("pincode", digitsOnly);
+    if (digitsOnly.length !== 6) {
+      pincodeLookup.reset();
+      return;
+    }
+    void pincodeLookup.lookup(digitsOnly, ({ city, state }) => {
+      setForm((f) => ({ ...f, city, state }));
+      setCityStateLocked(true);
+    });
+  };
 
   const handleDetectLocation = () => {
     void location.detectLocation((geo) => {
@@ -122,24 +141,66 @@ export function InlineAddressForm({
           onChange={(e) => set("address_line_2", e.target.value)}
           className="sm:col-span-2 rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
         />
-        <input
-          placeholder="City"
-          value={form.city}
-          onChange={(e) => set("city", e.target.value)}
-          className="rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
-        />
-        <input
-          placeholder="State"
-          value={form.state}
-          onChange={(e) => set("state", e.target.value)}
-          className="rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
-        />
-        <input
-          placeholder="Pincode"
-          value={form.pincode}
-          onChange={(e) => set("pincode", e.target.value)}
-          className="rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
-        />
+        <div className="sm:col-span-2">
+          <input
+            placeholder="Pincode"
+            inputMode="numeric"
+            value={form.pincode}
+            onChange={(e) => handlePincodeChange(e.target.value)}
+            maxLength={6}
+            className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
+          />
+          {pincodeLookup.status === "looking-up" && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+              <Loader2 size={11} className="animate-spin" /> Looking up city/state…
+            </p>
+          )}
+          {pincodeLookup.status === "not-found" && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              Pincode not found - please enter city/state manually.
+            </p>
+          )}
+          {pincodeLookup.status === "error" && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              Couldn&apos;t look this up right now - please enter city/state manually.
+            </p>
+          )}
+        </div>
+        <div>
+          <input
+            placeholder="City"
+            value={form.city}
+            onChange={(e) => set("city", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 bg-white focus:border-ink"
+            }`}
+          />
+        </div>
+        <div>
+          <input
+            placeholder="State"
+            value={form.state}
+            onChange={(e) => set("state", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 bg-white focus:border-ink"
+            }`}
+          />
+        </div>
+        {cityStateLocked && (
+          <button
+            type="button"
+            onClick={() => setCityStateLocked(false)}
+            className="sm:col-span-2 flex items-center justify-center gap-1.5 text-xs font-bold text-muted hover:text-ink"
+          >
+            <PencilLine size={12} /> City/state look wrong? Edit manually
+          </button>
+        )}
         <input
           placeholder="Landmark (optional)"
           value={form.landmark ?? ""}

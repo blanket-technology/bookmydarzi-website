@@ -12,6 +12,7 @@ import {
   LogOut,
   MapPin,
   Pencil,
+  PencilLine,
   Plus,
   Ruler,
   ShieldAlert,
@@ -24,6 +25,7 @@ import {
 import { useAuth, type WebUser } from "@/lib/useAuth";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { useAddressLocation } from "@/lib/useAddressLocation";
+import { usePincodeLookup } from "@/lib/usePincodeLookup";
 import { AddressLocationField } from "@/components/AddressLocationField";
 import OrdersPanel from "@/components/OrdersPanel";
 import type {
@@ -425,6 +427,12 @@ function AddressForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const location = useAddressLocation();
+  const pincodeLookup = usePincodeLookup();
+  // City/State lock only once THIS session's pincode lookup resolves them
+  // (not retroactively for an existing address being edited, which may
+  // already have real, possibly-hand-corrected city/state text) - "Edit
+  // manually" below is the escape hatch either way.
+  const [cityStateLocked, setCityStateLocked] = useState(false);
   // Pre-populate coords when editing an address that already has them, so
   // re-saving without re-detecting doesn't lose the existing location
   // (mirrors address.tsx's loadAddressIntoForm).
@@ -436,6 +444,19 @@ function AddressForm({
 
   const set = <K extends keyof AddressPayload>(key: K, value: AddressPayload[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const handlePincodeChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
+    set("pincode", digitsOnly);
+    if (digitsOnly.length !== 6) {
+      pincodeLookup.reset();
+      return;
+    }
+    void pincodeLookup.lookup(digitsOnly, ({ city, state }) => {
+      setForm((f) => ({ ...f, city, state }));
+      setCityStateLocked(true);
+    });
+  };
 
   const handleDetectLocation = () => {
     void location.detectLocation((geo) => {
@@ -513,12 +534,42 @@ function AddressForm({
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
         </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Pincode</label>
+          <input
+            inputMode="numeric"
+            value={form.pincode}
+            onChange={(e) => handlePincodeChange(e.target.value)}
+            maxLength={6}
+            className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
+          />
+          {pincodeLookup.status === "looking-up" && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
+              <Loader2 size={11} className="animate-spin" /> Looking up city/state…
+            </p>
+          )}
+          {pincodeLookup.status === "not-found" && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              Pincode not found - enter city/state manually.
+            </p>
+          )}
+          {pincodeLookup.status === "error" && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              Couldn&apos;t look this up right now - enter city/state manually.
+            </p>
+          )}
+        </div>
         <div>
           <label className="text-xs font-bold uppercase tracking-wide text-gray-400">City</label>
           <input
             value={form.city}
             onChange={(e) => set("city", e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
+            readOnly={cityStateLocked}
+            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 focus:border-[#171717]"
+            }`}
           />
         </div>
         <div>
@@ -526,17 +577,23 @@ function AddressForm({
           <input
             value={form.state}
             onChange={(e) => set("state", e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
+            readOnly={cityStateLocked}
+            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 focus:border-[#171717]"
+            }`}
           />
         </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Pincode</label>
-          <input
-            value={form.pincode}
-            onChange={(e) => set("pincode", e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
-          />
-        </div>
+        {cityStateLocked && (
+          <button
+            type="button"
+            onClick={() => setCityStateLocked(false)}
+            className="sm:col-span-2 flex items-center justify-center gap-1.5 text-xs font-bold text-gray-400 hover:text-[#171717]"
+          >
+            <PencilLine size={12} /> City/state look wrong? Edit manually
+          </button>
+        )}
         <div>
           <label className="text-xs font-bold uppercase tracking-wide text-gray-400">
             Landmark (optional)
