@@ -62,21 +62,22 @@ export function InlineAddressForm({
   };
 
   const submit = async () => {
-    // Backend requires latitude/longitude (assert_serviceable in
-    // app/services/location/serviceability_service.py) - block here with a
-    // specific message instead of surfacing the generic 422 after a failed
-    // save, mirroring react_app/app/address.tsx's handleSaveAddress gating.
-    if (location.coords == null) {
-      setError('Please use "Use my current location" so we can confirm we deliver there.');
-      return;
-    }
-
+    // Geolocation is optional, not required, to save an address - the
+    // backend (app/services/users/address_service.py's create_address) only
+    // enforces serviceability when coordinates are actually provided, so a
+    // manually-typed address saves fine with null lat/lng. The real
+    // location-precision requirement is enforced later, at order-placement
+    // time, where it actually matters operationally.
     setSaving(true);
     setError(null);
     try {
       const created = await apiClient<Address>("/users/addresses", {
         method: "POST",
-        body: { ...form, latitude: location.coords.latitude, longitude: location.coords.longitude },
+        body: {
+          ...form,
+          latitude: location.coords?.latitude ?? null,
+          longitude: location.coords?.longitude ?? null,
+        },
       });
       await onSaved(created);
       setForm(EMPTY_ADDRESS_FORM);

@@ -451,20 +451,18 @@ function AddressForm({
   };
 
   const submit = async () => {
-    // The backend now requires latitude/longitude (assert_serviceable in
-    // app/services/location/serviceability_service.py) - block here with a
-    // specific message instead of letting the generic 422 surface after a
-    // failed save attempt, mirroring react_app/app/address.tsx's
-    // handleSaveAddress gating.
-    if (location.coords == null) {
-      setError('Please use "Use my current location" so we can confirm we deliver there.');
-      return;
-    }
-
+    // Geolocation is optional, not required, to save an address - see
+    // InlineAddressForm.tsx's matching submit() for the full reasoning
+    // (backend only enforces serviceability when coordinates are actually
+    // provided).
     setSaving(true);
     setError(null);
     try {
-      await onSaved({ ...form, latitude: location.coords.latitude, longitude: location.coords.longitude });
+      await onSaved({
+        ...form,
+        latitude: location.coords?.latitude ?? null,
+        longitude: location.coords?.longitude ?? null,
+      });
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Couldn't save this address.");
     } finally {

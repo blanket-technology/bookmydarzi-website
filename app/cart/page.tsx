@@ -254,6 +254,7 @@ function GuestCartView({
             <OfferPicker
               offers={validOffers}
               appliedOfferId={appliedOffer?.offer_id ?? null}
+              orderTotal={total}
               onApply={onApplyOffer}
               onRemove={onRemoveOffer}
             />
@@ -924,6 +925,7 @@ function CartContent() {
             <OfferPicker
               offers={validOffers}
               appliedOfferId={appliedOffer?.offer_id ?? null}
+              orderTotal={total}
               onApply={applyOffer}
               onRemove={removeOffer}
             />

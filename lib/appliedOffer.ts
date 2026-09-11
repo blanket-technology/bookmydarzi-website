@@ -18,6 +18,11 @@ export interface ApiOffer {
   discount_type?: "percentage" | "flat" | null;
   discount_percent: number;
   discount_amount?: number | null;
+  /** Cart/order subtotal must be at least this much for the offer to be
+   * eligible - 0/undefined means no minimum. Enforced server-side at
+   * checkout regardless of what the UI shows (checkout_service.py /
+   * direct_order_service.py). */
+  min_order_value?: number | null;
   image_url?: string | null;
   valid_from?: string | null;
   valid_until?: string | null;
