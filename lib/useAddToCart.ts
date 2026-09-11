@@ -6,6 +6,7 @@ import { useGuestCart, type GuestCartDisplayInfo } from "@/lib/guestCart";
 import { apiClient } from "@/lib/apiClient";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { useToast } from "@/lib/toast";
+import type { SelectedAddon } from "@/lib/selectedAddons";
 
 // Client-side "Add to Cart" that stays on the current page - no navigation
 // to /cart, matching react_app/src/store/useCartStore.ts's addToCart()
@@ -23,6 +24,7 @@ export function useAddToCart() {
     serviceId: number,
     displayInfo: GuestCartDisplayInfo,
     quantity = 1,
+    selectedAddons?: SelectedAddon[],
   ) => {
     if (!checked || addingId != null) return;
 
@@ -31,11 +33,17 @@ export function useAddToCart() {
       if (user) {
         await apiClient("/cart/service-entry", {
           method: "POST",
-          body: { service_id: serviceId, quantity },
+          body: {
+            service_id: serviceId,
+            quantity,
+            addons: selectedAddons?.length
+              ? selectedAddons.map((a) => ({ addon_id: a.addon_id, note: a.note }))
+              : undefined,
+          },
           idempotencyKey: generateIdempotencyKey(),
         });
       } else {
-        guestAddItem(serviceId, quantity, displayInfo);
+        guestAddItem(serviceId, quantity, displayInfo, selectedAddons);
       }
       show("Added to cart");
     } catch (err) {

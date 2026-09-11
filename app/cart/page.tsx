@@ -46,6 +46,14 @@ import type { CatalogCategoriesTreeResponse } from "@/lib/types/catalog";
 // names, not the mobile app's camelCase mapping - this page reads the API
 // response directly). Backend: GET/POST /cart, POST/PUT/DELETE
 // /cart/service-entry(/{id}) - see react_app/src/services/cartService.ts.
+interface CartEntryAddon {
+  addon_id?: number | null;
+  name: string;
+  price: number;
+  price_display: string;
+  note?: string | null;
+}
+
 interface CartServiceEntry {
   entry_id?: number;
   id?: number;
@@ -59,6 +67,7 @@ interface CartServiceEntry {
   line_total?: number;
   unit_price_display?: string;
   line_total_display?: string;
+  addons?: CartEntryAddon[];
 }
 
 interface CartBilling {
@@ -176,6 +185,11 @@ function GuestCartView({
                     <div>
                       <h2 className="font-bold">{item.name}</h2>
                       <p className="text-xs text-gray-400">{item.category_name}</p>
+                      {item.selected_addons && item.selected_addons.length > 0 && (
+                        <p className="mt-0.5 truncate text-xs text-gray-500">
+                          + {item.selected_addons.map((a) => a.name).join(", ")}
+                        </p>
+                      )}
                       <p className="mt-1 text-sm text-gray-500">{formatInr(item.base_price)} each</p>
                     </div>
                   </div>
@@ -739,6 +753,11 @@ function CartContent() {
                       <div>
                         <h2 className="font-bold">{entry.service_name}</h2>
                         {entry.category_name && <p className="text-xs text-gray-400">{entry.category_name}</p>}
+                        {entry.addons && entry.addons.length > 0 && (
+                          <p className="mt-0.5 truncate text-xs text-gray-500">
+                            + {entry.addons.map((a) => a.name).join(", ")}
+                          </p>
+                        )}
                         <p className="mt-1 text-sm text-gray-500">
                           {entry.unit_price_display ?? formatInr(unitPrice)} each
                         </p>

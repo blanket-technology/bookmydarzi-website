@@ -2,6 +2,7 @@
 
 import { Loader2, ShoppingBag } from "lucide-react";
 import { useAddToCart } from "@/lib/useAddToCart";
+import type { SelectedAddon } from "@/lib/selectedAddons";
 
 // Client component so "Add to Cart" can add the item and stay on this page
 // (toast confirmation) instead of navigating to /cart, matching the mobile
@@ -19,6 +20,7 @@ export default function AddToCartButton({
   categoryName,
   serviceLineName,
   estimatedDeliveryDays,
+  selectedAddons,
 }: {
   serviceId: number;
   name: string;
@@ -27,6 +29,7 @@ export default function AddToCartButton({
   categoryName: string;
   serviceLineName: string;
   estimatedDeliveryDays: number;
+  selectedAddons?: SelectedAddon[];
 }) {
   const { addToCart, addingId } = useAddToCart();
   const adding = addingId === serviceId;
@@ -36,14 +39,19 @@ export default function AddToCartButton({
       type="button"
       disabled={adding}
       onClick={() =>
-        addToCart(serviceId, {
-          name,
-          image_url: imageUrl,
-          base_price: basePrice,
-          category_name: categoryName,
-          service_line_name: serviceLineName,
-          estimated_delivery_days: estimatedDeliveryDays,
-        })
+        addToCart(
+          serviceId,
+          {
+            name,
+            image_url: imageUrl,
+            base_price: basePrice,
+            category_name: categoryName,
+            service_line_name: serviceLineName,
+            estimated_delivery_days: estimatedDeliveryDays,
+          },
+          1,
+          selectedAddons,
+        )
       }
       className="inline-flex items-center rounded-xl border-2 border-ink px-6 py-3.5 text-sm font-bold text-ink transition hover:-translate-y-0.5 hover:bg-cream disabled:cursor-not-allowed disabled:opacity-60"
     >

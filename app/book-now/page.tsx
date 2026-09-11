@@ -14,6 +14,7 @@ import { estimateOfferDiscount, type AppliedOffer, type ApiOffer } from "@/lib/a
 import { InlineAddressForm, formatAddressLine } from "@/components/InlineAddressForm";
 import { OfferPicker, useOffersList, useValidOffers } from "@/components/OfferPicker";
 import type { Address, AddressListResponse } from "@/lib/types/account";
+import type { SelectedAddon } from "@/lib/selectedAddons";
 import {
   createPaymentSession,
   isRazorpayScriptReady,
@@ -79,6 +80,20 @@ function BookNowContent() {
   // the actual charge, which always comes from GET /orders/billing-estimate.
   const serviceName = params.get("name") || "Service";
   const serviceImage = params.get("image");
+  // Passed through from the service page's addon picker - see
+  // ServiceActions.tsx. Parsed once; a malformed/tampered value just means
+  // no addons are applied rather than breaking the page.
+  const selectedAddons: SelectedAddon[] = (() => {
+    const raw = params.get("addons");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+  const addonIdsParam = selectedAddons.map((a) => a.addon_id).join(",");
 
   const [estimate, setEstimate] = useState<BillingEstimate | null>(null);
   const [estimateError, setEstimateError] = useState<string | null>(null);
@@ -150,12 +165,13 @@ function BookNowContent() {
 
   useEffect(() => {
     if (!checked || !user || !serviceId) return;
-    apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1`)
+    const addonQuery = addonIdsParam ? `&addon_ids=${encodeURIComponent(addonIdsParam)}` : "";
+    apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}`)
       .then(setEstimate)
       .catch((err) =>
         setEstimateError(err instanceof ClientApiError ? err.message : "Could not load pricing for this service."),
       );
-  }, [checked, user, serviceId]);
+  }, [checked, user, serviceId, addonIdsParam]);
 
   const loadAddresses = useCallback(async () => {
     setAddressesLoading(true);
@@ -201,6 +217,9 @@ function BookNowContent() {
         ? { scheduled_pickup_at: scheduledPickupAt, pickup_time_slot: scheduledSlot }
         : {}),
       ...(appliedOffer ? { offer_id: appliedOffer.offer_id } : {}),
+      ...(selectedAddons.length > 0
+        ? { addons: selectedAddons.map((a) => ({ addon_id: a.addon_id, note: a.note })) }
+        : {}),
     };
   };
 
@@ -612,6 +631,17 @@ function BookNowContent() {
               )}
               <p className="min-w-0 truncate text-sm font-bold">{serviceName}</p>
             </div>
+
+            {selectedAddons.length > 0 && (
+              <ul className="mt-3 space-y-1">
+                {selectedAddons.map((a) => (
+                  <li key={a.addon_id} className="flex justify-between text-xs text-gray-600">
+                    <span>+ {a.name}</span>
+                    <span>₹{a.price.toLocaleString("en-IN")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
             <div className="my-5 border-t border-black/10" />
 

@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { SelectedAddon } from "@/lib/selectedAddons";
 
 // Client-only "browse before login" cart, modeled on Amazon/Flipkart/Myntra:
 // a logged-out visitor can add/remove/adjust items freely with zero server
@@ -30,11 +31,22 @@ export interface GuestCartDisplayInfo {
 export interface GuestCartItem extends GuestCartDisplayInfo {
   service_id: number;
   quantity: number;
+  /** Extras selected at add-time (e.g. Button Replacement) - a guest can
+   * only add one line per service_id (see addItem's merge-by-id below), so
+   * re-adding the same service with a different addon selection just bumps
+   * quantity and keeps whatever addons were chosen first, same limitation
+   * quantity itself already had here. */
+  selected_addons?: SelectedAddon[];
 }
 
 interface GuestCartState {
   items: GuestCartItem[];
-  addItem: (service_id: number, quantity: number, displayInfo: GuestCartDisplayInfo) => void;
+  addItem: (
+    service_id: number,
+    quantity: number,
+    displayInfo: GuestCartDisplayInfo,
+    selectedAddons?: SelectedAddon[],
+  ) => void;
   updateQuantity: (service_id: number, quantity: number) => void;
   removeItem: (service_id: number) => void;
   clear: () => void;
@@ -45,7 +57,7 @@ export const useGuestCart = create<GuestCartState>()(
     (set) => ({
       items: [],
 
-      addItem: (service_id, quantity, displayInfo) =>
+      addItem: (service_id, quantity, displayInfo, selectedAddons) =>
         set((state) => {
           const existing = state.items.find((i) => i.service_id === service_id);
           if (existing) {
@@ -55,7 +67,12 @@ export const useGuestCart = create<GuestCartState>()(
               ),
             };
           }
-          return { items: [...state.items, { service_id, quantity, ...displayInfo }] };
+          return {
+            items: [
+              ...state.items,
+              { service_id, quantity, ...displayInfo, selected_addons: selectedAddons },
+            ],
+          };
         }),
 
       updateQuantity: (service_id, quantity) =>
@@ -88,7 +105,10 @@ export function useGuestCartHasItems(): boolean {
 }
 
 export function guestCartEstimatedTotal(items: GuestCartItem[]): number {
-  return items.reduce((sum, i) => sum + i.base_price * i.quantity, 0);
+  return items.reduce((sum, i) => {
+    const addonsTotal = (i.selected_addons ?? []).reduce((s, a) => s + a.price, 0);
+    return sum + (i.base_price + addonsTotal) * i.quantity;
+  }, 0);
 }
 
 // ─── Login-sync ───────────────────────────────────────────────────────────
@@ -113,7 +133,13 @@ export async function syncGuestCartToServer(): Promise<void> {
     items.map((item) =>
       apiClient("/cart/service-entry", {
         method: "POST",
-        body: { service_id: item.service_id, quantity: item.quantity },
+        body: {
+          service_id: item.service_id,
+          quantity: item.quantity,
+          addons: item.selected_addons?.length
+            ? item.selected_addons.map((a) => ({ addon_id: a.addon_id, note: a.note }))
+            : undefined,
+        },
         idempotencyKey: generateIdempotencyKey(),
       }),
     ),
