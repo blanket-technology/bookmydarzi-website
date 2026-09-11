@@ -19,7 +19,7 @@ import {
 import { useAuth } from "@/lib/useAuth";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { InlineAddressForm, formatAddressLine } from "@/components/InlineAddressForm";
-import { OfferPicker, useValidOffers } from "@/components/OfferPicker";
+import { OfferPicker, useValidOffers, amountToUnlock } from "@/components/OfferPicker";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import type { Address, AddressListResponse } from "@/lib/types/account";
 import {
@@ -354,6 +354,27 @@ function CartContent() {
   useEffect(() => {
     setAppliedOfferState(readAppliedOffer());
   }, []);
+
+  // Re-validate the restored offer against live data once both the offers
+  // list and the real cart total have loaded - a session-stored selection
+  // could since have gone inactive/expired, or (the bug this closes) could
+  // predate MinOrderValue being enforced, meaning "HAPPY" (flat ₹750 off)
+  // stayed applied and showing a full-price-wiping discount on a ₹249 cart
+  // even though it's no longer eligible. The backend already rejects this
+  // at actual checkout, but the cart page previously kept displaying it as
+  // if it would go through, which is misleading. Clearing it removes both
+  // the estimate and the query param that would otherwise still get sent.
+  useEffect(() => {
+    if (!appliedOffer || offers.length === 0 || !cart) return;
+    const total = cart.billing?.total_amount ?? cart.total_amount ?? 0;
+    const live = offers.find((o) => o.offer_id === appliedOffer.offer_id);
+    const stillEligible = live && amountToUnlock(live, total) === 0;
+    if (!stillEligible) {
+      setAppliedOfferState(null);
+      writeAppliedOffer(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appliedOffer, offers, cart]);
 
   const applyOffer = useCallback((offer: ApiOffer) => {
     const next: AppliedOffer = {
