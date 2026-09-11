@@ -17,8 +17,12 @@ interface OffersListResponse {
 }
 
 export function formatOfferDiscount(offer: ApiOffer): string {
-  return offer.discount_type === "flat"
-    ? `₹${Math.round(offer.discount_amount ?? 0).toLocaleString("en-IN")} off`
+  if (offer.discount_type === "flat") {
+    return `₹${Math.round(offer.discount_amount ?? 0).toLocaleString("en-IN")} off`;
+  }
+  const cap = offer.max_discount_amount;
+  return cap && cap > 0
+    ? `${offer.discount_percent}% off, up to ₹${Math.round(cap).toLocaleString("en-IN")}`
     : `${offer.discount_percent}% off`;
 }
 

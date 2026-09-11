@@ -23,6 +23,11 @@ export interface ApiOffer {
    * checkout regardless of what the UI shows (checkout_service.py /
    * direct_order_service.py). */
   min_order_value?: number | null;
+  /** Caps the computed discount for a percentage offer (e.g. "23% off, up
+   * to ₹500") - null/undefined means uncapped. Only meaningful when
+   * discount_type is "percentage". Enforced server-side at checkout
+   * (checkout_service.py / direct_order_service.py). */
+  max_discount_amount?: number | null;
   image_url?: string | null;
   valid_from?: string | null;
   valid_until?: string | null;
@@ -35,6 +40,9 @@ export interface AppliedOffer {
   discount_type: "flat" | "percentage";
   /** DiscountAmount when flat, DiscountPercent when percentage - see OfferResponse. */
   discount_value: number;
+  /** See ApiOffer.max_discount_amount - carried through so the client-side
+   * estimate below matches what checkout will actually charge. */
+  max_discount_amount?: number | null;
 }
 
 export function readAppliedOffer(): AppliedOffer | null {
@@ -71,5 +79,9 @@ export function estimateOfferDiscount(offer: AppliedOffer | null, totalAmount: n
   if (offer.discount_type === "flat") {
     return Math.min(Math.round(offer.discount_value), totalAmount);
   }
-  return Math.round(totalAmount * (offer.discount_value / 100) * 100) / 100;
+  let discount = Math.round(totalAmount * (offer.discount_value / 100) * 100) / 100;
+  if (offer.max_discount_amount && offer.max_discount_amount > 0) {
+    discount = Math.min(discount, offer.max_discount_amount);
+  }
+  return Math.min(discount, totalAmount);
 }

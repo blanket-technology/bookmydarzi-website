@@ -117,6 +117,7 @@ function BookNowContent() {
       title: offer.title,
       discount_type: offer.discount_type === "flat" ? "flat" : "percentage",
       discount_value: offer.discount_type === "flat" ? (offer.discount_amount ?? 0) : offer.discount_percent,
+      max_discount_amount: offer.discount_type === "flat" ? null : offer.max_discount_amount,
     });
   }, []);
   const removeOffer = useCallback(() => setAppliedOffer(null), []);
