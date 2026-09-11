@@ -6,7 +6,6 @@ import {
   ArrowRight,
   BadgeCheck,
   CheckCircle2,
-  Clock3,
   RefreshCcw,
   ShieldCheck,
   Sparkles,
@@ -188,20 +187,6 @@ export default async function TierDetailPage({
               </li>
             ))}
           </ul>
-
-          <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Price</p>
-              <p className="text-3xl font-black text-ink">
-                ₹{tier.base_price.toLocaleString("en-IN")}
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 pb-1.5 text-sm font-semibold text-gray-600">
-              <Clock3 size={16} className="text-gold-deep" />
-              Delivered in {tier.estimated_delivery_days} day
-              {tier.estimated_delivery_days === 1 ? "" : "s"}
-            </div>
-          </div>
 
           <ServiceActions
             serviceId={tier.service_id}
