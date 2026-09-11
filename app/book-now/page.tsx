@@ -595,6 +595,7 @@ function BookNowContent() {
           <OfferPicker
             offers={validOffers}
             appliedOfferId={appliedOffer?.offer_id ?? null}
+            orderTotal={estimate?.total_amount ?? 0}
             onApply={applyOffer}
             onRemove={removeOffer}
           />

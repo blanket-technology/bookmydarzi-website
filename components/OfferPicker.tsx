@@ -38,6 +38,16 @@ export function useValidOffers(offers: ApiOffer[]): ApiOffer[] {
   }, [offers]);
 }
 
+/** How much more the customer needs to add to their order for this offer to
+ * become eligible - 0 if already eligible or the offer has no minimum.
+ * Mirrors the same comparison checkout_service.py/direct_order_service.py
+ * make server-side (billing_base.total_amount >= offer.MinOrderValue), so
+ * "locked" here always matches what checkout would actually accept. */
+export function amountToUnlock(offer: ApiOffer, orderTotal: number): number {
+  const min = offer.min_order_value ?? 0;
+  return min > 0 ? Math.max(0, Math.round(min - orderTotal)) : 0;
+}
+
 /** Fetches GET /offers once and returns the valid subset - both pages that
  * browse offers (as opposed to only typing a code) need this same list. */
 export function useOffersList(enabled: boolean): ApiOffer[] {
@@ -60,9 +70,11 @@ export function useOffersList(enabled: boolean): ApiOffer[] {
 
 function CouponCodeInput({
   appliedOfferId,
+  orderTotal,
   onApply,
 }: {
   appliedOfferId: number | null;
+  orderTotal: number;
   onApply: (offer: ApiOffer) => void;
 }) {
   const [code, setCode] = useState("");
@@ -78,6 +90,16 @@ function CouponCodeInput({
     setSuccess(null);
     try {
       const offer = await apiClient<ApiOffer>(`/offers/validate?code=${encodeURIComponent(trimmed)}`);
+      // /offers/validate only checks code validity + one-time-use (it has no
+      // order total to compare against) - the minimum-order check has to
+      // happen here instead, using the same shortfall math the offer cards
+      // show, so typing a code doesn't bypass the same rule tapping "Apply"
+      // enforces. Checkout still re-validates server-side regardless.
+      const shortfall = amountToUnlock(offer, orderTotal);
+      if (shortfall > 0) {
+        setError(`Add ₹${shortfall.toLocaleString("en-IN")} more to your order to use this coupon.`);
+        return;
+      }
       onApply(offer);
       setSuccess(`"${offer.title}" applied - ${formatOfferDiscount(offer)}`);
       setCode("");
@@ -92,7 +114,7 @@ function CouponCodeInput({
     } finally {
       setChecking(false);
     }
-  }, [code, checking, onApply]);
+  }, [code, checking, onApply, orderTotal]);
 
   return (
     <div className="mt-5 border-t border-black/5 pt-5">
@@ -134,11 +156,19 @@ function CouponCodeInput({
 export function OfferPicker({
   offers,
   appliedOfferId,
+  orderTotal,
   onApply,
   onRemove,
 }: {
   offers: ApiOffer[];
   appliedOfferId: number | null;
+  /** Current cart/order subtotal, used only to show offers below their
+   * MinOrderValue as locked (with "Add ₹X more" instead of a live Apply
+   * button) rather than letting them look applicable when they aren't -
+   * matches Zomato/Myntra's convention. This is a display aid only; the
+   * backend is what actually rejects an ineligible offer_id at checkout
+   * regardless of what this prop is passed as. */
+  orderTotal: number;
   onApply: (offer: ApiOffer) => void;
   onRemove: () => void;
 }) {
@@ -165,15 +195,21 @@ export function OfferPicker({
         <div className="mt-5 space-y-3">
           {visible.map((offer) => {
             const applied = appliedOfferId === offer.offer_id;
+            const shortfall = amountToUnlock(offer, orderTotal);
+            const locked = shortfall > 0;
             return (
               <div
                 key={offer.offer_id}
                 className={`flex items-start justify-between gap-3 rounded-2xl border-2 p-4 transition ${
-                  applied ? "border-ink bg-cream" : "border-black/5"
+                  applied ? "border-ink bg-cream" : locked ? "border-black/5 opacity-60" : "border-black/5"
                 }`}
               >
                 <div className="flex min-w-0 items-start gap-3">
-                  <span className="mt-0.5 shrink-0 rounded-lg bg-ink px-2 py-1 text-[11px] font-black text-white">
+                  <span
+                    className={`mt-0.5 shrink-0 rounded-lg px-2 py-1 text-[11px] font-black text-white ${
+                      locked ? "bg-gray-400" : "bg-ink"
+                    }`}
+                  >
                     {formatOfferDiscount(offer)}
                   </span>
                   <div className="min-w-0">
@@ -181,15 +217,25 @@ export function OfferPicker({
                     {offer.description && (
                       <p className="mt-0.5 truncate text-xs text-gray-500">{offer.description}</p>
                     )}
+                    {locked && (
+                      <p className="mt-0.5 text-xs font-bold text-amber-700">
+                        Add ₹{shortfall.toLocaleString("en-IN")} more to unlock
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button
                   onClick={() => (applied ? onRemove() : onApply(offer))}
+                  disabled={locked}
                   className={`shrink-0 rounded-full border-2 px-3.5 py-1.5 text-xs font-bold transition ${
-                    applied ? "border-ink bg-ink text-white" : "border-ink text-ink hover:bg-cream"
+                    applied
+                      ? "border-ink bg-ink text-white"
+                      : locked
+                        ? "cursor-not-allowed border-black/10 text-gray-400"
+                        : "border-ink text-ink hover:bg-cream"
                   }`}
                 >
-                  {applied ? "Applied" : "Apply"}
+                  {applied ? "Applied" : locked ? "Locked" : "Apply"}
                 </button>
               </div>
             );
@@ -207,7 +253,7 @@ export function OfferPicker({
         </button>
       )}
 
-      <CouponCodeInput appliedOfferId={appliedOfferId} onApply={onApply} />
+      <CouponCodeInput appliedOfferId={appliedOfferId} orderTotal={orderTotal} onApply={onApply} />
     </section>
   );
 }
