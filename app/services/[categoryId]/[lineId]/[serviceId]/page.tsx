@@ -108,7 +108,11 @@ export default async function TierDetailPage({
         / <span className="text-ink">{tier.name}</span>
       </nav>
 
-      <div className="mt-6 grid gap-10 md:grid-cols-2 md:items-start">
+      {/* gap-10 is sized for the desktop 2-column horizontal gutter; on
+          mobile the columns stack vertically, so that same gap-10 read as a
+          jarring empty gap between the image/feature-card block and the
+          price/add-ons block - gap-6 on mobile, gap-10 only from md up. */}
+      <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-start md:gap-10">
         <div>
           {tier.image_url ? (
             // Same square-box fix as the category page's hero - see that
