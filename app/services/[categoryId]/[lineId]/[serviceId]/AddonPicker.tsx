@@ -61,13 +61,13 @@ export default function AddonPicker({
     .reduce((sum, a) => sum + a.price, 0);
 
   return (
-    <section className="mt-7 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <section className="mt-7 rounded-3xl border border-black/5 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink text-white">
             <PlusCircle size={17} />
           </span>
-          <div>
+          <div className="min-w-0">
             <h2 className="font-black">Add extras</h2>
             <p className="text-xs text-muted">Extend this order with optional work</p>
           </div>
@@ -95,7 +95,7 @@ export default function AddonPicker({
                 aria-pressed={checked}
                 className="flex w-full items-start justify-between gap-3 p-4 text-left"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex min-w-0 items-start gap-3">
                   <span
                     className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-150 ${
                       checked
@@ -105,10 +105,10 @@ export default function AddonPicker({
                   >
                     <Check size={13} strokeWidth={3} />
                   </span>
-                  <div>
-                    <p className="text-sm font-bold">{addon.name}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{addon.name}</p>
                     {addon.description && (
-                      <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-gray-500">
                         {addon.description}
                       </p>
                     )}
