@@ -15,6 +15,7 @@ import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogServiceLine } from "@/lib/types/catalog";
 import { getTestimonials } from "@/lib/services/testimonials";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
+import ScrollReveal from "@/components/ScrollReveal";
 
 export const metadata: Metadata = {
   title: "Doorstep Tailoring & Alterations in Delhi NCR",
@@ -70,13 +71,14 @@ export default async function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/services"
-                className="rounded-xl bg-[#171717] px-6 py-3.5 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5"
+                className="group rounded-xl bg-[#171717] px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
               >
-                Book a Service <ArrowRight className="ml-2 inline" size={16} />
+                Book a Service{" "}
+                <ArrowRight className="ml-2 inline transition-transform duration-300 group-hover:translate-x-1" size={16} />
               </Link>
               <Link
                 href="/orders"
-                className="rounded-xl border border-black/10 bg-white px-6 py-3.5 text-sm font-bold hover:bg-gray-50"
+                className="rounded-xl border border-black/10 bg-white px-6 py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
               >
                 Track Order
               </Link>
@@ -158,10 +160,10 @@ export default async function Home() {
         </div>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {featured.map(({ line, categoryId }, i) => (
+            <ScrollReveal key={line.id} delay={i * 90}>
             <Link
               href={`/services/${categoryId}/${line.id}`}
-              key={line.id}
-              className="group rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:-translate-y-1 hover:shadow-xl"
+              className="hover-lift group block rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:shadow-xl"
             >
               {/* aspect-square + object-cover, not a fixed h-64 - the
                   catalog's photos are a genuine mix of portrait/landscape
@@ -197,11 +199,12 @@ export default async function Home() {
                       : "Price on request"}
                   </p>
                 </div>
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 group-hover:bg-[#171717] group-hover:text-white">
-                  <ArrowRight size={17} />
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 transition-colors group-hover:bg-[#171717] group-hover:text-white">
+                  <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </span>
               </div>
             </Link>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -244,9 +247,9 @@ export default async function Home() {
                 desc: "Your perfectly-stitched garment is delivered straight back to your door.",
               },
             ].map((step, i) => (
-              <div key={step.title} className="border-t border-white/15 pt-5">
+              <ScrollReveal key={step.title} delay={i * 80} className="border-t border-white/15 pt-5">
                 <div className="flex items-center gap-2">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c99a3d] text-[#171717]">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c99a3d] text-[#171717] transition-transform duration-300 hover:scale-110">
                     <step.icon size={16} />
                   </span>
                   <span className="text-xs font-bold text-[#d2aa5c]">
@@ -255,7 +258,7 @@ export default async function Home() {
                 </div>
                 <h3 className="mt-3 text-lg font-bold">{step.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/50">{step.desc}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -269,17 +272,18 @@ export default async function Home() {
           Built for trust, start to finish.
         </h2>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {TRUST_SIGNALS.map(({ icon: Icon, title, desc }) => (
-            <div
+          {TRUST_SIGNALS.map(({ icon: Icon, title, desc }, i) => (
+            <ScrollReveal
               key={title}
-              className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:-translate-y-1 hover:shadow-xl"
+              delay={i * 80}
+              className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-xl"
             >
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#171717] text-[#c99a3d]">
                 <Icon size={20} />
               </span>
               <h3 className="mt-4 text-lg font-black">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-gray-500">{desc}</p>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -295,9 +299,10 @@ export default async function Home() {
           {testimonials.length > 0 ? (
             <div className="mt-8 grid gap-5 md:grid-cols-3">
               {testimonials.map((t, i) => (
-                <div
+                <ScrollReveal
                   key={`${t.name}-${i}`}
-                  className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm"
+                  delay={i * 90}
+                  className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-lg"
                 >
                   <p className="text-sm leading-6 text-gray-600">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-5 flex items-center gap-3">
@@ -309,7 +314,7 @@ export default async function Home() {
                       {t.location && <p className="text-xs text-gray-400">{t.location}</p>}
                     </div>
                   </div>
-                </div>
+                </ScrollReveal>
               ))}
             </div>
           ) : (
