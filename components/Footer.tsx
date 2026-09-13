@@ -25,14 +25,20 @@ export default function Footer() {
         <div>
           <p className="font-bold">Support</p>
           <div className="mt-4 space-y-3 text-sm text-white/55">
-            <Link className="block hover:text-white" href="/faq">Help Center</Link>
-            <Link className="block hover:text-white" href="/contact">Contact Us</Link>
-            <Link className="block hover:text-white" href="/about">About Us</Link>
+            <Link className="block w-fit transition-colors hover:text-white" href="/faq">Help Center</Link>
+            <Link className="block w-fit transition-colors hover:text-white" href="/contact">Contact Us</Link>
+            <Link className="block w-fit transition-colors hover:text-white" href="/about">About Us</Link>
           </div>
         </div>
       </div>
-      <div className="border-t border-white/10 px-5 py-5 text-center text-xs text-white/35">
-        © 2026 Blanket Technologies Pvt. Ltd. All rights reserved. BookMyDarzi is a Blanket Technologies product.
+      <div className="border-t border-white/10 px-5 py-5">
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 text-center text-xs text-white/35 sm:flex-row sm:justify-between sm:text-left">
+          <p>© 2026 Blanket Technologies Pvt. Ltd. All rights reserved. BookMyDarzi is a Blanket Technologies product.</p>
+          <div className="flex items-center gap-4">
+            <Link className="transition-colors hover:text-white/70" href="/privacy">Privacy Policy</Link>
+            <Link className="transition-colors hover:text-white/70" href="/terms">Terms of Service</Link>
+          </div>
+        </div>
       </div>
     </footer>
   );

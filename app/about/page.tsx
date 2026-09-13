@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import { getTestimonials } from "@/lib/services/testimonials";
+import ScrollReveal from "@/components/ScrollReveal";
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -123,14 +124,18 @@ export default async function AboutPage() {
           <h2 className="mt-2 text-3xl font-black md:text-4xl">From booking to delivery.</h2>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {HOW_IT_WORKS.map(({ icon: Icon, title, desc }, i) => (
-              <div key={title} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <ScrollReveal
+                key={title}
+                delay={i * 90}
+                className="hover-lift rounded-3xl border border-white/10 bg-white/[0.03] p-6 hover:bg-white/[0.06]"
+              >
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-gold text-ink">
                   <Icon size={20} />
                 </span>
                 <p className="mt-4 text-xs font-bold text-gold">Step {i + 1}</p>
                 <h3 className="mt-1 text-lg font-black">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-white/55">{desc}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -142,17 +147,18 @@ export default async function AboutPage() {
           What makes us different from a one-off tailor.
         </h2>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
-          {COMMITMENTS.map(({ icon: Icon, title, desc }) => (
-            <div
+          {COMMITMENTS.map(({ icon: Icon, title, desc }, i) => (
+            <ScrollReveal
               key={title}
-              className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+              delay={i * 90}
+              className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-xl"
             >
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-gold">
                 <Icon size={20} />
               </span>
               <h3 className="mt-4 text-lg font-black">{title}</h3>
               <p className="mt-2 text-sm leading-6 text-gray-500">{desc}</p>
-            </div>
+            </ScrollReveal>
           ))}
         </div>
       </section>
@@ -164,17 +170,18 @@ export default async function AboutPage() {
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Built on trust.</h2>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST_SIGNALS.map(({ icon: Icon, title, desc }) => (
-              <div
+            {TRUST_SIGNALS.map(({ icon: Icon, title, desc }, i) => (
+              <ScrollReveal
                 key={title}
-                className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                delay={i * 80}
+                className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-xl"
               >
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-gold">
                   <Icon size={20} />
                 </span>
                 <h3 className="mt-4 text-lg font-black">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-500">{desc}</p>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -186,7 +193,11 @@ export default async function AboutPage() {
         {testimonials.length > 0 ? (
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             {testimonials.map((t, i) => (
-              <div key={`${t.name}-${i}`} className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+              <ScrollReveal
+                key={`${t.name}-${i}`}
+                delay={i * 90}
+                className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-lg"
+              >
                 <p className="text-sm leading-6 text-gray-600">&ldquo;{t.quote}&rdquo;</p>
                 <div className="mt-5 flex items-center gap-3">
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-xs font-black text-white">
@@ -197,7 +208,7 @@ export default async function AboutPage() {
                     {t.location && <p className="text-xs text-gray-400">{t.location}</p>}
                   </div>
                 </div>
-              </div>
+              </ScrollReveal>
             ))}
           </div>
         ) : (
