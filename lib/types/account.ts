@@ -78,6 +78,13 @@ export interface CustomerMeasurementSnapshot {
   notes: string | null;
 }
 
+export interface CustomerOrderLineItemAddon {
+  addon_id: number | null;
+  name: string;
+  price: number;
+  note: string | null;
+}
+
 export interface CustomerOrderLineItem {
   order_item_id: number | null;
   person_name: string | null;
@@ -89,6 +96,10 @@ export interface CustomerOrderLineItem {
   line_total: number | null;
   measurement: CustomerMeasurementSnapshot | null;
   stitching_preferences: Record<string, unknown> | null;
+  /** Extras selected at booking or added later by Bridge/employee at
+   * pickup (e.g. Button Replacement) - see SelectedAddonSummary on the
+   * backend. */
+  addons: CustomerOrderLineItemAddon[];
 }
 
 export interface CustomerDetailsAddress {

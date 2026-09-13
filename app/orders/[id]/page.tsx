@@ -1144,6 +1144,19 @@ export default function OrderDetailPage() {
                         {item.measurement.fit ? ` · ${item.measurement.fit} fit` : ""}
                       </p>
                     )}
+                    {item.addons.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {item.addons.map((addon, ai) => (
+                          <span
+                            key={addon.addon_id ?? ai}
+                            className="rounded-full bg-[#f8f6f1] px-2.5 py-1 text-[11px] font-semibold text-[#b4832e]"
+                            title={addon.note ?? undefined}
+                          >
+                            + {addon.name} ({money(addon.price)})
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right text-sm">
