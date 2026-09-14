@@ -41,7 +41,13 @@ interface RequestOptions {
 // from racing each other.
 let refreshInFlight: Promise<string | null> | null = null;
 
-async function doRefresh(): Promise<string | null> {
+// Exported so callers outside the normal 401-triggered retry path (e.g. the
+// WS auth-token route, which hands a token to the browser for a raw socket
+// handshake rather than making an HTTP request itself) can proactively
+// refresh a stale access token using this same rotation-safe machinery,
+// instead of duplicating refresh logic or handing back a token guaranteed
+// to be rejected by the backend.
+export async function doRefresh(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
 
   refreshInFlight = (async () => {
