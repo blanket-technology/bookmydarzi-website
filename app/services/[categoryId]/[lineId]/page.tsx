@@ -82,7 +82,18 @@ export default async function ServiceLineDetailPage({
   const fastestDays = stitchingTypes.length
     ? Math.min(...stitchingTypes.map((t) => t.estimated_delivery_days))
     : null;
-  const heroImage = line.image_url ?? stitchingTypes.find((t) => t.image_url)?.image_url ?? null;
+  // Fall through to any real photo we have for this product, rather than
+  // showing the branded placeholder just because this specific line has no
+  // image of its own - a sibling line/service in the same category almost
+  // always has a representative shot, and that's a better hero than a
+  // gradient card with the category name on it.
+  const heroImage =
+    line.image_url ??
+    stitchingTypes.find((t) => t.image_url)?.image_url ??
+    category.service_lines.find((l) => l.image_url)?.image_url ??
+    category.direct_services.find((s) => s.image_url)?.image_url ??
+    category.image_url ??
+    null;
 
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 lg:px-8">

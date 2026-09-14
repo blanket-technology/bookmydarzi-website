@@ -104,6 +104,13 @@ function EditableAvatar({
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFile = async (file: File) => {
+    // Matches the backend's MAX_AVATAR_BYTES (profile_photo_service.py) -
+    // catching this client-side avoids uploading a large file over a slow
+    // connection just to get rejected at the end with no progress shown.
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Photo must be under 5 MB.");
+      return;
+    }
     setUploading(true);
     setUploadError(null);
     try {
@@ -326,7 +333,13 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
                 value={profile.Mobile ?? ""}
                 className="mt-1.5 w-full cursor-not-allowed rounded-xl border border-black/10 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-400"
               />
-              <p className="mt-1 text-xs text-gray-400">Mobile number can&apos;t be changed here.</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Mobile number can&apos;t be changed here.{" "}
+                <Link href="/contact" className="font-semibold text-gray-500 underline underline-offset-2 hover:text-ink">
+                  Contact support
+                </Link>{" "}
+                to update it.
+              </p>
             </label>
             {saveError && <p className="text-sm font-semibold text-red-600">{saveError}</p>}
             <div className="flex gap-3 pt-1">
@@ -469,6 +482,12 @@ function AddressForm({
         state: geo.state || f.state,
         pincode: geo.pincode || f.pincode,
       }));
+      // Same treatment as the pincode-lookup path: city/state came from a
+      // trusted source (device GPS reverse-geocode), not manual typing, so
+      // lock them the same way and offer the same "edit manually" escape
+      // hatch instead of leaving this path silently editable while the
+      // pincode path isn't.
+      if (geo.city || geo.state) setCityStateLocked(true);
     });
   };
 

@@ -157,6 +157,7 @@ function LoginForm() {
   };
 
   const handleSendOtp = async () => {
+    if (otpSubmitting) return;
     setOtpError(null);
     if (!/^\d{10}$/.test(mobile)) {
       setOtpError("Enter a valid 10-digit mobile number.");

@@ -100,6 +100,17 @@ interface ApiCart {
   service_entries?: CartServiceEntry[];
 }
 
+function CartItemImage({ src, alt }: { src: string | null | undefined; alt: string }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-stone-200 to-stone-300">
+      {src && !imgError && (
+        <Image src={src} alt={alt} fill sizes="80px" className="object-cover" onError={() => setImgError(true)} />
+      )}
+    </div>
+  );
+}
+
 function entryId(e: CartServiceEntry): number {
   return e.entry_id ?? e.id ?? 0;
 }
@@ -183,11 +194,7 @@ function GuestCartView({
                   className="flex items-center justify-between rounded-2xl border border-black/5 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-stone-200 to-stone-300">
-                      {item.image_url && (
-                        <Image src={item.image_url} alt={item.name} fill sizes="80px" className="object-cover" />
-                      )}
-                    </div>
+                    <CartItemImage src={item.image_url} alt={item.name} />
                     <div>
                       <h2 className="font-bold">{item.name}</h2>
                       <p className="text-xs text-gray-400">{item.category_name}</p>
@@ -426,20 +433,24 @@ function CartContent() {
     writeAppliedOffer(null);
   }, []);
 
+  const loadCartRequestId = useRef(0);
   const loadCart = useCallback(async () => {
+    const requestId = ++loadCartRequestId.current;
     setLoading(true);
     setError(null);
     try {
       const data = await apiClient<ApiCart>("/cart");
+      if (requestId !== loadCartRequestId.current) return;
       setCart(data);
     } catch (err) {
+      if (requestId !== loadCartRequestId.current) return;
       if (err instanceof ClientApiError && err.status === 404) {
         setCart(null);
       } else {
         setError(err instanceof Error ? err.message : "Could not load your cart.");
       }
     } finally {
-      setLoading(false);
+      if (requestId === loadCartRequestId.current) setLoading(false);
     }
   }, []);
 
@@ -733,8 +744,12 @@ function CartContent() {
       )}
 
       {loading ? (
-        <div className="mt-16 flex justify-center">
-          <Loader2 className="animate-spin text-gray-400" size={28} />
+        <div className="mt-9 grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-3">
+            <div className="h-28 animate-pulse rounded-2xl bg-gray-100" />
+            <div className="h-28 animate-pulse rounded-2xl bg-gray-100" />
+          </div>
+          <div className="h-72 animate-pulse rounded-3xl bg-gray-100" />
         </div>
       ) : entries.length === 0 ? (
         <div className="mt-16 rounded-3xl border border-black/5 bg-white p-12 text-center shadow-sm">
@@ -765,11 +780,7 @@ function CartContent() {
                     className={`flex items-center justify-between rounded-2xl border border-black/5 bg-white p-4 shadow-sm ${busy ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-stone-200 to-stone-300">
-                        {entry.image_url && (
-                          <Image src={entry.image_url} alt={entry.service_name} fill sizes="80px" className="object-cover" />
-                        )}
-                      </div>
+                      <CartItemImage src={entry.image_url} alt={entry.service_name} />
                       <div>
                         <h2 className="font-bold">{entry.service_name}</h2>
                         {entry.category_name && <p className="text-xs text-gray-400">{entry.category_name}</p>}
@@ -1061,30 +1072,25 @@ function CartContent() {
               <p className="mt-1.5 text-[11px] text-gray-400">Inclusive of all taxes</p>
 
               {!selectedAddressId && (
-                <p className="mt-4 text-xs font-semibold text-red-600">
+                <p id="checkout-blocker" className="mt-4 text-xs font-semibold text-red-600">
                   Select or add a delivery address to continue.
                 </p>
               )}
               {selectedAddressId && !scheduledReady && (
-                <p className="mt-4 text-xs font-semibold text-red-600">
+                <p id="checkout-blocker" className="mt-4 text-xs font-semibold text-red-600">
                   Choose a pickup date and time slot to continue.
                 </p>
               )}
 
-              <Link
-                href="/checkout"
-                aria-disabled={!selectedAddressId || !scheduledReady}
-                onClick={(e) => {
-                  if (!selectedAddressId || !scheduledReady) e.preventDefault();
-                }}
-                className={`mt-5 block rounded-xl py-3.5 text-center text-sm font-bold text-white transition ${
-                  !selectedAddressId || !scheduledReady
-                    ? "cursor-not-allowed bg-black/30"
-                    : "bg-ink hover:-translate-y-0.5 hover:bg-black"
-                }`}
+              <button
+                type="button"
+                disabled={!selectedAddressId || !scheduledReady}
+                aria-describedby={!selectedAddressId || !scheduledReady ? "checkout-blocker" : undefined}
+                onClick={() => router.push("/checkout")}
+                className="mt-5 block w-full rounded-xl bg-ink py-3.5 text-center text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black disabled:cursor-not-allowed disabled:bg-black/30 disabled:hover:translate-y-0"
               >
                 Continue to checkout <ChevronRight className="ml-1 inline" size={15} />
-              </Link>
+              </button>
             </div>
           </aside>
         </div>

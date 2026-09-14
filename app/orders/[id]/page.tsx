@@ -243,10 +243,18 @@ function ItemImage({
   bgIndex: number;
   className: string;
 }) {
-  if (imageUrl) {
+  const [imgError, setImgError] = useState(false);
+  if (imageUrl && !imgError) {
     return (
       <div className={`relative overflow-hidden ${className}`}>
-        <Image src={imageUrl} alt="" fill sizes="80px" className="object-cover" />
+        <Image
+          src={imageUrl}
+          alt=""
+          fill
+          sizes="80px"
+          className="object-cover"
+          onError={() => setImgError(true)}
+        />
       </div>
     );
   }
@@ -740,6 +748,9 @@ export default function OrderDetailPage() {
         throw new Error(data?.message ?? `Could not download invoice (${res.status}).`);
       }
       const blob = await res.blob();
+      if (blob.size === 0) {
+        throw new Error("The invoice came back empty. Please try again.");
+      }
       const url = URL.createObjectURL(blob);
       const disposition = res.headers.get("Content-Disposition") ?? "";
       const match = /filename="?([^"]+)"?/.exec(disposition);
@@ -786,7 +797,12 @@ export default function OrderDetailPage() {
       // then payment.amount (a prior payment attempt's own recorded amount),
       // then final_amount only as a last resort for an order shape with no
       // advance concept at all (e.g. COD).
-      const amount = order.pricing.advance_amount || order.payment.amount || order.pricing.final_amount;
+      const amount =
+        order.pricing.advance_amount != null
+          ? order.pricing.advance_amount
+          : order.payment.amount != null
+            ? order.payment.amount
+            : order.pricing.final_amount;
       const session = await createPaymentSession({ order_id: order.order.order_id, amount });
       const razorpayKeyId = resolveRazorpayKey(session);
       if (!razorpayKeyId || !session.razorpay_order_id) {
@@ -946,9 +962,17 @@ export default function OrderDetailPage() {
     return (
       <main className="mx-auto max-w-4xl px-5 py-20 text-center lg:px-8">
         <p className="text-lg font-bold text-red-600">{error ?? "Something went wrong."}</p>
-        <Link href="/orders" className="mt-6 inline-flex items-center gap-1 text-sm font-bold hover:text-[#b4832e]">
-          <ArrowLeft size={15} /> Back to orders
-        </Link>
+        <div className="mt-6 flex items-center justify-center gap-4">
+          <button
+            onClick={loadOrder}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-bold hover:bg-gray-50"
+          >
+            Retry
+          </button>
+          <Link href="/orders" className="inline-flex items-center gap-1 text-sm font-bold hover:text-[#b4832e]">
+            <ArrowLeft size={15} /> Back to orders
+          </Link>
+        </div>
       </main>
     );
   }
@@ -967,7 +991,7 @@ export default function OrderDetailPage() {
     (sum, item) => sum + item.addons.reduce((s, a) => s + a.price * item.quantity, 0),
     0,
   );
-  const serviceSubtotal = pricing.base_amount - addonsTotal;
+  const serviceSubtotal = Math.max(0, pricing.base_amount - addonsTotal);
 
   const canCancel = CUSTOMER_CANCELLABLE_STATUSES.has(meta.status as OrderStatus);
   const canReschedule = RESCHEDULABLE_STATUSES.has(meta.status as OrderStatus);
@@ -1000,25 +1024,25 @@ export default function OrderDetailPage() {
       </Link>
 
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
+        <div className="flex min-w-0 items-start gap-4">
           <ItemImage
             imageUrl={heroImageUrl}
             bgIndex={order.order.order_id}
-            className="h-20 w-20 shrink-0 rounded-2xl"
+            className="h-14 w-14 shrink-0 rounded-2xl sm:h-20 sm:w-20"
           />
-          <div>
+          <div className="min-w-0">
             <p className="text-xs font-bold text-gray-400">
               {order.order.order_code ?? `ORD${order.order.order_id}`}
             </p>
-            <h1 className="mt-2 text-3xl font-black md:text-4xl">
+            <h1 className="mt-2 line-clamp-2 text-2xl font-black sm:text-3xl md:text-4xl">
               {order.service.service_name ?? "Tailoring service"}
             </h1>
             {order.service.category_name && (
-              <p className="mt-1 text-sm text-gray-500">{order.service.category_name}</p>
+              <p className="mt-1 truncate text-sm text-gray-500">{order.service.category_name}</p>
             )}
           </div>
         </div>
-        <span className={`rounded-full px-4 py-2 text-sm font-bold ${STATUS_TONE_CLASSES[meta.tone]}`}>
+        <span className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${STATUS_TONE_CLASSES[meta.tone]}`}>
           {meta.customerLabel}
         </span>
       </div>
@@ -1213,7 +1237,7 @@ export default function OrderDetailPage() {
           <h2 className="text-sm font-black uppercase tracking-wide text-gray-500">
             Manage this order
           </h2>
-          <div className="mt-4 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
               onClick={() => setShowIssueSelector(true)}
               className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-5 py-2.5 text-sm font-bold text-teal-800 hover:bg-teal-100"
@@ -1284,12 +1308,15 @@ export default function OrderDetailPage() {
               </button>
             )}
             {canCancel && (
-              <button
-                onClick={() => setShowCancelModal(true)}
-                className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"
-              >
-                Cancel order
-              </button>
+              <>
+                <span className="hidden h-6 w-px bg-black/10 sm:block" aria-hidden="true" />
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="rounded-xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-bold text-red-600 hover:bg-red-100"
+                >
+                  Cancel order
+                </button>
+              </>
             )}
           </div>
           {invoiceError && (
