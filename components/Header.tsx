@@ -7,13 +7,16 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/apiClient";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
+import { useUnreadNotifications } from "@/lib/unreadNotifications";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = useUnreadNotifications((s) => s.count);
+  const setUnreadCount = useUnreadNotifications((s) => s.setCount);
+  const refetchUnreadCount = useUnreadNotifications((s) => s.refetch);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -76,11 +79,9 @@ export default function Header() {
       // Optimistic bump for instant feedback, then re-fetch the real count -
       // a notification's own read state (e.g. auto-marked-read notifications)
       // isn't always +1, so the fetch is what actually reconciles it.
-      setUnreadCount((n) => n + 1);
-      apiClient<{ unread_count: number }>("/notifications/unread-count")
-        .then((res) => setUnreadCount(res.unread_count ?? 0))
-        .catch(() => {});
-    }, []),
+      setUnreadCount(useUnreadNotifications.getState().count + 1);
+      refetchUnreadCount();
+    }, [refetchUnreadCount]),
   );
 
   useEffect(() => {
