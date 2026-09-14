@@ -36,6 +36,7 @@ import {
 } from "@/lib/appliedOffer";
 import { useGuestCart, guestCartEstimatedTotal, type GuestCartItem } from "@/lib/guestCart";
 import type { CatalogCategoriesTreeResponse } from "@/lib/types/catalog";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // ApiOffer moved to lib/appliedOffer.ts, OfferPicker/CouponCodeInput/
 // formatOfferDiscount/useValidOffers moved to components/OfferPicker.tsx -
@@ -140,6 +141,11 @@ function GuestCartView({
   const validOffers = useValidOffers(offers);
   const estimatedDiscount = estimateOfferDiscount(appliedOffer, total);
   const displayTotal = total - estimatedDiscount;
+  // Removing a service - whether via the trash icon or decreasing the last
+  // unit to 0 - previously fired instantly with no confirmation, unlike
+  // order cancellation elsewhere on the site. One shared target/dialog for
+  // both entry points.
+  const [removeTarget, setRemoveTarget] = useState<GuestCartItem | null>(null);
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
@@ -197,7 +203,7 @@ function GuestCartView({
                     <button
                       onClick={() =>
                         item.quantity <= 1
-                          ? removeItem(item.service_id)
+                          ? setRemoveTarget(item)
                           : updateQuantity(item.service_id, item.quantity - 1)
                       }
                       className="grid h-9 w-9 place-items-center rounded-lg border"
@@ -214,8 +220,8 @@ function GuestCartView({
                       <Plus size={14} />
                     </button>
                     <button
-                      onClick={() => removeItem(item.service_id)}
-                      className="ml-2 p-2 text-gray-400 hover:text-red-500"
+                      onClick={() => setRemoveTarget(item)}
+                      className="ml-2 p-2 text-gray-400 transition-colors hover:text-red-500"
                       aria-label="Remove item"
                     >
                       <Trash2 size={17} />
@@ -308,6 +314,18 @@ function GuestCartView({
           </aside>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        title="Remove this item?"
+        description={removeTarget ? `Remove "${removeTarget.name}" from your cart?` : undefined}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (removeTarget) removeItem(removeTarget.service_id);
+          setRemoveTarget(null);
+        }}
+        onCancel={() => setRemoveTarget(null)}
+      />
     </main>
   );
 }
@@ -325,6 +343,7 @@ function CartContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutatingId, setMutatingId] = useState<number | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<CartServiceEntry | null>(null);
   const addHandledRef = useRef(false);
   const guestAddHandledRef = useRef(false);
   const [guestAddError, setGuestAddError] = useState<string | null>(null);
@@ -768,7 +787,7 @@ function CartContent() {
                       <button
                         onClick={() =>
                           entry.quantity <= 1
-                            ? removeEntry(entry)
+                            ? setRemoveTarget(entry)
                             : updateQuantity(entry, entry.quantity - 1)
                         }
                         disabled={busy}
@@ -787,9 +806,9 @@ function CartContent() {
                         <Plus size={14} />
                       </button>
                       <button
-                        onClick={() => removeEntry(entry)}
+                        onClick={() => setRemoveTarget(entry)}
                         disabled={busy}
-                        className="ml-2 p-2 text-gray-400 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="ml-2 p-2 text-gray-400 transition-colors hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label="Remove item"
                       >
                         <Trash2 size={17} />
@@ -1070,6 +1089,21 @@ function CartContent() {
           </aside>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        title="Remove this item?"
+        description={removeTarget ? `Remove "${removeTarget.service_name}" from your cart?` : undefined}
+        confirmLabel="Remove"
+        loading={!!removeTarget && mutatingId === entryId(removeTarget)}
+        onConfirm={async () => {
+          if (removeTarget) {
+            await removeEntry(removeTarget);
+          }
+          setRemoveTarget(null);
+        }}
+        onCancel={() => setRemoveTarget(null)}
+      />
     </main>
   );
 }

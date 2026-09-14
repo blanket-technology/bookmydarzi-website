@@ -28,6 +28,7 @@ import { useAddressLocation } from "@/lib/useAddressLocation";
 import { usePincodeLookup } from "@/lib/usePincodeLookup";
 import { AddressLocationField } from "@/components/AddressLocationField";
 import OrdersPanel from "@/components/OrdersPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import type {
   Address,
   AddressListResponse,
@@ -292,41 +293,41 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         ) : (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-400">First name</label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-400">First name</span>
                 <input
                   value={form.first_name}
                   onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
                 />
-              </div>
-              <div>
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Last name</label>
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Last name</span>
                 <input
                   value={form.last_name}
                   onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))}
                   className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
                 />
-              </div>
+              </label>
             </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Email</label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Email</span>
               <input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
               />
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Mobile</label>
+            </label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Mobile</span>
               <input
                 disabled
                 value={profile.Mobile ?? ""}
                 className="mt-1.5 w-full cursor-not-allowed rounded-xl border border-black/10 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-400"
               />
               <p className="mt-1 text-xs text-gray-400">Mobile number can&apos;t be changed here.</p>
-            </div>
+            </label>
             {saveError && <p className="text-sm font-semibold text-red-600">{saveError}</p>}
             <div className="flex gap-3 pt-1">
               <button
@@ -500,49 +501,51 @@ function AddressForm({
           serviceability={location.serviceability}
           onDetect={handleDetectLocation}
         />
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Full name</label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Full name</span>
           <input
             value={form.full_name}
             onChange={(e) => set("full_name", e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
-        </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Mobile</label>
+        </label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Mobile</span>
           <input
             value={form.mobile}
             onChange={(e) => set("mobile", e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Address line 1</label>
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Address line 1</span>
           <input
             value={form.address_line_1}
             onChange={(e) => set("address_line_1", e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">
+        </label>
+        <label className="block sm:col-span-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
             Address line 2 (optional)
-          </label>
+          </span>
           <input
             value={form.address_line_2 ?? ""}
             onChange={(e) => set("address_line_2", e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
-        </div>
+        </label>
         <div className="sm:col-span-2">
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Pincode</label>
-          <input
-            inputMode="numeric"
-            value={form.pincode}
-            onChange={(e) => handlePincodeChange(e.target.value)}
-            maxLength={6}
-            className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
-          />
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Pincode</span>
+            <input
+              inputMode="numeric"
+              value={form.pincode}
+              onChange={(e) => handlePincodeChange(e.target.value)}
+              maxLength={6}
+              className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
+            />
+          </label>
           {pincodeLookup.status === "looking-up" && (
             <p className="mt-1 flex items-center gap-1 text-xs text-gray-400">
               <Loader2 size={11} className="animate-spin" /> Looking up city/state…
@@ -559,8 +562,8 @@ function AddressForm({
             </p>
           )}
         </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">City</label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">City</span>
           <input
             value={form.city}
             onChange={(e) => set("city", e.target.value)}
@@ -571,9 +574,9 @@ function AddressForm({
                 : "border-black/10 focus:border-[#171717]"
             }`}
           />
-        </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">State</label>
+        </label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">State</span>
           <input
             value={form.state}
             onChange={(e) => set("state", e.target.value)}
@@ -584,7 +587,7 @@ function AddressForm({
                 : "border-black/10 focus:border-[#171717]"
             }`}
           />
-        </div>
+        </label>
         {cityStateLocked && (
           <button
             type="button"
@@ -594,18 +597,18 @@ function AddressForm({
             <PencilLine size={12} /> City/state look wrong? Edit manually
           </button>
         )}
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
             Landmark (optional)
-          </label>
+          </span>
           <input
             value={form.landmark ?? ""}
             onChange={(e) => set("landmark", e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
-        </div>
-        <div>
-          <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Type</label>
+        </label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Type</span>
           <select
             value={form.address_type}
             onChange={(e) => set("address_type", e.target.value as AddressType)}
@@ -615,7 +618,7 @@ function AddressForm({
             <option value="office">Office</option>
             <option value="other">Other</option>
           </select>
-        </div>
+        </label>
       </div>
 
       <label className="mt-4 flex items-center gap-2 text-sm font-semibold">
@@ -651,6 +654,7 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Address | null>(null);
   const appliedInitialEditRef = useRef(false);
 
   const load = () => {
@@ -762,9 +766,9 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
                 </button>
                 {addr.can_delete && (
                   <button
-                    onClick={() => handleDelete(addr.id)}
+                    onClick={() => setDeleteTarget(addr)}
                     disabled={deletingId === addr.id}
-                    className="grid h-9 w-9 place-items-center rounded-xl border border-red-100 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                    className="grid h-9 w-9 place-items-center rounded-xl border border-red-100 text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                     aria-label="Delete address"
                   >
                     {deletingId === addr.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
@@ -788,6 +792,23 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
       )}
 
       {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete this address?"
+        description={
+          deleteTarget
+            ? `Delete the ${deleteTarget.address_type.toLowerCase()} address for ${deleteTarget.full_name}? This can't be undone.`
+            : undefined
+        }
+        confirmLabel="Delete"
+        loading={!!deleteTarget && deletingId === deleteTarget.id}
+        onConfirm={async () => {
+          if (deleteTarget) await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
@@ -863,10 +884,10 @@ function MeasurementCard({ measurement, onSaved }: { measurement: Measurement; o
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {MEASUREMENT_FIELDS.map((f) => (
-            <div key={f.key as string}>
-              <label className="text-xs font-bold uppercase tracking-wide text-gray-400">
+            <label className="block" key={f.key as string}>
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
                 {f.label} ({f.unit})
-              </label>
+              </span>
               <input
                 type="number"
                 step="0.1"
@@ -874,10 +895,10 @@ function MeasurementCard({ measurement, onSaved }: { measurement: Measurement; o
                 onChange={(e) => setForm((s) => ({ ...s, [f.key as string]: e.target.value }))}
                 className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
               />
-            </div>
+            </label>
           ))}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Fit preference</label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Fit preference</span>
             <select
               value={fitPreference}
               onChange={(e) => setFitPreference(e.target.value)}
@@ -888,16 +909,16 @@ function MeasurementCard({ measurement, onSaved }: { measurement: Measurement; o
               <option value="regular">Regular</option>
               <option value="loose">Loose</option>
             </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="text-xs font-bold uppercase tracking-wide text-gray-400">Notes</label>
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Notes</span>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
             />
-          </div>
+          </label>
         </div>
 
         {error && <p className="mt-3 text-sm font-semibold text-red-600">{error}</p>}

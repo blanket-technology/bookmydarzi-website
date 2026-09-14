@@ -957,6 +957,17 @@ export default function OrderDetailPage() {
   const addr = order.delivery_address;
   const pricing = order.pricing;
   const lineItems: CustomerOrderLineItem[] | null = order.line_items.length > 0 ? order.line_items : null;
+  // pricing.base_amount is one lump sum that already has any selected
+  // add-ons folded into it (see the backend's unit_price = base + addons
+  // design) - shown alone as "Item total" it didn't reconcile with the
+  // line-items list above it naming each add-on separately by price. Split
+  // it back out here purely for display so the two sections agree with
+  // each other instead of looking like conflicting numbers.
+  const addonsTotal = (lineItems ?? []).reduce(
+    (sum, item) => sum + item.addons.reduce((s, a) => s + a.price * item.quantity, 0),
+    0,
+  );
+  const serviceSubtotal = pricing.base_amount - addonsTotal;
 
   const canCancel = CUSTOMER_CANCELLABLE_STATUSES.has(meta.status as OrderStatus);
   const canReschedule = RESCHEDULABLE_STATUSES.has(meta.status as OrderStatus);
@@ -1045,10 +1056,27 @@ export default function OrderDetailPage() {
           <section className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
             <h2 className="text-sm font-black uppercase tracking-wide text-gray-500">Pricing</h2>
             <dl className="mt-4 space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Item total</dt>
-                <dd className="font-semibold">{money(pricing.base_amount)}</dd>
-              </div>
+              {addonsTotal > 0 ? (
+                <>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Service subtotal</dt>
+                    <dd className="font-semibold">{money(serviceSubtotal)}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-gray-500">Add-ons</dt>
+                    <dd className="font-semibold">{money(addonsTotal)}</dd>
+                  </div>
+                  <div className="flex justify-between border-t border-dashed border-black/5 pt-2.5">
+                    <dt className="text-gray-500">Item total</dt>
+                    <dd className="font-semibold">{money(pricing.base_amount)}</dd>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">Item total</dt>
+                  <dd className="font-semibold">{money(pricing.base_amount)}</dd>
+                </div>
+              )}
               {pricing.discount_amount > 0 && (
                 <div className="flex justify-between text-green-700">
                   <dt>Discount</dt>
@@ -1162,6 +1190,9 @@ export default function OrderDetailPage() {
                 <div className="text-right text-sm">
                   <p className="text-gray-400">Qty {item.quantity}</p>
                   <p className="font-black">{money(item.line_total)}</p>
+                  {item.addons.length > 0 && (
+                    <p className="text-[11px] text-gray-400">incl. add-ons</p>
+                  )}
                 </div>
               </div>
             ))}

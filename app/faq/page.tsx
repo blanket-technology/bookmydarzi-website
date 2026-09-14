@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { faqJsonLd } from "@/lib/seo";
 
@@ -49,22 +50,35 @@ const FAQS: { q: string; a: string }[] = [
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
+  const id = useRef(`faq-${Math.random().toString(36).slice(2)}`).current;
   return (
     <div className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between gap-4 p-5 text-left"
+        className="flex w-full items-center justify-between gap-4 p-5 text-left transition-colors hover:bg-cream/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-deep focus-visible:ring-inset"
         aria-expanded={open}
+        aria-controls={id}
       >
         <span className="text-sm font-bold md:text-base">{q}</span>
         <ChevronDown
           size={18}
-          className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`shrink-0 text-gray-400 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
         />
       </button>
-      {open && (
-        <div className="px-5 pb-5 text-sm leading-6 text-gray-600 md:text-[15px]">{a}</div>
-      )}
+      {/* grid-rows trick for a smooth height transition on content whose
+          height isn't known in advance - same pattern used by
+          AddonPicker.tsx's note-field reveal, so the two accordions on the
+          site animate the same way instead of one snapping open instantly. */}
+      <div
+        id={id}
+        className={`grid transition-all duration-300 ease-out ${
+          open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 text-sm leading-6 text-gray-600 md:text-[15px]">{a}</div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -96,9 +110,9 @@ export default function FaqPage() {
         </div>
         <p className="mt-10 text-center text-sm text-gray-500">
           Still have questions?{" "}
-          <a href="/contact" className="font-bold text-[#171717] hover:text-[#b4832e]">
+          <Link href="/contact" className="font-bold text-[#171717] transition-colors hover:text-[#b4832e]">
             Get in touch with our team
-          </a>
+          </Link>
           .
         </p>
       </section>
