@@ -45,10 +45,15 @@ function pickFeaturedServiceLines(
 ): FeaturedLine[] {
   const category = categories.find((c) => c.service_lines.length > 0);
   if (!category) return [];
-  return [...category.service_lines]
-    .sort((a, b) => a.display_order - b.display_order)
-    .slice(0, 3)
-    .map((line) => ({ line, categoryId: category.id }));
+  const sorted = [...category.service_lines].sort((a, b) => a.display_order - b.display_order);
+  // The hero uses featured[0] as a large photo card - a line with no
+  // image_url leaves that card empty even though other lines in the same
+  // category have real photos. Put an image-bearing line first so the hero
+  // always has a photo to show when the catalog has one available at all;
+  // the rest keep their normal display order behind it.
+  const withImage = sorted.find((l) => l.image_url);
+  const ordered = withImage ? [withImage, ...sorted.filter((l) => l !== withImage)] : sorted;
+  return ordered.slice(0, 3).map((line) => ({ line, categoryId: category.id }));
 }
 
 export default async function Home() {
