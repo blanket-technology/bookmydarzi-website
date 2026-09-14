@@ -8,6 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Calendar, CheckCircle2, Loader2, MapPin, Plus, Wallet, Zap } from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
+import { UNSERVICEABLE_ERROR_PATTERN, registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { buildPickupTimeSlots } from "@/lib/pickupPrefs";
 import { estimateOfferDiscount, type AppliedOffer, type ApiOffer } from "@/lib/appliedOffer";
@@ -126,6 +127,10 @@ function BookNowContent() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<DirectOrderResult | null>(null);
+
+  // "I'm interested" capture for the unserviceable-area error banner below -
+  // see UNSERVICEABLE_ERROR_PATTERN / registerServiceAreaInterest.
+  const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
 
   const [razorpayReady, setRazorpayReady] = useState(false);
   const [razorpayRetryCount, setRazorpayRetryCount] = useState(0);
@@ -254,6 +259,7 @@ function BookNowContent() {
     }
     setPlacingOrder(true);
     setError(null);
+    setInterestState("idle");
     try {
       const result = await runDirectOrder("cod");
       setOrderResult(result);
@@ -261,6 +267,25 @@ function BookNowContent() {
       setError(err instanceof ClientApiError ? err.message : "Could not place your order. Please try again.");
     } finally {
       setPlacingOrder(false);
+    }
+  };
+
+  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) ?? null;
+
+  const handleRegisterInterest = async () => {
+    if (!selectedAddress || selectedAddress.latitude == null || selectedAddress.longitude == null) return;
+    setInterestState("submitting");
+    try {
+      await registerServiceAreaInterest({
+        latitude: selectedAddress.latitude,
+        longitude: selectedAddress.longitude,
+        city: selectedAddress.city,
+        pincode: selectedAddress.pincode,
+        address_text: `${selectedAddress.address_line_1}, ${selectedAddress.city}`,
+      });
+      setInterestState("done");
+    } catch {
+      setInterestState("idle");
     }
   };
 
@@ -720,7 +745,27 @@ function BookNowContent() {
             )}
           </div>
 
-          {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
+          {error && UNSERVICEABLE_ERROR_PATTERN.test(error) ? (
+            <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+              <p>{error}</p>
+              {selectedAddress && selectedAddress.latitude != null && selectedAddress.longitude != null && (
+                <button
+                  type="button"
+                  onClick={handleRegisterInterest}
+                  disabled={interestState === "submitting" || interestState === "done"}
+                  className="mt-2 shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {interestState === "done"
+                    ? "Thanks! We'll notify you 🎉"
+                    : interestState === "submitting"
+                      ? "Submitting..."
+                      : "I'm interested — notify me"}
+                </button>
+              )}
+            </div>
+          ) : error ? (
+            <p className="text-sm font-semibold text-red-600">{error}</p>
+          ) : null}
 
           <button
             onClick={placeOrder}
