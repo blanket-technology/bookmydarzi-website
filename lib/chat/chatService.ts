@@ -18,10 +18,15 @@ const BASE = "/chat/v2";
 export async function getOrCreateSession(
   orderId?: number,
   issueCategory?: string,
+  fresh?: boolean,
 ): Promise<ChatSession> {
   const params = new URLSearchParams();
   if (orderId) params.set("order_id", String(orderId));
   if (issueCategory) params.set("issue_category", issueCategory);
+  // Forces a genuinely new session instead of resuming an old still-open
+  // one - see useChatStore.initSession's sessionStorage guard, the
+  // website-only fix for support chat resurfacing days-old conversations.
+  if (fresh) params.set("fresh", "true");
   const qs = params.toString();
   return apiClient<ChatSession>(`${BASE}/sessions${qs ? `?${qs}` : ""}`, { method: "POST" });
 }
