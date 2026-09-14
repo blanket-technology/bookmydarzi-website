@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronRight, CreditCard, Loader2, MapPin, Wallet } from "lucide-react";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
+import { UNSERVICEABLE_ERROR_PATTERN, registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { readPickupPrefs } from "@/lib/pickupPrefs";
 import { readAppliedOffer, estimateOfferDiscount } from "@/lib/appliedOffer";
@@ -116,6 +117,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // "I'm interested" capture for the unserviceable-area error banner below -
+  // see UNSERVICEABLE_ERROR_PATTERN / registerServiceAreaInterest.
+  const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
 
   // Read-only readout of the pickup choice made on /cart - this page never
   // re-decides pickup_type/date/slot, only displays what will be sent.
@@ -289,6 +293,7 @@ export default function CheckoutPage() {
     setPlacingOrder(true);
     setError(null);
     setNotice(null);
+    setInterestState("idle");
     try {
       // Pickup type/date/slot are chosen once, on the cart page - read that
       // selection here rather than re-deciding it, so the two pages never
@@ -303,6 +308,24 @@ export default function CheckoutPage() {
       setError(err instanceof Error ? err.message : "Could not place your order. Please try again.");
     } finally {
       setPlacingOrder(false);
+    }
+  };
+
+  const handleRegisterInterest = async () => {
+    if (!cart?.address) return;
+    setInterestState("submitting");
+    try {
+      // No lat/lng available on this cart-linked address type client-side -
+      // the backend best-effort forward-geocodes city/pincode instead (see
+      // registerServiceAreaInterest's docstring).
+      await registerServiceAreaInterest({
+        city: cart.address.city,
+        pincode: cart.address.pincode,
+        address_text: `${cart.address.address_line_1}, ${cart.address.city}`,
+      });
+      setInterestState("done");
+    } catch {
+      setInterestState("idle");
     }
   };
 
@@ -638,6 +661,22 @@ export default function CheckoutPage() {
           >
             Update this address
           </Link>
+        </div>
+      ) : error && cart?.address && UNSERVICEABLE_ERROR_PATTERN.test(error) ? (
+        <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={handleRegisterInterest}
+            disabled={interestState === "submitting" || interestState === "done"}
+            className="mt-2 shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {interestState === "done"
+              ? "Thanks! We'll notify you 🎉"
+              : interestState === "submitting"
+                ? "Submitting..."
+                : "I'm interested — notify me"}
+          </button>
         </div>
       ) : error ? (
         <div className="mb-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
