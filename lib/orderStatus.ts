@@ -24,7 +24,11 @@ export type OrderStatus =
   | "out_for_delivery"
   | "delivered"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "return_pending"
+  | "return_scheduled"
+  | "return_in_transit"
+  | "returned";
 
 export type StatusVisualTone = "success" | "warning" | "neutral" | "error" | "info";
 
@@ -279,6 +283,58 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
     progress: 0,
     customerFacing: true,
     customerLabel: "Cancelled",
+    // Not terminal in the type sense that matters for the timeline: an
+    // order cancelled after the tailor already had the fabric/garment in
+    // hand continues into the return_pending/... sequence below rather than
+    // stopping here. Still flagged terminal=true because "cancelled and
+    // nothing more happens" is genuinely the end state for most cancelled
+    // orders (cancelled before the tailor had custody) - callers that need
+    // to know whether a SPECIFIC order continues into a return should check
+    // for a later return_* status on that order instead of this flag.
+    terminal: true,
+  },
+  return_pending: {
+    status: "return_pending",
+    title: "Return pending",
+    description: "This order was cancelled after your fabric/garment reached the tailor, so it needs to be returned to you.",
+    nextStep: "We're arranging pickup from the tailor to bring it back to you.",
+    tone: "warning",
+    progress: 0,
+    customerFacing: true,
+    customerLabel: "Return Pending",
+    terminal: false,
+  },
+  return_scheduled: {
+    status: "return_scheduled",
+    title: "Return pickup scheduled",
+    description: "A pickup has been scheduled to collect your item from the tailor for return.",
+    nextStep: "It'll be on its way to you once collected.",
+    tone: "warning",
+    progress: 0,
+    customerFacing: true,
+    customerLabel: "Return Scheduled",
+    terminal: false,
+  },
+  return_in_transit: {
+    status: "return_in_transit",
+    title: "Return in transit",
+    description: "Your item has been collected from the tailor and is on its way back to you.",
+    nextStep: "Keep your phone handy - our team may call before arriving.",
+    tone: "info",
+    progress: 0,
+    customerFacing: true,
+    customerLabel: "Return In Transit",
+    terminal: false,
+  },
+  returned: {
+    status: "returned",
+    title: "Item returned",
+    description: "Your item has been returned to you.",
+    nextStep: "If a payment was made, any refund follows our cancellation policy.",
+    tone: "success",
+    progress: 0,
+    customerFacing: true,
+    customerLabel: "Returned",
     terminal: true,
   },
 };
