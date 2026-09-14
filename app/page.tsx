@@ -16,6 +16,7 @@ import type { CatalogServiceLine } from "@/lib/types/catalog";
 import { getTestimonials } from "@/lib/services/testimonials";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import ScrollReveal from "@/components/ScrollReveal";
+import FeaturedHeroCard from "@/components/FeaturedHeroCard";
 
 export const metadata: Metadata = {
   title: "Doorstep Tailoring & Alterations in Delhi NCR",
@@ -103,49 +104,7 @@ export default async function Home() {
               </span>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-[520px]">
-            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#c99a3d]/20 blur-2xl" />
-            <div className="relative flex h-[420px] items-end overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d7d0c5] via-[#a79e91] to-[#625d56] p-5 shadow-2xl md:h-[500px] md:p-7">
-                {featured[0]?.line.image_url && (
-                  <Image
-                    src={featured[0].line.image_url}
-                    alt={featured[0].line.name}
-                    fill
-                    sizes="(min-width: 768px) 520px, 100vw"
-                    className="object-cover"
-                    priority
-                  />
-                )}
-                <div className="relative flex w-full items-center justify-between gap-3 rounded-2xl bg-white/90 px-4 py-3 backdrop-blur">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                      Featured
-                    </p>
-                    <h2 className="text-lg font-black leading-tight">
-                      {featured[0]?.line.name ?? "Premium Stitching"}
-                    </h2>
-                    {featured[0]?.line.starting_price != null ? (
-                      <p className="mt-0.5 text-sm font-bold">
-                        <span className="mr-1 text-[10px] font-bold uppercase text-gray-400">From</span>
-                        ₹{featured[0].line.starting_price.toLocaleString("en-IN")}
-                      </p>
-                    ) : (
-                      <p className="mt-0.5 text-sm font-bold">Price on request</p>
-                    )}
-                  </div>
-                  <Link
-                    href={
-                      featured[0]
-                        ? `/services/${featured[0].categoryId}/${featured[0].line.id}`
-                        : "/services"
-                    }
-                    className="shrink-0 rounded-xl bg-[#171717] px-4 py-2.5 text-xs font-bold text-white"
-                  >
-                    Book now
-                  </Link>
-                </div>
-            </div>
-          </div>
+          <FeaturedHeroCard featured={featured} />
         </div>
       </section>
 
