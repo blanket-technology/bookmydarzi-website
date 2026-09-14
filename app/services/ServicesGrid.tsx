@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, ArrowRight } from "lucide-react";
+import { MessageCircle, Search, SlidersHorizontal, ArrowRight } from "lucide-react";
 import type { CatalogCategory, CatalogServiceLine } from "@/lib/types/catalog";
+import { useChatOpenRequest } from "@/lib/chat/openChat";
 
 const CARD_BACKGROUNDS = [
   "from-stone-200 to-stone-300",
@@ -128,6 +129,7 @@ function ServiceCard({
   // an image_url at all, which gets the branded gradient placeholder.
   const [imgError, setImgError] = useState(false);
   const showImage = line.image_url && !imgError;
+  const requestChatOpen = useChatOpenRequest((s) => s.requestOpen);
 
   // A handful of catalog lines have a real description; most only carry a
   // short backend label (e.g. "Suit") that reads as broken/unfinished next
@@ -182,7 +184,25 @@ function ServiceCard({
                 </span>
               </>
             ) : (
-              <span className="text-sm font-black sm:text-xl">On request</span>
+              <>
+                <span className="text-sm font-black sm:text-xl">On request</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    // Stop the parent <Link>'s navigation - this button asks
+                    // about the service directly instead of drilling into a
+                    // sub-service list that may have nothing bookable in it.
+                    e.preventDefault();
+                    e.stopPropagation();
+                    requestChatOpen({ issueCategory: `service_inquiry:${line.name}` });
+                  }}
+                  className="mt-1.5 flex items-center gap-1 rounded-full border border-black/10 bg-white px-2.5 py-1 text-[10px] font-bold text-gray-700 hover:border-black/30 sm:text-xs"
+                >
+                  <MessageCircle size={11} className="sm:hidden" />
+                  <MessageCircle size={12} className="hidden sm:block" />
+                  Ask about this
+                </button>
+              </>
             )}
           </div>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-100 transition-colors group-hover:bg-[#171717] group-hover:text-white sm:h-10 sm:w-10">
