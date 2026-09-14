@@ -7,6 +7,7 @@ import { Bell, ChevronLeft, ChevronRight, CheckCheck, Lock } from "lucide-react"
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { useAuth } from "@/lib/useAuth";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
+import { useUnreadNotifications } from "@/lib/unreadNotifications";
 
 // Mirrors app/api/v1/endpoints/notifications.py::_notification_dict and
 // app/schemas/notification.py::NotificationResponseSchema /
@@ -222,6 +223,11 @@ export default function NotificationsPage() {
             }
           : prev,
       );
+      // Also update the shared bell-badge count (components/Header.tsx) -
+      // previously only this page's own local state changed, so the
+      // Header's badge kept showing the old count until an unrelated live
+      // notification or full reload happened to refetch it.
+      useUnreadNotifications.getState().setCount(useUnreadNotifications.getState().count - 1);
       try {
         await apiClient(`/notifications/${notification.id}/read`, { method: "PATCH" });
       } catch {
@@ -247,6 +253,9 @@ export default function NotificationsPage() {
             }
           : prev,
       );
+      // Same reasoning as handleOpen above - keep the shared bell-badge
+      // count (components/Header.tsx) in sync with this page's own state.
+      useUnreadNotifications.getState().setCount(0);
     } catch {
       // Leave state as-is; user can retry.
     } finally {
