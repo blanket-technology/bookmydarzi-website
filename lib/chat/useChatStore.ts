@@ -55,7 +55,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
   initSession: async (orderId, issueCategory) => {
     set({ loading: true, error: null, messages: [], agentName: null, sessionUuid: null, peerReadUpToSeq: 0 });
     try {
-      const session = await chatService.getOrCreateSession(orderId, issueCategory);
+      // Only the general "AI Assistant" chat (no orderId) gets the
+      // fresh-per-browser-session treatment - an order-scoped support
+      // thread is a genuine ongoing conversation about that order and
+      // should keep resuming regardless of how many days pass. sessionStorage
+      // (not localStorage) is the right primitive: it clears per-tab/on
+      // browser close but survives a reload within the same tab, matching
+      // "one browsing session" rather than "forever" or "every reopen."
+      const storageKey = "bmd_chat_started";
+      const fresh = !orderId && typeof window !== "undefined" && !window.sessionStorage.getItem(storageKey);
+      const session = await chatService.getOrCreateSession(orderId, issueCategory, fresh);
+      if (fresh && typeof window !== "undefined") {
+        window.sessionStorage.setItem(storageKey, "1");
+      }
       const { messages } = await chatService.getMessages(session.uuid, 50);
       // Another initSession() may have started and finished while this one
       // was in flight (rapid open/close) - only apply if nothing newer has
