@@ -638,7 +638,22 @@ function BookNowContent() {
               ) : (
                 <div className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br from-stone-200 to-stone-300" />
               )}
-              <p className="min-w-0 truncate text-sm font-bold">{serviceName}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold">{serviceName}</p>
+                {/* item_total already has any selected add-ons folded in
+                    (backend's unit_price = base + addons design, same as
+                    orders/[id]) - back the base price out for display so
+                    it reads as "service + addons = subtotal" instead of a
+                    service name with no price sitting above an opaque
+                    subtotal that doesn't visibly include it. */}
+                {estimate && (
+                  <p className="text-xs text-gray-500">
+                    {formatInr(
+                      Math.max(0, estimate.item_total - selectedAddons.reduce((s, a) => s + a.price, 0)),
+                    )}
+                  </p>
+                )}
+              </div>
             </div>
 
             {selectedAddons.length > 0 && (
