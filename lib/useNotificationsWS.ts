@@ -119,9 +119,40 @@ export function useNotificationsWS(enabled: boolean, onNotification: (n: Notific
 
     connect();
 
+    // Most browsers throttle/suspend setInterval and delay onclose/reconnect
+    // scheduling in a backgrounded tab (mobile browsers especially - a
+    // locked screen or an app-switch counts as backgrounded). Combined with
+    // Railway's ~60s proxy idle timeout, a tab left in the background for
+    // over a minute ends up with a dead socket that doesn't get reconnected
+    // until the JS engine resumes normal speed - which may not happen until
+    // long after the tab regains focus. Force an immediate reconnect check
+    // the moment the tab becomes visible/focused again, instead of waiting
+    // on the backoff timer that was itself starved while backgrounded. This
+    // is exactly the gap that made a notification "arrive" server-side (it's
+    // in the list after a refresh) but never show up live.
+    const reconnectIfDead = () => {
+      if (!mounted.current) return;
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) return;
+      if (reconnectTimer.current) {
+        clearTimeout(reconnectTimer.current);
+        reconnectTimer.current = null;
+      }
+      reconnectDelay.current = 1000;
+      connect();
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") reconnectIfDead();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", reconnectIfDead);
+    window.addEventListener("online", reconnectIfDead);
+
     return () => {
       mounted.current = false;
       connectSeq.current += 1;
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", reconnectIfDead);
+      window.removeEventListener("online", reconnectIfDead);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (heartbeatTimer.current) clearInterval(heartbeatTimer.current);
       ws.current?.close();

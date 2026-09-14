@@ -1078,7 +1078,12 @@ export default function OrderDetailPage() {
       <div className="mt-10 grid gap-6 md:grid-cols-5">
         <section className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm md:col-span-3">
           <h2 className="text-lg font-black">Order status</h2>
-          <p className="mt-1 text-sm text-gray-500">{meta.description}</p>
+          {/* The timeline below already shows meta.description inline under
+              the current step - showing it again here duplicated the exact
+              same sentence. nextStep is distinct, useful info instead. */}
+          {meta.nextStep && (
+            <p className="mt-1 text-sm text-gray-500">{meta.nextStep}</p>
+          )}
           <div className="mt-6">
             <StatusTimeline status={order.order.status} />
           </div>
