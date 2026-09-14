@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
+import { useNotificationsWS } from "@/lib/useNotificationsWS";
 import {
   getOrderStatusMeta,
   ORDER_STATUS_SEQUENCE,
@@ -717,6 +718,33 @@ export default function OrderDetailPage() {
   }, [orderId]);
 
   useEffect(() => loadOrder(), [loadOrder]);
+
+  // Live status updates: the admin panel changing this order's status fires
+  // a WS "NOTIFICATION" event (type="order_update", data.order_id=<id>) to
+  // this customer's own user:{id} room (see
+  // app/services/notifications/policy.py's per-status handlers) - previously
+  // nothing on this page listened for it, so a status change only ever
+  // showed up after a manual refresh. Re-fetches silently (no setLoading/
+  // setError - a background refresh shouldn't flash the page's loading
+  // spinner or clobber a good render with a transient network hiccup).
+  useNotificationsWS(
+    !!orderId,
+    useCallback(
+      (n) => {
+        if (!orderId) return;
+        if (n.type !== "order_update") return;
+        const eventOrderId = n.data?.order_id;
+        if (eventOrderId == null || String(eventOrderId) !== String(orderId)) return;
+        apiClient<CustomerOrderDetailsResponse>(`/customer/orders/${orderId}/details`)
+          .then((res) => setOrder(res))
+          .catch(() => {
+            // Silent - the next live event or a manual refresh will retry;
+            // no need to surface a background-refresh failure to the customer.
+          });
+      },
+      [orderId],
+    ),
+  );
 
   // Resolve product images client-side once the order's line items are
   // known, against the public catalog tree (same client-side fetch pattern

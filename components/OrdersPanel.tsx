@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, PackageSearch } from "lucide-react";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { getOrderStatusMeta, STATUS_TONE_CLASSES } from "@/lib/orderStatus";
+import { useNotificationsWS } from "@/lib/useNotificationsWS";
 import type { CustomerOrderListItem, PaginatedOrderList } from "@/lib/types/account";
 
 type Tab = "active" | "completed" | "cancelled";
@@ -157,6 +158,34 @@ export default function OrdersPanel() {
       cancelled = true;
     };
   }, [tab, page]);
+
+  // Live status updates: an order changing status server-side (admin panel
+  // action) can also move it between tabs (e.g. active -> completed/
+  // cancelled), so a targeted single-row patch isn't enough here - just
+  // silently re-fetch the current tab/page on any order_update event. No
+  // setLoading/setError here on purpose - a background refresh shouldn't
+  // flash the skeleton or clobber a good render with a transient hiccup.
+  // See app/orders/[id]/page.tsx's identical wiring for the single-order
+  // detail view.
+  useNotificationsWS(
+    true,
+    useCallback(
+      (n) => {
+        if (n.type !== "order_update") return;
+        apiClient<PaginatedOrderList<CustomerOrderListItem>>(
+          `/customer/orders/${tab}?page=${page}&limit=${PAGE_SIZE}`,
+        )
+          .then((res) => {
+            setOrders(res.items ?? []);
+            setTotal(res.total ?? 0);
+          })
+          .catch(() => {
+            // Silent - the next live event or a manual tab/page change retries.
+          });
+      },
+      [tab, page],
+    ),
+  );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
