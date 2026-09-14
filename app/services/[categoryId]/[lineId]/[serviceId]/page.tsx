@@ -75,6 +75,17 @@ export default async function TierDetailPage({
     .filter((t) => t.service_id !== tier.service_id)
     .sort((a, b) => a.display_order - b.display_order);
 
+  // Same reasoning as the line page's hero fallback: prefer any real photo
+  // over the branded placeholder when this specific tier has none of its own.
+  const heroImage =
+    tier.image_url ??
+    otherTiers.find((t) => t.image_url)?.image_url ??
+    line.image_url ??
+    category.service_lines.find((l) => l.image_url)?.image_url ??
+    category.direct_services.find((s) => s.image_url)?.image_url ??
+    category.image_url ??
+    null;
+
   return (
     <main className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
       <script
@@ -91,7 +102,7 @@ export default async function TierDetailPage({
               name: tier.name,
               description: tier.description || `Book ${tier.name} in Noida & Delhi NCR.`,
               path: `/services/${category.id}/${line.id}/${tier.service_id}`,
-              imageUrl: tier.image_url,
+              imageUrl: heroImage,
               price: tier.base_price,
             }),
           ]),
@@ -114,12 +125,12 @@ export default async function TierDetailPage({
           price/add-ons block - gap-6 on mobile, gap-10 only from md up. */}
       <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-start md:gap-10">
         <div>
-          {tier.image_url ? (
+          {heroImage ? (
             // Same square-box fix as the category page's hero - see that
             // file's comment for why (catalog photos are a genuine mix of
             // portrait/landscape, a square box minimizes average margin).
             <HoverZoomImage
-              src={tier.image_url}
+              src={heroImage}
               alt={tier.name}
               priority
               className="aspect-square w-full max-w-md rounded-3xl border border-black/5"

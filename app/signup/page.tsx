@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,9 +37,40 @@ const detailsSchema = z.object({
 type DetailsFormValues = z.infer<typeof detailsSchema>;
 
 const otpSchema = z.object({
-  otp: z.string().min(4, "Enter the OTP sent to your email"),
+  otp: z.string().length(6, "Enter the 6-digit OTP sent to your email"),
 });
 type OtpFormValues = z.infer<typeof otpSchema>;
+
+// Purely a visual nudge, not a validation gate - the 8-character minimum in
+// detailsSchema above is the only hard requirement. Scored 0-3 on simple,
+// visible signals (length + character variety) rather than a strength
+// library, since the goal is guidance, not a security audit of the password.
+function getPasswordStrength(password: string): {
+  score: 0 | 1 | 2 | 3;
+  label: string;
+  barColor: string;
+  textColor: string;
+} {
+  const variety =
+    Number(/[a-z]/.test(password)) +
+    Number(/[A-Z]/.test(password)) +
+    Number(/\d/.test(password)) +
+    Number(/[^A-Za-z0-9]/.test(password));
+
+  let score: 0 | 1 | 2 | 3 = 0;
+  if (password.length >= 8 && variety >= 3) score = 3;
+  else if (password.length >= 8 && variety >= 2) score = 2;
+  else if (password.length > 0) score = 1;
+
+  const styles = [
+    { label: "Too short", barColor: "bg-red-500", textColor: "text-red-600" },
+    { label: "Weak", barColor: "bg-red-500", textColor: "text-red-600" },
+    { label: "Okay", barColor: "bg-amber-500", textColor: "text-amber-700" },
+    { label: "Strong", barColor: "bg-green-600", textColor: "text-green-700" },
+  ] as const;
+
+  return { score, ...styles[score] };
+}
 
 const BRAND_POINTS = [
   { icon: Truck, text: "Book in minutes, we pick up at your door" },
@@ -139,6 +170,9 @@ export default function SignupPage() {
     resolver: zodResolver(otpSchema),
     defaultValues: { otp: "" },
   });
+
+  const passwordValue = detailsForm.watch("password") ?? "";
+  const passwordStrength = useMemo(() => getPasswordStrength(passwordValue), [passwordValue]);
 
   useEffect(() => {
     return () => {
@@ -484,7 +518,7 @@ export default function SignupPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
                         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">
                           First name
@@ -588,10 +622,31 @@ export default function SignupPage() {
                           placeholder="At least 8 characters"
                         />
                       </div>
-                      {detailsForm.formState.errors.password && (
+                      {detailsForm.formState.errors.password ? (
                         <p className="mt-1.5 text-xs font-semibold text-red-600">
                           {detailsForm.formState.errors.password.message}
                         </p>
+                      ) : (
+                        passwordValue.length > 0 && (
+                          <div className="mt-2">
+                            <div className="flex gap-1">
+                              {[0, 1, 2].map((i) => (
+                                <span
+                                  key={i}
+                                  className={`h-1 flex-1 rounded-full transition-colors ${
+                                    i < passwordStrength.score
+                                      ? passwordStrength.barColor
+                                      : "bg-gray-200"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <p className={`mt-1 text-[11px] font-semibold ${passwordStrength.textColor}`}>
+                              {passwordStrength.label} · {passwordValue.length} character
+                              {passwordValue.length === 1 ? "" : "s"}
+                            </p>
+                          </div>
+                        )
                       )}
                     </div>
 

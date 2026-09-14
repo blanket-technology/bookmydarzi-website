@@ -236,18 +236,24 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!checked || !user) return;
+    let cancelled = false;
     (async () => {
       setLoading(true);
       setError(null);
       try {
         const cartData = await apiClient<ApiCart>("/cart");
-        setCart(cartData);
+        if (!cancelled) setCart(cartData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Could not load checkout details.");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not load checkout details.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [checked, user]);
 
   // Shared by both payment methods - pickup/address selection already lives
@@ -493,9 +499,9 @@ export default function CheckoutPage() {
             </section>
           </div>
 
-          <aside className="h-fit rounded-3xl bg-[#171717] p-6 text-white">
+          <aside className="h-fit rounded-3xl bg-cream p-6">
             <h2 className="text-lg font-black">Order summary</h2>
-            <div className="mt-6 space-y-4 text-sm text-white/65">
+            <div className="mt-6 space-y-4 text-sm">
               {guestItems.map((item) => (
                 <div key={item.service_id} className="flex justify-between">
                   <span>
@@ -505,17 +511,17 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
-            <div className="my-5 border-t border-white/10" />
+            <div className="my-5 border-t border-black/10" />
             <div className="flex justify-between text-xl font-black">
               <span>Total (estimated)</span>
               <span>{`₹${guestTotal.toLocaleString("en-IN")}`}</span>
             </div>
-            <p className="mt-3 text-[11px] text-white/40">
+            <p className="mt-3 text-[11px] text-gray-400">
               Final pricing, fees and any discounts are confirmed after you log in.
             </p>
             <Link
               href="/login?redirect=/checkout"
-              className="mt-6 block w-full rounded-xl bg-white py-3.5 text-center text-sm font-black text-[#171717]"
+              className="mt-6 block w-full rounded-xl bg-ink py-3.5 text-center text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-black"
             >
               Log in to place order <ChevronRight className="ml-1 inline" size={15} />
             </Link>
@@ -548,8 +554,18 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto flex max-w-6xl items-center justify-center px-5 py-24 lg:px-8">
-        <Loader2 className="animate-spin text-gray-400" size={28} />
+      <main className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
+        <div className="mb-10">
+          <div className="h-3.5 w-20 animate-pulse rounded bg-gray-200" />
+          <div className="mt-3 h-9 w-72 animate-pulse rounded bg-gray-200" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-5">
+            <div className="h-40 animate-pulse rounded-3xl bg-gray-100" />
+            <div className="h-40 animate-pulse rounded-3xl bg-gray-100" />
+          </div>
+          <div className="h-80 animate-pulse rounded-3xl bg-gray-100" />
+        </div>
       </main>
     );
   }
@@ -599,7 +615,7 @@ export default function CheckoutPage() {
       </div>
 
       {razorpayLoadFailed && paymentMethod === "online" && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
           <span>
             Couldn&apos;t load the payment gateway. Check your connection and retry, or choose Cash on Delivery instead.
           </span>
@@ -614,7 +630,7 @@ export default function CheckoutPage() {
       )}
 
       {error && cart?.address && MISSING_LOCATION_ERROR_PATTERN.test(error) ? (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           <span>This delivery address needs a precise location before we can use it.</span>
           <Link
             href={`/profile?tab=addresses&editAddress=${cart.address.id}`}
@@ -624,17 +640,17 @@ export default function CheckoutPage() {
           </Link>
         </div>
       ) : error ? (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+        <div className="mb-6 rounded-3xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
           {error}
         </div>
       ) : null}
       {notice && (
-        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+        <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
           {notice}
         </div>
       )}
       {verifyRiskNotice && (
-        <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+        <div className="mb-6 rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
           Your payment for{" "}
           {verifyRiskNotice.orderCode ? `order #${verifyRiskNotice.orderCode}` : `order #${verifyRiskNotice.orderId}`}{" "}
           may have gone through even though we could not confirm it here. Please check{" "}
@@ -744,9 +760,9 @@ export default function CheckoutPage() {
           </section>
         </div>
 
-        <aside className="h-fit rounded-3xl bg-[#171717] p-6 text-white">
+        <aside className="h-fit rounded-3xl bg-cream p-6">
           <h2 className="text-lg font-black">Order summary</h2>
-          <div className="mt-6 space-y-4 text-sm text-white/65">
+          <div className="mt-6 space-y-4 text-sm">
             {entries.map((entry) => (
               <div key={entry.entry_id ?? entry.id} className="flex justify-between">
                 <span>
@@ -762,25 +778,25 @@ export default function CheckoutPage() {
               </div>
             )}
             {billing?.discount !== undefined && billing.discount > 0 && (
-              <div className="flex justify-between text-green-400">
+              <div className="flex justify-between text-green-700">
                 <span>Discount</span>
                 <span>&minus;{`₹${billing.discount}`}</span>
               </div>
             )}
             {estimatedDiscount > 0 && (
-              <div className="flex justify-between text-green-400">
+              <div className="flex justify-between text-green-700">
                 <span>Offer discount (est.)</span>
                 <span>&minus;{`₹${estimatedDiscount.toLocaleString("en-IN")}`}</span>
               </div>
             )}
             {billing?.cgst_amount !== undefined && billing.cgst_amount > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between text-gray-500">
                 <span>CGST</span>
                 <span>{billing.cgst_display ?? `₹${billing.cgst_amount}`}</span>
               </div>
             )}
             {billing?.sgst_amount !== undefined && billing.sgst_amount > 0 && (
-              <div className="flex justify-between">
+              <div className="flex justify-between text-gray-500">
                 <span>SGST</span>
                 <span>{billing.sgst_display ?? `₹${billing.sgst_amount}`}</span>
               </div>
@@ -788,26 +804,26 @@ export default function CheckoutPage() {
             {billing?.cgst_amount === undefined &&
               billing?.gst_amount !== undefined &&
               billing.gst_amount > 0 && (
-                <div className="flex justify-between">
+                <div className="flex justify-between text-gray-500">
                   <span>GST</span>
                   <span>{billing.gst_display ?? `₹${billing.gst_amount}`}</span>
                 </div>
               )}
             {billing?.penalty_amount !== undefined && billing.penalty_amount > 0 && (
-              <div className="flex justify-between font-semibold text-red-400">
+              <div className="flex justify-between font-semibold text-red-600">
                 <span>Cancellation charge</span>
                 <span>{`₹${billing.penalty_amount}`}</span>
               </div>
             )}
           </div>
           {billing?.penalty_amount !== undefined && billing.penalty_amount > 0 && (
-            <p className="mt-2 text-[11px] text-red-300/80">
+            <p className="mt-2 text-[11px] text-red-500">
               Includes a ₹{billing.penalty_amount} charge carried over from a recent order cancellation.
             </p>
           )}
           {pickupSummary && (
-            <div className="mt-5 rounded-xl bg-white/5 px-4 py-3 text-xs text-white/70">
-              <p className="font-bold uppercase tracking-wide text-white/50">Pickup</p>
+            <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600">
+              <p className="font-bold uppercase tracking-wide text-gray-400">Pickup</p>
               <p className="mt-1">
                 {pickupSummary.type === "instant"
                   ? "Instant pickup"
@@ -816,12 +832,12 @@ export default function CheckoutPage() {
             </div>
           )}
           {appliedOffer && (
-            <div className="mt-3 rounded-xl bg-white/5 px-4 py-3 text-xs text-white/70">
-              <p className="font-bold uppercase tracking-wide text-white/50">Offer applied</p>
+            <div className="mt-3 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600">
+              <p className="font-bold uppercase tracking-wide text-gray-400">Offer applied</p>
               <p className="mt-1">{appliedOffer.title}</p>
             </div>
           )}
-          <div className="my-5 border-t border-white/10" />
+          <div className="my-5 border-t border-black/10" />
           <div className="flex justify-between text-xl font-black">
             <span>Total</span>
             <span>{displayTotalLabel}</span>
@@ -829,7 +845,7 @@ export default function CheckoutPage() {
           <button
             onClick={placeOrder}
             disabled={placingOrder || !cart?.address || (paymentMethod === "online" && !razorpayReady)}
-            className="mt-6 w-full rounded-xl bg-white py-3.5 text-sm font-black text-[#171717] disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-6 w-full rounded-xl bg-ink py-3.5 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-black disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {placingOrder ? (
               <>
@@ -849,7 +865,7 @@ export default function CheckoutPage() {
             )}{" "}
             <ChevronRight className="ml-1 inline" size={15} />
           </button>
-          <p className="mt-4 text-center text-[10px] text-white/35">By placing this order, you agree to our terms.</p>
+          <p className="mt-4 text-center text-[10px] text-gray-400">By placing this order, you agree to our terms.</p>
         </aside>
       </div>
     </main>

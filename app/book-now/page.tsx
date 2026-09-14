@@ -166,12 +166,20 @@ function BookNowContent() {
 
   useEffect(() => {
     if (!checked || !user || !serviceId) return;
+    let cancelled = false;
     const addonQuery = addonIdsParam ? `&addon_ids=${encodeURIComponent(addonIdsParam)}` : "";
     apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}`)
-      .then(setEstimate)
-      .catch((err) =>
-        setEstimateError(err instanceof ClientApiError ? err.message : "Could not load pricing for this service."),
-      );
+      .then((res) => {
+        if (!cancelled) setEstimate(res);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setEstimateError(err instanceof ClientApiError ? err.message : "Could not load pricing for this service.");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [checked, user, serviceId, addonIdsParam]);
 
   const loadAddresses = useCallback(async () => {
