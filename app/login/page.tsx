@@ -94,6 +94,7 @@ function OtpDigitInput({
           inputMode="numeric"
           maxLength={1}
           autoFocus={i === 0}
+          aria-label={`OTP digit ${i + 1} of 6`}
           className="h-14 w-11 rounded-xl border-2 border-black/10 bg-white text-center text-xl font-black text-ink outline-none transition focus:-translate-y-0.5 focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.08)] disabled:opacity-50 sm:h-16 sm:w-12"
         />
       ))}
@@ -287,7 +288,7 @@ function LoginForm() {
                     setMode("mobile");
                     setEmailError(null);
                   }}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition-all ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 ${
                   mode === "mobile" ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
                 }`}
               >
@@ -299,7 +300,7 @@ function LoginForm() {
                   setMode("email");
                   setOtpError(null);
                 }}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition-all ${
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 ${
                   mode === "email" ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"
                 }`}
               >

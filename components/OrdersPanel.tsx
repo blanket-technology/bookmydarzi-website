@@ -173,7 +173,7 @@ export default function OrdersPanel() {
           <button
             key={t.key}
             onClick={() => changeTab(t.key)}
-            className={`rounded-t-xl px-4 py-3 text-sm font-bold transition ${
+            className={`rounded-t-xl px-4 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 ${
               tab === t.key ? "border-b-2 border-ink text-ink" : "text-gray-400 hover:text-gray-600"
             }`}
           >
