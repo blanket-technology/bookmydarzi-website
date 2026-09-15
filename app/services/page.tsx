@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { BadgeCheck, MapPin, ShieldCheck, Truck } from "lucide-react";
 import { getCatalogTree } from "@/lib/services/catalog";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
-import { breadcrumbJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, jsonLdScript } from "@/lib/seo";
 import ServicesGrid from "./ServicesGrid";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default async function ServicesPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
+          __html: jsonLdScript(
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: "Services", path: "/services" },

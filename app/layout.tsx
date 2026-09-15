@@ -4,7 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
 import Toast from "@/components/Toast";
-import { DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE, SITE_URL, localBusinessJsonLd } from "@/lib/seo";
+import { DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE, SITE_URL, jsonLdScript, localBusinessJsonLd } from "@/lib/seo";
 
 // metadataBase makes every relative openGraph/twitter image URL in every
 // page's generateMetadata resolve to a real absolute URL automatically -
@@ -65,7 +65,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           // Site-wide LocalBusiness identity - safe to include on every
           // page (not just "/"), since Google associates it with the whole
           // site's @id rather than re-declaring a new business per page.
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd()) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdScript(localBusinessJsonLd()) }}
         />
       </head>
       <body>
