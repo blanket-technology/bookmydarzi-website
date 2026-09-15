@@ -26,6 +26,24 @@ export default function Header() {
     if (!checked) fetchSession();
   }, [checked, fetchSession]);
 
+  // Re-validate on tab focus and periodically while the tab stays open -
+  // fetchSession above only ever runs once per mount (gated on `checked`),
+  // so a long-lived tab that outlives the 15-minute access-token cookie
+  // never re-asked /api/auth/session again until the next full page
+  // load/remount. /api/auth/session now transparently refreshes via the
+  // refresh-token cookie when needed (see that route), so this just makes
+  // sure the navbar actually asks again instead of showing a stale
+  // logged-in/out state for the rest of the tab's lifetime.
+  useEffect(() => {
+    const revalidate = () => fetchSession();
+    window.addEventListener("focus", revalidate);
+    const interval = setInterval(revalidate, 10 * 60 * 1000);
+    return () => {
+      window.removeEventListener("focus", revalidate);
+      clearInterval(interval);
+    };
+  }, [fetchSession]);
+
   // GET /notifications/unread-count -> { unread_count } - see
   // app/api/v1/endpoints/notifications.py:120-129 (bmd repo). Badge is only
   // meaningful for signed-in users. Re-fetched on mount and whenever a live
