@@ -80,7 +80,29 @@ export function InlineAddressForm({
     });
   };
 
+  // Required-field + pincode-format check before ever hitting the network -
+  // previously submit() sent whatever was typed (including entirely blank
+  // fields) straight to POST /users/addresses and just surfaced the
+  // backend's raw validation error, which is a generic message rather than
+  // pointing at the specific empty field, and costs a round trip for
+  // something checkable instantly client-side.
+  const validate = (): string | null => {
+    if (!form.full_name.trim()) return "Please enter the recipient's full name.";
+    if (!/^\d{10}$/.test(form.mobile.trim())) return "Please enter a valid 10-digit mobile number.";
+    if (!form.address_line_1.trim()) return "Please enter the address (house/flat, street).";
+    if (!form.city.trim()) return "Please enter a city.";
+    if (!form.state.trim()) return "Please enter a state.";
+    if (!/^\d{6}$/.test(form.pincode.trim())) return "Please enter a valid 6-digit pincode.";
+    return null;
+  };
+
   const submit = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     // Geolocation is optional, not required, to save an address - the
     // backend (app/services/users/address_service.py's create_address) only
     // enforces serviceability when coordinates are actually provided, so a

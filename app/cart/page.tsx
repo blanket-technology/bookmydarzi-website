@@ -637,6 +637,22 @@ function CartContent() {
     })();
   }, [checked, user, searchParams, router, guestAddItem]);
 
+  // /api/proxy already retries transparently through a token refresh
+  // server-side (see lib/api.ts's bmdFetch) - a 401 that still reaches the
+  // browser means the refresh token itself is no longer valid, i.e. the
+  // session is genuinely over, not a transient hiccup. Previously every
+  // cart mutation just showed whatever raw message came back (e.g. "Could
+  // not update quantity.") with no indication the real problem was being
+  // logged out - redirecting to login (preserving the cart page as the
+  // return destination) is the correct response, not an inline retry.
+  const redirectToLoginIfSessionExpired = (err: unknown): boolean => {
+    if (err instanceof ClientApiError && err.status === 401) {
+      router.push("/login?redirect=/cart");
+      return true;
+    }
+    return false;
+  };
+
   const updateQuantity = async (entry: CartServiceEntry, nextQty: number) => {
     if (nextQty < 1) return;
     const id = entryId(entry);
@@ -648,7 +664,9 @@ function CartContent() {
       });
       setCart(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update quantity.");
+      if (!redirectToLoginIfSessionExpired(err)) {
+        setError(err instanceof Error ? err.message : "Could not update quantity.");
+      }
     } finally {
       setMutatingId(null);
     }
@@ -661,7 +679,9 @@ function CartContent() {
       const data = await apiClient<ApiCart>(`/cart/service-entry/${id}`, { method: "DELETE" });
       setCart(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not remove this item.");
+      if (!redirectToLoginIfSessionExpired(err)) {
+        setError(err instanceof Error ? err.message : "Could not remove this item.");
+      }
     } finally {
       setMutatingId(null);
     }
@@ -681,9 +701,11 @@ function CartContent() {
     try {
       await apiClient("/cart/address", { method: "PUT", body: { address_id: id } });
     } catch (err) {
-      setAddressesError(
-        err instanceof Error ? err.message : "Couldn't save this address to your cart.",
-      );
+      if (!redirectToLoginIfSessionExpired(err)) {
+        setAddressesError(
+          err instanceof Error ? err.message : "Couldn't save this address to your cart.",
+        );
+      }
     } finally {
       setSavingAddressLink(false);
     }
