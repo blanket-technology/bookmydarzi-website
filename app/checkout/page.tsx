@@ -282,11 +282,25 @@ export default function CheckoutPage() {
   };
 
   const placeOrder = async () => {
+    // Synchronous guard at the very top, before either branch below - the
+    // "Pay Online" button disables on `placingOrder`, but that flag was
+    // previously only set once startOnlinePayment() reached its `else`
+    // branch (after the pendingOnlineOrderRef check), leaving a window
+    // where a fast double-click (before React repaints the disabled
+    // button) could call placeOrder() twice and both calls would race
+    // runCartCheckout, potentially creating two orders.
+    if (placingOrder) return;
     if (!cart?.address) {
       setError("Please select a delivery address on your cart before checking out.");
       return;
     }
     if (paymentMethod === "online") {
+      // Set synchronously here, before the `if (placingOrder) return`
+      // guard above can be bypassed by a second call already past it -
+      // startOnlinePayment itself clears this on every exit path (modal
+      // dismiss, payment.failed, catch) or leaves it set through to a
+      // successful verify, so no matching cleanup is needed here.
+      setPlacingOrder(true);
       await startOnlinePayment();
       return;
     }
@@ -325,7 +339,10 @@ export default function CheckoutPage() {
       });
       setInterestState("done");
     } catch {
+      // Previously silent - the button just reset with zero feedback, so a
+      // failed request looked identical to never having clicked it at all.
       setInterestState("idle");
+      setNotice("Couldn't submit your interest right now. Please try again.");
     }
   };
 
@@ -357,7 +374,25 @@ export default function CheckoutPage() {
         const result = await runCartCheckout("online");
         orderId = result.order_id;
         orderCode = result.order_code;
-        amount = result.final_amount ?? cart?.billing?.total_amount ?? cart?.total_amount ?? 0;
+        // Trust the checkout response's own final_amount - it's the price
+        // actually charged server-side for the order just created.
+        // Previously this fell back to the client-cached cart total
+        // (fetched at page load, before this checkout call) whenever
+        // final_amount was missing, which could silently charge a stale
+        // price if it changed between page load and this click. If the
+        // backend ever omits final_amount, that's a contract problem worth
+        // surfacing as an error rather than masking with a possibly-wrong
+        // number - but the order was already created server-side by the
+        // runCartCheckout call above, so pendingOnlineOrderRef must still be
+        // set before throwing: a retry needs to resume this same order
+        // (see the `if (pendingOnlineOrderRef.current)` branch above),
+        // not call runCartCheckout again with a fresh idempotency key and
+        // create a second order for the same cart.
+        if (result.final_amount == null) {
+          pendingOnlineOrderRef.current = { orderId, orderCode, amount: 0 };
+          throw new Error("Could not determine the order amount. Please try again.");
+        }
+        amount = result.final_amount;
         pendingOnlineOrderRef.current = { orderId, orderCode, amount };
       }
 

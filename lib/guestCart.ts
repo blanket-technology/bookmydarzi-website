@@ -112,38 +112,57 @@ export function guestCartEstimatedTotal(items: GuestCartItem[]): number {
 }
 
 // ─── Login-sync ───────────────────────────────────────────────────────────
-// Called right after a successful login (see lib/useAuth.ts). Best-effort:
-// one POST /cart/service-entry per guest line item, never blocks remaining
-// syncs if one fails, then clears the guest store regardless so a guest
-// cart never resurrects itself or duplicates on a later login.
+// Called right after a successful login (see lib/useAuth.ts) - and, since
+// fetchSession() also calls this whenever it sees a logged-in user with a
+// nonempty guest cart, potentially from more than one call site in quick
+// succession (e.g. login() firing this, then the checkout page's own
+// fetchSession() firing it again moments later while the first sync is
+// still in flight). Without a shared lock, both read the same items array
+// before either clears it, POSTing every line twice. syncInFlight makes
+// every caller within that window await the SAME sync instead of starting
+// a second one - mirrors lib/api.ts's refreshInFlight pattern for the same
+// class of problem (racing callers of an at-most-once operation).
+let syncInFlight: Promise<void> | null = null;
+
 export async function syncGuestCartToServer(): Promise<void> {
-  const items = useGuestCart.getState().items;
-  if (items.length === 0) return;
+  if (syncInFlight) return syncInFlight;
 
-  // Local imports (not top-level) to avoid a circular import between
-  // useAuth.ts and this module pulling in apiClient/idempotency at module
-  // init time - both are lightweight client-only utilities so this is just
-  // a lazy require, not a real cycle risk, but keeps load order obvious.
-  const [{ apiClient }, { generateIdempotencyKey }] = await Promise.all([
-    import("./apiClient"),
-    import("./idempotency"),
-  ]);
+  syncInFlight = (async () => {
+    const items = useGuestCart.getState().items;
+    if (items.length === 0) return;
 
-  await Promise.allSettled(
-    items.map((item) =>
-      apiClient("/cart/service-entry", {
-        method: "POST",
-        body: {
-          service_id: item.service_id,
-          quantity: item.quantity,
-          addons: item.selected_addons?.length
-            ? item.selected_addons.map((a) => ({ addon_id: a.addon_id, note: a.note }))
-            : undefined,
-        },
-        idempotencyKey: generateIdempotencyKey(),
-      }),
-    ),
-  );
+    // Local imports (not top-level) to avoid a circular import between
+    // useAuth.ts and this module pulling in apiClient/idempotency at module
+    // init time - both are lightweight client-only utilities so this is
+    // just a lazy require, not a real cycle risk, but keeps load order
+    // obvious.
+    const [{ apiClient }, { generateIdempotencyKey }] = await Promise.all([
+      import("./apiClient"),
+      import("./idempotency"),
+    ]);
 
-  useGuestCart.getState().clear();
+    await Promise.allSettled(
+      items.map((item) =>
+        apiClient("/cart/service-entry", {
+          method: "POST",
+          body: {
+            service_id: item.service_id,
+            quantity: item.quantity,
+            addons: item.selected_addons?.length
+              ? item.selected_addons.map((a) => ({ addon_id: a.addon_id, note: a.note }))
+              : undefined,
+          },
+          idempotencyKey: generateIdempotencyKey(),
+        }),
+      ),
+    );
+
+    useGuestCart.getState().clear();
+  })();
+
+  try {
+    await syncInFlight;
+  } finally {
+    syncInFlight = null;
+  }
 }

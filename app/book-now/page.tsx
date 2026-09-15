@@ -127,6 +127,16 @@ function BookNowContent() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderResult, setOrderResult] = useState<DirectOrderResult | null>(null);
+  // Razorpay reported success but our own verify call then failed/errored -
+  // real money may have moved. Same dedicated, prominent banner as
+  // app/checkout/page.tsx's verifyRiskNotice (previously this fell through
+  // to the plain `error` state here, rendered as a single small red line -
+  // far less visible than the equivalent case on checkout for the exact
+  // same "you may have been charged" scenario).
+  const [verifyRiskNotice, setVerifyRiskNotice] = useState<{
+    orderCode?: string;
+    orderId: number;
+  } | null>(null);
 
   // "I'm interested" capture for the unserviceable-area error banner below -
   // see UNSERVICEABLE_ERROR_PATTERN / registerServiceAreaInterest.
@@ -393,8 +403,12 @@ function BookNowContent() {
         message: "Payment successful.",
       });
     } catch (err) {
+      // Razorpay already reported success at this point - money may have
+      // moved even though our own verify call failed or errored. Never
+      // show a generic "nothing happened" message here.
       setPaymentStage("idle");
       setPlacingOrder(false);
+      setVerifyRiskNotice({ orderId, orderCode });
       setError(
         err instanceof ClientApiError
           ? `Payment may have been received, but we could not confirm it (${err.message}). Please check your orders page or contact support before trying again.`
@@ -744,6 +758,18 @@ function BookNowContent() {
               </p>
             )}
           </div>
+
+          {verifyRiskNotice && (
+            <div className="mb-4 rounded-3xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+              Your payment for{" "}
+              {verifyRiskNotice.orderCode ? `order #${verifyRiskNotice.orderCode}` : `order #${verifyRiskNotice.orderId}`}{" "}
+              may have gone through even though we could not confirm it here. Please check{" "}
+              <Link href="/orders" className="underline underline-offset-2">
+                My Orders
+              </Link>{" "}
+              before placing this order again, or contact support if the payment status looks wrong.
+            </div>
+          )}
 
           {error && UNSERVICEABLE_ERROR_PATTERN.test(error) ? (
             <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">

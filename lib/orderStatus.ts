@@ -341,14 +341,35 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
 
 const ALL_STATUSES = new Set<string>(Object.keys(ORDER_STATUS_META));
 
-export function normalizeOrderStatus(raw: string | null | undefined): OrderStatus {
+// Shown only if the backend ever returns a status string this file's
+// OrderStatus union doesn't know about yet (e.g. a new state added to
+// app/constants/order_status.py before this file is updated to match).
+// Previously an unrecognized status silently normalized to "order_placed",
+// which would show a customer's order as freshly placed (step 1 of the
+// timeline) even if it were actually much further along, or even
+// cancelled - a misleading, wrong-looking state rather than an honest
+// "we can't show you the details right now" one.
+const UNKNOWN_STATUS_META: OrderStatusMeta = {
+  status: "order_placed",
+  title: "Status update",
+  description: "We're syncing this order's latest status. Please check back shortly.",
+  nextStep: null,
+  tone: "neutral",
+  progress: 0,
+  customerFacing: true,
+  customerLabel: "Updating",
+  terminal: false,
+};
+
+export function normalizeOrderStatus(raw: string | null | undefined): OrderStatus | null {
   const s = (raw ?? "").trim().toLowerCase().replace(/\s+/g, "_");
   if (ALL_STATUSES.has(s)) return s as OrderStatus;
-  return "order_placed";
+  return null;
 }
 
 export function getOrderStatusMeta(raw: string | null | undefined): OrderStatusMeta {
-  return ORDER_STATUS_META[normalizeOrderStatus(raw)];
+  const normalized = normalizeOrderStatus(raw);
+  return normalized ? ORDER_STATUS_META[normalized] : UNKNOWN_STATUS_META;
 }
 
 /** 0-100 progress percentage for progress bars, based on ORDER_STATUS_SEQUENCE position. */

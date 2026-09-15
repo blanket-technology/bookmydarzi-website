@@ -122,5 +122,12 @@ export const useAuth = create<AuthState>((set) => ({
   logout: async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     set({ user: null });
+    // The guest cart lives in localStorage, not scoped to any account -
+    // without clearing it here, logging out on a shared/kiosk device left
+    // this user's cart items sitting there for the next person who opens
+    // the site logged out to see (GuestCartView renders straight from this
+    // store). A still-logged-in user's own items already live in the real
+    // server cart, unaffected by this.
+    useGuestCart.getState().clear();
   },
 }));
