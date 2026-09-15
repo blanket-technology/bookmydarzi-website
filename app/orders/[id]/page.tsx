@@ -23,7 +23,6 @@ import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
 import {
   getOrderStatusMeta,
-  ORDER_STATUS_SEQUENCE,
   STATUS_TONE_CLASSES,
   type OrderStatus,
 } from "@/lib/orderStatus";
@@ -164,9 +163,86 @@ interface CancellationPreview {
   policy_description: string | null;
 }
 
-function StatusTimeline({ status }: { status: string }) {
-  const meta = getOrderStatusMeta(status);
+interface TrackingStep {
+  status: string;
+  title: string;
+  completed: boolean;
+  current?: boolean;
+  timestamp?: string;
+}
+
+interface TrackingResponse {
+  order_id: number;
+  order_code: string | null;
+  status: string;
+  timeline: TrackingStep[];
+}
+
+function formatTimelineTimestamp(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+// Real event-sourced timeline, matching the admin panel and mobile app
+// exactly - both already fetch GET /orders/{id}/tracking and render its
+// timeline array as-is. This previously inferred a fake timeline entirely
+// client-side from the order's current status alone (no real per-step
+// timestamps, and a different, more granular set of steps than admin/
+// mobile ever showed) - the one genuinely inconsistent surface of the
+// three. Same data, same steps, same labels everywhere now.
+function StatusTimeline({ orderId, fallbackStatus }: { orderId: number; fallbackStatus: string }) {
+  const [tracking, setTracking] = useState<TrackingResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient<TrackingResponse>(`/orders/${orderId}/tracking`)
+      .then((res) => {
+        if (!cancelled) setTracking(res);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof ClientApiError ? err.message : "Could not load order tracking.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId]);
+
+  const meta = getOrderStatusMeta(fallbackStatus);
   const cancelled = meta.status === "cancelled" || meta.status === "order_rejected";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 size={22} className="animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (error || !tracking) {
+    // Fall back to the order's current status label only - no fabricated
+    // per-step history when the tracking endpoint itself is unavailable.
+    return (
+      <div className="rounded-2xl bg-gray-50 p-5 text-sm font-semibold text-gray-600">
+        {error ?? "Order tracking is temporarily unavailable."}
+      </div>
+    );
+  }
 
   if (cancelled) {
     return (
@@ -176,40 +252,37 @@ function StatusTimeline({ status }: { status: string }) {
     );
   }
 
-  const currentIndex = ORDER_STATUS_SEQUENCE.indexOf(meta.status as OrderStatus);
-  // Collapse into customer-facing milestones only, in sequence order.
-  const milestones = ORDER_STATUS_SEQUENCE.filter(
-    (s) => getOrderStatusMeta(s).customerFacing,
-  );
+  const steps = tracking.timeline;
 
   return (
     <div className="space-y-0">
-      {milestones.map((s, i) => {
-        const m = getOrderStatusMeta(s);
-        const stepIndex = ORDER_STATUS_SEQUENCE.indexOf(s);
-        const done = stepIndex < currentIndex || s === meta.status;
-        const isCurrent = s === meta.status;
-        const isLast = i === milestones.length - 1;
+      {steps.map((step, i) => {
+        const isLast = i === steps.length - 1;
         return (
-          <div key={s} className="flex gap-4">
+          <div key={step.status} className="flex gap-4">
             <div className="flex flex-col items-center">
               <span
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
-                  done ? "bg-[#171717] text-white" : "bg-gray-100 text-gray-400"
+                  step.completed ? "bg-[#171717] text-white" : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {done ? <CheckCircle2 size={16} /> : i + 1}
+                {step.completed ? <CheckCircle2 size={16} /> : i + 1}
               </span>
               {!isLast && (
-                <div className={`w-0.5 flex-1 ${done ? "bg-[#171717]" : "bg-gray-100"}`} style={{ minHeight: 28 }} />
+                <div
+                  className={`w-0.5 flex-1 ${step.completed ? "bg-[#171717]" : "bg-gray-100"}`}
+                  style={{ minHeight: 28 }}
+                />
               )}
             </div>
-            <div className={`pb-7 ${isCurrent ? "" : "opacity-80"}`}>
-              <p className={`text-sm font-bold ${done ? "text-[#171717]" : "text-gray-400"}`}>
-                {m.customerLabel}
+            <div className={`pb-7 ${step.current ? "" : "opacity-80"}`}>
+              <p className={`text-sm font-bold ${step.completed ? "text-[#171717]" : "text-gray-400"}`}>
+                {step.title}
               </p>
-              {isCurrent && (
-                <p className="mt-1 text-xs leading-5 text-gray-500">{m.description}</p>
+              {step.timestamp && (
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  {formatTimelineTimestamp(step.timestamp)}
+                </p>
               )}
             </div>
           </div>
@@ -1217,7 +1290,7 @@ export default function OrderDetailPage() {
             <p className="mt-1 text-sm text-gray-500">{meta.nextStep}</p>
           )}
           <div className="mt-6">
-            <StatusTimeline status={order.order.status} />
+            <StatusTimeline orderId={order.order.order_id} fallbackStatus={order.order.status} />
           </div>
           {order.order.pickup_partner && (
             <div className="mt-2 flex items-center gap-3 rounded-2xl bg-[#f8f6f1] p-4">
