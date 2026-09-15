@@ -33,6 +33,21 @@ export function absoluteUrl(path: string): string {
 }
 
 /**
+ * Serializes a JSON-LD object for dangerouslySetInnerHTML. JSON.stringify
+ * alone escapes quotes but NOT a literal "</script>" sequence inside a
+ * string value - if any backend-supplied field ever contains that exact
+ * substring (e.g. a service/category name from the admin catalog), it
+ * closes the script tag early and lets an attacker-controlled sibling
+ * <script> execute right after it. Escaping "<" as its unicode form is the
+ * standard fix (safe inside a JSON string; JSON.parse-equivalent HTML
+ * parsers still read < as a literal "<" once parsed, but it can never
+ * be interpreted as markup while still inside the <script> text node).
+ */
+export function jsonLdScript(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
+/**
  * LocalBusiness structured data - tells Google this is a real, local
  * service business (not a generic e-commerce store), which is what powers
  * the Knowledge Panel / local-pack eligibility for "tailor near me" type

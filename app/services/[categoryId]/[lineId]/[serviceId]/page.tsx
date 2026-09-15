@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree, getServiceAddons } from "@/lib/services/catalog";
-import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
 import ServiceActions from "./ServiceActions";
 
 type TierPageParams = { categoryId: string; lineId: string; serviceId: string };
@@ -91,7 +91,7 @@ export default async function TierDetailPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
+          __html: jsonLdScript([
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: "Services", path: "/services" },

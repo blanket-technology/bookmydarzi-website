@@ -15,7 +15,7 @@ import {
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
-import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
 
 type LinePageParams = { categoryId: string; lineId: string };
 
@@ -100,7 +100,7 @@ export default async function ServiceLineDetailPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify([
+          __html: jsonLdScript([
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: "Services", path: "/services" },
