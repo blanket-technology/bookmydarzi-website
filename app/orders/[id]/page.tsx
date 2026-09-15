@@ -29,7 +29,6 @@ import {
 } from "@/lib/orderStatus";
 import type { CustomerOrderDetailsResponse, CustomerOrderLineItem } from "@/lib/types/account";
 import type { CatalogCategoriesTreeResponse } from "@/lib/types/catalog";
-import { useChatOpenRequest } from "@/lib/chat/openChat";
 import IssueSelectorModal from "@/components/chat/IssueSelectorModal";
 import {
   createBalancePaymentSession,
@@ -40,6 +39,7 @@ import {
   type PaymentSessionResponse,
 } from "@/lib/razorpayPayment";
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
+import { buildPickupTimeSlots } from "@/lib/pickupPrefs";
 
 // Mirrors react_app/app/order-details.tsx's onlineFailed/onlinePending gate
 // (lines ~764-765) - "Pay now" only makes sense for a non-COD order sitting
@@ -110,17 +110,19 @@ const CUSTOMER_CANCELLABLE_STATUSES = new Set<OrderStatus>([
   "picked_up",
 ]);
 
-// Mirrors react_app/src/constants/supportIssues.ts's PRE_PICKUP_STATUSES -
-// pickup hasn't happened yet, so "reschedule pickup" is still a sensible
-// request. Note this deliberately excludes "picked_up" (fabric already
-// collected - nothing left to reschedule), unlike the cancellable set above.
+// Mirrors the backend's actual RESCHEDULABLE_FROM
+// (app/services/orders/admin_reschedule_service.py) - a pickup can only be
+// MOVED once one has already been scheduled, which only happens after a
+// Bridge/employee has been assigned and made the first scheduling call
+// (employee_order_service.schedule_pickup_employee_order). Before that
+// there's no ScheduledPickupAt yet to reschedule - PATCH
+// /customer/orders/{id}/reschedule-pickup hard-rejects every other status
+// with a 400. Previously this set was far broader (included
+// pending_payment through tailor_assigned) and only "worked" because the
+// button routed through the AI chat assistant, which absorbed the
+// backend's rejection into a friendly message instead of surfacing a raw
+// error - a direct calendar UI needs the real gate.
 const RESCHEDULABLE_STATUSES = new Set<OrderStatus>([
-  "pending_payment",
-  "order_placed",
-  "order_accepted",
-  "searching_tailor",
-  "broadcasted",
-  "tailor_assigned",
   "pickup_scheduled",
   "pickup_pending",
 ]);
@@ -408,6 +410,136 @@ function CancelOrderModal({
   );
 }
 
+// Direct self-service reschedule, replacing the previous "open chat and type
+// a date" flow for the one case it's actually safe: PATCH
+// /customer/orders/{id}/reschedule-pickup only succeeds while the order is
+// in pickup_scheduled/pickup_pending (see RESCHEDULABLE_STATUSES above) -
+// i.e. only after a Bridge/employee is already assigned and a pickup time
+// already exists to move. Same date+slot picker cart/page.tsx already uses
+// for the FIRST pickup scheduling, so the two flows feel identical.
+const RESCHEDULE_TIME_SLOTS = buildPickupTimeSlots();
+
+function RescheduleModal({
+  orderId,
+  currentPickupAt,
+  onClose,
+  onRescheduled,
+}: {
+  orderId: number;
+  currentPickupAt: string | null;
+  onClose: () => void;
+  onRescheduled: () => void;
+}) {
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const [date, setDate] = useState(() => {
+    if (!currentPickupAt) return "";
+    const d = new Date(currentPickupAt);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+  const [slotLabel, setSlotLabel] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const confirmReschedule = useCallback(async () => {
+    const slot = RESCHEDULE_TIME_SLOTS.find((s) => s.label === slotLabel);
+    if (!date || !slot) {
+      setError("Please choose a date and time slot.");
+      return;
+    }
+    const dt = new Date(`${date}T00:00:00`);
+    dt.setHours(slot.hour, slot.minute, 0, 0);
+    if (dt.getTime() <= Date.now()) {
+      setError("Please choose a time in the future.");
+      return;
+    }
+    const isoLocal = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(
+      dt.getDate(),
+    ).padStart(2, "0")}T${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}:00`;
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient(`/customer/orders/${orderId}/reschedule-pickup`, {
+        method: "PATCH",
+        body: { scheduled_pickup_at: isoLocal, pickup_time_slot: slot.label },
+      });
+      onRescheduled();
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "Could not reschedule pickup. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [date, slotLabel, orderId, onRescheduled]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-black">Reschedule pickup</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-gray-400 hover:bg-gray-100" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <p className="mt-2 text-sm text-gray-500">Choose a new date and time for your cloth pickup.</p>
+
+        <div className="mt-5 space-y-4 rounded-2xl bg-cream p-5">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wide text-muted">Pickup date</label>
+            <input
+              type="date"
+              min={todayStr}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wide text-muted">Time slot (9 AM – 9 PM)</label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {RESCHEDULE_TIME_SLOTS.map((slot) => (
+                <button
+                  key={slot.label}
+                  onClick={() => setSlotLabel(slot.label)}
+                  className={`rounded-full border-2 px-3.5 py-1.5 text-xs font-bold transition ${
+                    slotLabel === slot.label
+                      ? "border-ink bg-ink text-white"
+                      : "border-black/10 bg-white text-muted hover:border-black/25"
+                  }`}
+                >
+                  {slot.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 rounded-xl border border-black/10 py-3 text-sm font-bold hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={confirmReschedule}
+            disabled={submitting || !date || !slotLabel}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-ink py-3 text-sm font-bold text-white hover:bg-black disabled:opacity-60"
+          >
+            {submitting ? <Loader2 size={16} className="animate-spin" /> : "Confirm new time"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StarRow({
   value,
   interactive = false,
@@ -607,7 +739,6 @@ function RatingCard({ orderId }: { orderId: number }) {
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = params?.id;
-  const requestChatOpen = useChatOpenRequest((s) => s.requestOpen);
   const [order, setOrder] = useState<CustomerOrderDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -615,6 +746,7 @@ export default function OrderDetailPage() {
   const [imageMap, setImageMap] = useState<Map<number, string | null>>(new Map());
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showIssueSelector, setShowIssueSelector] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
@@ -1332,9 +1464,7 @@ export default function OrderDetailPage() {
             )}
             {canReschedule && (
               <button
-                onClick={() =>
-                  requestChatOpen({ orderId: order.order.order_id, issueCategory: "reschedule_pickup" })
-                }
+                onClick={() => setShowRescheduleModal(true)}
                 className="flex items-center gap-2 rounded-xl border border-black/10 bg-white px-5 py-2.5 text-sm font-bold hover:bg-gray-50"
               >
                 <CalendarClock size={15} /> Reschedule pickup
@@ -1386,6 +1516,18 @@ export default function OrderDetailPage() {
           onClose={() => setShowCancelModal(false)}
           onCancelled={() => {
             setShowCancelModal(false);
+            loadOrder();
+          }}
+        />
+      )}
+
+      {showRescheduleModal && (
+        <RescheduleModal
+          orderId={order.order.order_id}
+          currentPickupAt={order.order.scheduled_pickup_at ?? null}
+          onClose={() => setShowRescheduleModal(false)}
+          onRescheduled={() => {
+            setShowRescheduleModal(false);
             loadOrder();
           }}
         />
