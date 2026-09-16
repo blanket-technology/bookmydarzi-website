@@ -45,6 +45,7 @@ const SECTIONS = [
       "The tailor assigned to your order sees only what's needed to complete it (garment type, measurements, delivery pincode/area) - never your full address, phone number, or payment details.",
       "Our delivery/pickup staff see your address and contact number only for orders assigned to them, only for as long as needed to complete that pickup or delivery.",
       "Razorpay processes your payment directly; we share only what's required to charge and confirm payment for an order.",
+      "When you enter or confirm an address, we send that location to Google's or OpenStreetMap's mapping services to look it up and display it accurately.",
       "We do not share your information with advertisers or data brokers.",
     ],
   },

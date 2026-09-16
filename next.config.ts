@@ -70,6 +70,14 @@ const nextConfig: NextConfig = {
   // otherwise fully exposed to.
   async headers() {
     return [
+      // apple-app-site-association has no file extension, so Next serves it
+      // with a default content type unless told otherwise - iOS requires
+      // application/json (or it silently fails Universal Links
+      // verification with no visible error anywhere in the app).
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
       {
         source: "/:path*",
         headers: [

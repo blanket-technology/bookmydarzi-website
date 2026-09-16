@@ -14,11 +14,13 @@ export const metadata: Metadata = {
 // self-service action (Profile > Account details > Danger zone on both the
 // website and the mobile app). Must stay in sync with what deletion
 // actually does: DELETE /users/me soft-deletes the User row (IsDeleted/
-// IsActive flags) - it does not cascade-delete orders, addresses,
-// measurements, or chat history, and there is no separate hard-delete/
-// purge job. Overstating this as instant full erasure would be an
-// inaccurate compliance claim - see app/privacy/page.tsx's "Data retention"
-// section for the same wording used there.
+// IsActive flags), revokes every refresh token and deactivates every device
+// push token for the user (delete_own_account, user_management_service.py)
+// - it does not cascade-delete orders, addresses, measurements, or chat
+// history, and there is no separate hard-delete/purge job. Overstating
+// this as instant full erasure would be an inaccurate compliance claim -
+// see app/privacy/page.tsx's "Data retention" section for the same wording
+// used there.
 const STEPS = [
   "Log in to your account on the BookMyDarzi website or mobile app.",
   "Go to Profile, then open the Account details tab.",
@@ -32,7 +34,8 @@ const RETAINED = [
 ];
 
 const REMOVED = [
-  "Your login access - you're signed out on every device immediately, and can no longer sign back in.",
+  "Your login access - you're signed out on every device immediately, every active session is revoked, and you can no longer sign back in.",
+  "Push notifications to your device stop immediately.",
   "Visibility of your profile, saved addresses, and measurement profiles - no longer shown to you or to our staff.",
   "Your account no longer appears in customer search or reporting used for day-to-day operations.",
 ];
