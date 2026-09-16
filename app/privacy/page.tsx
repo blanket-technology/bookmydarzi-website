@@ -52,14 +52,15 @@ const SECTIONS = [
     title: "4. Data retention",
     body: [
       "We keep your account and order history for as long as your account is active, so you can view past orders and reorder easily.",
-      "If you ask us to delete your account, we remove your personal information from active use, retaining only what we're legally required to keep (such as transaction records for tax purposes).",
+      "When you delete your account, it is deactivated immediately - you're signed out everywhere and your profile, saved addresses, and measurements are no longer visible to you or to our staff. Order, payment, and tax records tied to your account are retained for the period required by Indian tax and consumer-protection law, and to prevent fraud, even after deletion.",
     ],
   },
   {
     title: "5. Your choices",
     body: [
       "You can review and update your name, email, mobile number, and saved addresses at any time from your Profile page.",
-      "You can request a copy of your data, or ask us to delete your account, by reaching out through the chat widget available on every page, or via the Contact page.",
+      "You can permanently delete your account yourself, any time, from your Profile page's Account details tab - see the Delete Account page for details on what happens.",
+      "You can request a copy of your data by reaching out through the chat widget available on every page, or via the Contact page.",
     ],
   },
   {
