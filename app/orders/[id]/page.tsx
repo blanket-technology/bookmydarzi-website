@@ -169,6 +169,9 @@ interface TrackingStep {
   completed: boolean;
   current?: boolean;
   timestamp?: string;
+  /** Extra context for this step - currently only set on the "cancelled"
+   * step, carrying the real cancellation reason. */
+  note?: string;
 }
 
 interface TrackingResponse {
@@ -199,7 +202,7 @@ function formatTimelineTimestamp(iso: string): string {
 // timestamps, and a different, more granular set of steps than admin/
 // mobile ever showed) - the one genuinely inconsistent surface of the
 // three. Same data, same steps, same labels everywhere now.
-function StatusTimeline({ orderId, fallbackStatus }: { orderId: number; fallbackStatus: string }) {
+function StatusTimeline({ orderId }: { orderId: number }) {
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -223,9 +226,6 @@ function StatusTimeline({ orderId, fallbackStatus }: { orderId: number; fallback
     };
   }, [orderId]);
 
-  const meta = getOrderStatusMeta(fallbackStatus);
-  const cancelled = meta.status === "cancelled" || meta.status === "order_rejected";
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -244,26 +244,23 @@ function StatusTimeline({ orderId, fallbackStatus }: { orderId: number; fallback
     );
   }
 
-  if (cancelled) {
-    return (
-      <div className="rounded-2xl bg-red-50 p-5 text-sm font-semibold text-red-700">
-        {meta.description}
-      </div>
-    );
-  }
-
   const steps = tracking.timeline;
 
   return (
     <div className="space-y-0">
       {steps.map((step, i) => {
         const isLast = i === steps.length - 1;
+        const isCancelled = step.status === "cancelled";
         return (
           <div key={step.status} className="flex gap-4">
             <div className="flex flex-col items-center">
               <span
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
-                  step.completed ? "bg-[#171717] text-white" : "bg-gray-100 text-gray-400"
+                  isCancelled
+                    ? "bg-red-600 text-white"
+                    : step.completed
+                      ? "bg-[#171717] text-white"
+                      : "bg-gray-100 text-gray-400"
                 }`}
               >
                 {step.completed ? <CheckCircle2 size={16} /> : i + 1}
@@ -276,13 +273,20 @@ function StatusTimeline({ orderId, fallbackStatus }: { orderId: number; fallback
               )}
             </div>
             <div className={`pb-7 ${step.current ? "" : "opacity-80"}`}>
-              <p className={`text-sm font-bold ${step.completed ? "text-[#171717]" : "text-gray-400"}`}>
+              <p
+                className={`text-sm font-bold ${
+                  isCancelled ? "text-red-700" : step.completed ? "text-[#171717]" : "text-gray-400"
+                }`}
+              >
                 {step.title}
               </p>
               {step.timestamp && (
                 <p className="mt-1 text-xs leading-5 text-gray-500">
                   {formatTimelineTimestamp(step.timestamp)}
                 </p>
+              )}
+              {step.note && (
+                <p className="mt-1 text-xs leading-5 text-red-700">{step.note}</p>
               )}
             </div>
           </div>
@@ -1290,7 +1294,7 @@ export default function OrderDetailPage() {
             <p className="mt-1 text-sm text-gray-500">{meta.nextStep}</p>
           )}
           <div className="mt-6">
-            <StatusTimeline orderId={order.order.order_id} fallbackStatus={order.order.status} />
+            <StatusTimeline orderId={order.order.order_id} />
           </div>
           {order.order.pickup_partner && (
             <div className="mt-2 flex items-center gap-3 rounded-2xl bg-[#f8f6f1] p-4">
