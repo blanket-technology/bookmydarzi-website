@@ -37,6 +37,7 @@ export default function Footer() {
           <div className="flex items-center gap-4">
             <Link className="transition-colors hover:text-white/70" href="/privacy">Privacy Policy</Link>
             <Link className="transition-colors hover:text-white/70" href="/terms">Terms of Service</Link>
+            <Link className="transition-colors hover:text-white/70" href="/delete-account">Delete Account</Link>
           </div>
         </div>
       </div>

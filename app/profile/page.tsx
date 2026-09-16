@@ -395,6 +395,85 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
           onClick={() => onNavigate("measurements")}
         />
       </div>
+
+      <DangerZoneSection />
+    </div>
+  );
+}
+
+// Self-service account deletion, matching the mobile app's Profile tab
+// action exactly (same two-step confirmation weight, same DELETE /users/me
+// call, same post-delete logout+redirect) - the one account-management
+// action the website was missing relative to the app, needed for Play
+// Store data-safety parity. See app/privacy.tsx's "Data retention" section
+// (mobile) / /privacy (web) for what deletion actually does: the account is
+// deactivated immediately, but order/payment/tax records are retained as
+// required by law - copy here must stay in sync with that, not overstate
+// it as instant full erasure.
+function DangerZoneSection() {
+  const router = useRouter();
+  const { logout } = useAuth();
+  const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await apiClient("/users/me", { method: "DELETE" });
+      await logout();
+      router.push("/");
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "Couldn't delete your account. Please try again.");
+      setDeleting(false);
+      setStep(0);
+    }
+  };
+
+  return (
+    <div className="rounded-3xl border border-red-100 bg-red-50/40 p-6">
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-100 text-red-700">
+          <ShieldAlert size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-black text-red-900">Danger zone</h3>
+          <p className="mt-1 text-sm leading-6 text-red-700/80">
+            Permanently delete your BookMyDarzi account. You&apos;ll lose access to your order
+            history, addresses and saved measurements. This can&apos;t be undone. See our{" "}
+            <Link href="/privacy" className="font-semibold underline underline-offset-2">
+              Privacy Policy
+            </Link>{" "}
+            for what data is retained afterward.
+          </p>
+          {error && <p className="mt-2 text-sm font-semibold text-red-700">{error}</p>}
+          <button
+            onClick={() => setStep(1)}
+            className="mt-4 flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50"
+          >
+            <Trash2 size={14} /> Delete my account
+          </button>
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={step === 1}
+        title="Delete account"
+        description="This permanently deletes your BookMyDarzi account. You'll lose access to your order history, addresses and saved measurements. This can't be undone."
+        confirmLabel="Delete"
+        onConfirm={() => setStep(2)}
+        onCancel={() => setStep(0)}
+      />
+      <ConfirmDialog
+        open={step === 2}
+        title="Are you absolutely sure?"
+        description="Your account will be deactivated immediately and you'll be signed out everywhere. Your order, payment and tax records are retained as required by law - see our Privacy Policy for details."
+        confirmLabel="Delete my account"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setStep(0)}
+      />
     </div>
   );
 }
