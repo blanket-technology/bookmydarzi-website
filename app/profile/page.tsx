@@ -44,8 +44,8 @@ import type {
 type Tab = "orders" | "overview" | "addresses" | "measurements";
 
 const TABS: { key: Tab; label: string; description: string; icon: typeof UserIcon }[] = [
-  { key: "orders", label: "My orders", description: "Track & view order history", icon: ShoppingBag },
   { key: "overview", label: "Account details", description: "Name, email & mobile", icon: UserIcon },
+  { key: "orders", label: "My orders", description: "Track & view order history", icon: ShoppingBag },
   { key: "addresses", label: "Saved addresses", description: "Pickup & delivery locations", icon: MapPin },
   { key: "measurements", label: "My measurements", description: "Review & update your fit", icon: Ruler },
 ];
@@ -183,7 +183,7 @@ function VerificationBadge({ verified }: { verified: boolean }) {
 
 // ────────────────────────────────────────────────────────────────────────────
 
-function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
+function OverviewTab() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -370,32 +370,6 @@ function OverviewTab({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       </div>
     </div>
 
-      {/* Quick-access tiles into the other real sections of this account -
-          mirrors how big platforms (Myntra, Amazon) treat "Overview" as a
-          hub with navigation tiles rather than just a data card. Only links
-          to tabs that actually exist here (no fabricated "Wallet"/"Saved
-          Cards" tiles for features this product doesn't have). */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <OverviewTile
-          icon={ShoppingBag}
-          label="My orders"
-          desc="Track & view order history"
-          onClick={() => onNavigate("orders")}
-        />
-        <OverviewTile
-          icon={MapPin}
-          label="Saved addresses"
-          desc="Pickup & delivery locations"
-          onClick={() => onNavigate("addresses")}
-        />
-        <OverviewTile
-          icon={Ruler}
-          label="My measurements"
-          desc="Review & update your fit"
-          onClick={() => onNavigate("measurements")}
-        />
-      </div>
-
       <DangerZoneSection />
     </div>
   );
@@ -475,33 +449,6 @@ function DangerZoneSection() {
         onCancel={() => setStep(0)}
       />
     </div>
-  );
-}
-
-function OverviewTile({
-  icon: Icon,
-  label,
-  desc,
-  onClick,
-}: {
-  icon: typeof UserIcon;
-  label: string;
-  desc: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-start gap-3 rounded-3xl border border-black/5 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#f8f6f1] text-[#171717]">
-        <Icon size={18} />
-      </span>
-      <div>
-        <p className="text-sm font-black">{label}</p>
-        <p className="mt-0.5 text-xs text-gray-500">{desc}</p>
-      </div>
-    </button>
   );
 }
 
@@ -1204,7 +1151,7 @@ function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, checked, fetchSession, logout } = useAuth();
-  const [tab, setTab] = useState<Tab>("orders");
+  const [tab, setTab] = useState<Tab>("overview");
   const [loggingOut, setLoggingOut] = useState(false);
 
   // Deep link from checkout's "needs a precise location" error:
@@ -1266,7 +1213,7 @@ function ProfileContent() {
 
         <div className="min-w-0 flex-1">
           {tab === "orders" && <OrdersPanel />}
-          {tab === "overview" && <OverviewTab onNavigate={setTab} />}
+          {tab === "overview" && <OverviewTab />}
           {tab === "addresses" && <AddressesTab initialEditId={initialEditAddressId} />}
           {tab === "measurements" && <MeasurementsTab />}
         </div>
