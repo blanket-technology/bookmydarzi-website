@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { useGuestCart, type GuestCartDisplayInfo } from "@/lib/guestCart";
+import { useCartCount } from "@/lib/cartCount";
 import { apiClient } from "@/lib/apiClient";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { useToast } from "@/lib/toast";
@@ -42,6 +43,11 @@ export function useAddToCart() {
           },
           idempotencyKey: generateIdempotencyKey(),
         });
+        // Bump the header badge immediately rather than re-fetching the
+        // whole cart just to learn a number we already know the delta
+        // for - the POST above already succeeded, so `quantity` more
+        // items are now in the cart.
+        useCartCount.getState().setCount(useCartCount.getState().count + quantity);
       } else {
         guestAddItem(serviceId, quantity, displayInfo, selectedAddons);
       }

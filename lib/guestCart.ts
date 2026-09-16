@@ -158,6 +158,14 @@ export async function syncGuestCartToServer(): Promise<void> {
     );
 
     useGuestCart.getState().clear();
+
+    // The header's badge switches from the (now-cleared) guest count to
+    // the server count the instant `user` is set on login - without this,
+    // it would flash to 0 for the brief window between that switch and
+    // this sync actually finishing populating the server cart. This sync
+    // is the one place that knows exactly when that's done.
+    const { useCartCount } = await import("./cartCount");
+    void useCartCount.getState().refetch();
   })();
 
   try {
