@@ -202,6 +202,94 @@ function formatTimelineTimestamp(iso: string): string {
 // timestamps, and a different, more granular set of steps than admin/
 // mobile ever showed) - the one genuinely inconsistent surface of the
 // three. Same data, same steps, same labels everywhere now.
+// Shared by both the pickup and delivery partner cards - same shape, just a
+// different subtitle so the customer knows which leg this person is
+// handling (a delivery broadcast can hand the order to someone different
+// than whoever did the pickup). Shows a photo (falls back to an initials
+// avatar), name, phone-to-call, and a star rating when the Bridge employee
+// has one (BridgeProfile.Rating, rolled up from real customer ratings) -
+// doorstep trust/safety: identity confirmation plus a quick trust signal,
+// matching mobile's equivalent BridgePartnerCard.
+function BridgePartnerCard({
+  partner,
+  subtitle,
+}: {
+  partner: { name: string; photo_url: string | null; mobile: string | null; rating: number | null };
+  subtitle: string;
+}) {
+  // Click the avatar to see the full photo - a thumbnail circle is too
+  // small to actually verify someone's face against at the doorstep.
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  return (
+    <div className="mt-2 flex items-center gap-3 rounded-2xl bg-[#f8f6f1] p-4">
+      {partner.photo_url ? (
+        <button
+          type="button"
+          onClick={() => setViewerOpen(true)}
+          className="shrink-0 rounded-full"
+          aria-label={`View full photo of ${partner.name}`}
+        >
+          <Image
+            src={partner.photo_url}
+            alt={partner.name}
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-full object-cover"
+          />
+        </button>
+      ) : (
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#171717] text-sm font-black text-white">
+          {partner.name.charAt(0)}
+        </span>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-bold">{partner.name}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+        {partner.rating != null && (
+          <p className="mt-0.5 flex items-center gap-1 text-xs font-bold text-amber-700">
+            <Star size={12} className="fill-amber-500 text-amber-500" />
+            {partner.rating.toFixed(1)}
+          </p>
+        )}
+      </div>
+      {partner.mobile && (
+        <a
+          href={`tel:${partner.mobile}`}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-[#171717] shadow-sm"
+          aria-label={`Call ${partner.name}`}
+        >
+          <Phone size={15} />
+        </a>
+      )}
+
+      {viewerOpen && partner.photo_url && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          onClick={() => setViewerOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setViewerOpen(false)}
+            className="absolute right-5 top-5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          <Image
+            src={partner.photo_url}
+            alt={partner.name}
+            width={480}
+            height={480}
+            className="max-h-[80vh] w-auto max-w-full rounded-2xl object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatusTimeline({ orderId }: { orderId: number }) {
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1297,24 +1385,10 @@ export default function OrderDetailPage() {
             <StatusTimeline orderId={order.order.order_id} />
           </div>
           {order.order.pickup_partner && (
-            <div className="mt-2 flex items-center gap-3 rounded-2xl bg-[#f8f6f1] p-4">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#171717] text-sm font-black text-white">
-                {order.order.pickup_partner.name.charAt(0)}
-              </span>
-              <div className="flex-1">
-                <p className="text-sm font-bold">{order.order.pickup_partner.name}</p>
-                <p className="text-xs text-gray-500">Your pickup partner</p>
-              </div>
-              {order.order.pickup_partner.mobile && (
-                <a
-                  href={`tel:${order.order.pickup_partner.mobile}`}
-                  className="grid h-9 w-9 place-items-center rounded-full bg-white text-[#171717] shadow-sm"
-                  aria-label="Call pickup partner"
-                >
-                  <Phone size={15} />
-                </a>
-              )}
-            </div>
+            <BridgePartnerCard partner={order.order.pickup_partner} subtitle="Your pickup partner" />
+          )}
+          {order.order.delivery_partner && (
+            <BridgePartnerCard partner={order.order.delivery_partner} subtitle="Your delivery partner" />
           )}
         </section>
 
