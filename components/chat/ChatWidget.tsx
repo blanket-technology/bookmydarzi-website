@@ -88,15 +88,25 @@ export default function ChatWidget() {
   }, [open, user, initSession]);
 
   // An order-scoped entry point (e.g. an order-detail page's "Reschedule
-  // pickup" button) requested the widget open, pinned to that order/issue -
-  // see lib/chat/openChat.ts. Re-init even if a general session already
-  // started, so the request lands on the right order-scoped session.
+  // pickup" button, or the Contact page's "Start a chat") requested the
+  // widget open, pinned to that order/issue - see lib/chat/openChat.ts.
+  // Re-init even if a general session already started, so the request
+  // lands on the right order-scoped session.
+  //
+  // Previously bailed out entirely when logged out (`!user`), so clicking
+  // "Start a chat" anywhere on the site while signed out did nothing at
+  // all - no panel, no error, no indication anything happened. Now always
+  // opens the panel; it already renders its own "Sign in to chat with us"
+  // state when `!user` (see the render below), so a logged-out visitor at
+  // least sees why nothing else happens instead of a dead button.
   useEffect(() => {
-    if (!openRequest || !user) return;
+    if (!openRequest) return;
     setOpen(true);
-    hasInitialized.current = true;
-    reset();
-    initSession(openRequest.orderId, openRequest.issueCategory);
+    if (user) {
+      hasInitialized.current = true;
+      reset();
+      initSession(openRequest.orderId, openRequest.issueCategory);
+    }
     clearRequest();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openRequest, user]);
