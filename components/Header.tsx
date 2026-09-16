@@ -126,7 +126,14 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const displayName = user?.first_name || user?.full_name || user?.email || "Account";
+  // mobile added to the fallback chain: a customer who signed up/logged in
+  // via mobile OTP with no name or email set previously fell straight
+  // through to the literal word "Account" in the header - not even their
+  // own phone number, let alone a real identity. Every WebUser has at
+  // least a mobile number (see lib/useAuth.ts), so this only reaches
+  // "Account" if somehow none of first_name/full_name/email/mobile came
+  // back from the session endpoint at all.
+  const displayName = user?.first_name || user?.full_name || user?.email || user?.mobile || "Account";
 
   const handleLogout = async () => {
     setMenuOpen(false);
@@ -203,22 +210,27 @@ export default function Header() {
             <div className="relative hidden md:block" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full py-2 pl-2 pr-3 hover:bg-gray-100"
+                className="flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 transition hover:bg-gray-100"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#171717] text-xs font-black text-white">
-                  {displayName.charAt(0).toUpperCase()}
+                <span className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-[#171717] to-[#3a3a3a] text-xs font-black text-white">
+                  {/^\d/.test(displayName) ? <User size={14} /> : displayName.charAt(0).toUpperCase()}
                 </span>
                 <span className="max-w-[110px] truncate text-sm font-bold">{displayName}</span>
-                <ChevronDown size={14} className="text-gray-400" />
+                <ChevronDown size={14} className={`text-gray-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 overflow-hidden rounded-2xl border border-black/5 bg-white py-1.5 shadow-xl">
+                <div className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-black/5 bg-white py-2 shadow-xl">
+                  <div className="border-b border-black/5 px-4 py-3">
+                    <p className="truncate text-sm font-bold">{displayName}</p>
+                    {user.email && <p className="truncate text-xs text-gray-400">{user.email}</p>}
+                  </div>
                   <Link onClick={() => setMenuOpen(false)} href="/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50">
-                    <User size={15} /> Profile
+                    <User size={15} /> My Account
                   </Link>
                   <Link onClick={() => setMenuOpen(false)} href="/orders" className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold hover:bg-gray-50">
                     <ShoppingBag size={15} /> My Orders
                   </Link>
+                  <div className="my-1 border-t border-black/5" />
                   <button onClick={handleLogout} className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50">
                     <LogOut size={15} /> Log out
                   </button>

@@ -41,6 +41,25 @@ const CONTACT_ROUTES = [
   },
 ];
 
+// Verbatim from app/faq/page.tsx's FAQS - a real answer already published
+// on this site, not new copy invented for this page. Picked the 3 most
+// likely to pre-empt a chat: how the core service works, tracking, and
+// cancellation policy.
+const POPULAR_QUESTIONS = [
+  {
+    q: "How does doorstep pickup work?",
+    a: "After you book a service and choose a pickup slot, a member of our team comes to your address to collect your fabric and, where needed, take your measurements in person. There's no need to visit a shop.",
+  },
+  {
+    q: "How do I track my order?",
+    a: "Every order has a live status you can check from the Orders page - from order confirmation through tailor assignment, stitching and delivery - with detail on what's happening and what's next.",
+  },
+  {
+    q: "Can I cancel an order after booking it?",
+    a: "Orders can be cancelled from your Orders page while they're still in an early stage of processing. Cancellation terms can vary depending on how far along your order is - contact support for details on your specific order.",
+  },
+];
+
 const TRUST_POINTS = [
   {
     icon: Clock3,
@@ -86,13 +105,21 @@ export default function ContactPage() {
   return (
     <main>
       <section className="bg-cream">
-        <div className="mx-auto max-w-4xl px-5 py-16 text-center lg:px-8">
+        <div className="mx-auto max-w-4xl px-5 py-20 text-center lg:px-8">
           <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">Contact us</p>
           <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">We&apos;d love to hear from you.</h1>
           <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-gray-600">
             Questions, feedback, or something not quite right with an order - chat with our team and
             we&apos;ll help you right away.
           </p>
+          <div className="mx-auto mt-8 flex max-w-md flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm font-bold text-ink">
+            <span className="flex items-center gap-1.5">
+              <Clock3 size={15} className="text-gold-deep" /> Reply within 1 business day
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MapPin size={15} className="text-gold-deep" /> {SERVICE_AREA}
+            </span>
+          </div>
         </div>
       </section>
 
@@ -172,6 +199,26 @@ export default function ContactPage() {
                 </span>
                 <h3 className="mt-4 text-base font-black">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-gray-500">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Popular questions preview - real FAQ content, not fabricated ──── */}
+      <section className="mx-auto max-w-5xl px-5 pb-16 lg:px-8">
+        <div className="rounded-3xl border border-black/5 bg-white p-8 shadow-sm md:p-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-xl font-black tracking-tight">Before you chat, a quick check</h2>
+            <Link href="/faq" className="text-xs font-bold text-gold-deep hover:underline">
+              View all FAQs →
+            </Link>
+          </div>
+          <div className="mt-6 grid gap-6 sm:grid-cols-3">
+            {POPULAR_QUESTIONS.map(({ q, a }) => (
+              <div key={q}>
+                <p className="text-sm font-bold text-ink">{q}</p>
+                <p className="mt-1.5 text-xs leading-5 text-gray-500">{a}</p>
               </div>
             ))}
           </div>
