@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
+  Building2,
   ClipboardList,
   Eye,
   Headset,
@@ -15,6 +17,14 @@ import {
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import { getTestimonials } from "@/lib/services/testimonials";
 import ScrollReveal from "@/components/ScrollReveal";
+
+// Same registered office as the Contact page - kept as one source of
+// truth in both places rather than importing across pages, since Next
+// treats each page as its own bundle and this is 3 short lines.
+const OFFICE_ADDRESS = "G-172, Sector 63, Noida, Uttar Pradesh 201301";
+const SERVICE_AREA = "Delhi-NCR (Noida & surrounding areas)";
+const MAPS_EMBED_SRC = `https://www.google.com/maps?q=${encodeURIComponent(OFFICE_ADDRESS)}&output=embed`;
+const MAPS_DIRECTIONS_HREF = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(OFFICE_ADDRESS)}`;
 
 export const metadata: Metadata = {
   title: "About Us",
@@ -115,6 +125,50 @@ export default async function AboutPage() {
             professional tailoring accessible, trackable and convenient, for people who want a
             great fit without rearranging their day around it.
           </p>
+        </div>
+      </section>
+
+      {/* ── Where we're based ────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-4xl px-5 pb-16 lg:px-8">
+        <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm">
+          <div className="grid md:grid-cols-2">
+            <div className="space-y-5 p-8 md:p-10">
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-ink text-gold">
+                <Building2 size={18} />
+              </span>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">
+                  Where we&apos;re based
+                </p>
+                <h2 className="mt-2 text-2xl font-black tracking-tight">Noida, Delhi NCR.</h2>
+              </div>
+              <p className="text-sm leading-6 text-gray-500">
+                Blanket Technologies Pvt. Ltd. is registered and operating out of Noida, and we
+                currently serve <span className="font-semibold text-ink">{SERVICE_AREA}</span> -
+                pickup, tailoring and delivery, all within this area.
+              </p>
+              <a
+                href={MAPS_DIRECTIONS_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-ink"
+              >
+                G-172, Sector 63, Noida, Uttar Pradesh 201301
+                <ArrowUpRight size={15} />
+              </a>
+            </div>
+            <div className="min-h-[240px]">
+              <iframe
+                title="Blanket Technologies Pvt. Ltd. - G-172, Sector 63, Noida"
+                src={MAPS_EMBED_SRC}
+                width="100%"
+                height="100%"
+                style={{ border: 0, minHeight: 240, display: "block" }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
