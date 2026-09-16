@@ -40,7 +40,14 @@ export interface CustomerPickupPartner {
   name: string;
   photo_url: string | null;
   mobile: string | null;
+  /** This Bridge employee's average customer rating, 0-5. Null if never rated yet. */
+  rating: number | null;
 }
+
+/** Delivery-leg equivalent of CustomerPickupPartner - a different employee
+ * may deliver than picked up (delivery broadcast), so never assumed to be
+ * the same person as pickup_partner. */
+export type CustomerDeliveryPartner = CustomerPickupPartner;
 
 export interface CustomerDetailsOrder {
   order_id: number;
@@ -54,6 +61,7 @@ export interface CustomerDetailsOrder {
   image_references: string[] | null;
   customization_notes: string | null;
   pickup_partner: CustomerPickupPartner | null;
+  delivery_partner: CustomerDeliveryPartner | null;
 }
 
 export interface CustomerDetailsService {
