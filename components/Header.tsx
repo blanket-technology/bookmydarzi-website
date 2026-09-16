@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/apiClient";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
 import { useUnreadNotifications } from "@/lib/unreadNotifications";
+import { useCartCount } from "@/lib/cartCount";
+import { useGuestCartCount } from "@/lib/guestCart";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -17,6 +19,12 @@ export default function Header() {
   const unreadCount = useUnreadNotifications((s) => s.count);
   const setUnreadCount = useUnreadNotifications((s) => s.setCount);
   const refetchUnreadCount = useUnreadNotifications((s) => s.refetch);
+  // Logged-in cart count (real server cart) vs guest cart count (local,
+  // pre-login) - exactly one of these is ever relevant at a time, same
+  // either/or as useAddToCart.ts's own user ? server : guest branch.
+  const serverCartCount = useCartCount((s) => s.count);
+  const refetchCartCount = useCartCount((s) => s.refetch);
+  const guestCartCount = useGuestCartCount();
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -101,6 +109,14 @@ export default function Header() {
       refetchUnreadCount();
     }, [refetchUnreadCount]),
   );
+
+  // Establish the cart badge once per login - every mutation afterwards
+  // (add/update/remove) updates useCartCount's store directly from its own
+  // known delta, so this is only for "what's already in the cart" on a
+  // fresh mount/login, not a polling loop.
+  useEffect(() => {
+    if (user) refetchCartCount();
+  }, [user, refetchCartCount]);
 
   useEffect(() => {
     function onClickOutsideSearch(e: MouseEvent) {
@@ -192,7 +208,17 @@ export default function Header() {
               </form>
             )}
           </div>
-          <Link href="/cart" aria-label="Cart" className="relative rounded-full p-2.5 hover:bg-gray-100"><ShoppingBag size={20} /></Link>
+          <Link href="/cart" aria-label="Cart" className="relative rounded-full p-2.5 hover:bg-gray-100">
+            <ShoppingBag size={20} />
+            {(() => {
+              const cartCount = user ? serverCartCount : guestCartCount;
+              return cartCount > 0 ? (
+                <span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-gold-deep px-1 text-[10px] font-black text-white">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              ) : null;
+            })()}
+          </Link>
           {user && (
             <Link href="/notifications" aria-label="Notifications" className="relative rounded-full p-2.5 hover:bg-gray-100">
               <Bell size={20} />

@@ -35,6 +35,7 @@ import {
   type ApiOffer,
 } from "@/lib/appliedOffer";
 import { useGuestCart, guestCartEstimatedTotal, type GuestCartItem } from "@/lib/guestCart";
+import { useCartCount } from "@/lib/cartCount";
 import type { CatalogCategoriesTreeResponse } from "@/lib/types/catalog";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
@@ -346,7 +347,16 @@ function CartContent() {
   const guestUpdateQuantity = useGuestCart((s) => s.updateQuantity);
   const guestRemoveItem = useGuestCart((s) => s.removeItem);
 
-  const [cart, setCart] = useState<ApiCart | null>(null);
+  const [cart, setCartState] = useState<ApiCart | null>(null);
+  // Every call site that sets the real server cart (initial load, add,
+  // update quantity, remove) already has the freshly-returned ApiCart in
+  // hand - sync the header's badge from that same response instead of a
+  // separate fetch, so the two can never drift even for a moment.
+  const setCart = useCallback((data: ApiCart | null) => {
+    setCartState(data);
+    const count = (data?.service_entries ?? []).reduce((sum, e) => sum + (e.quantity || 0), 0);
+    useCartCount.getState().setCount(count);
+  }, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mutatingId, setMutatingId] = useState<number | null>(null);

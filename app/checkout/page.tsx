@@ -12,6 +12,7 @@ import { generateIdempotencyKey } from "@/lib/idempotency";
 import { readPickupPrefs } from "@/lib/pickupPrefs";
 import { readAppliedOffer, estimateOfferDiscount } from "@/lib/appliedOffer";
 import { useGuestCart, guestCartEstimatedTotal } from "@/lib/guestCart";
+import { useCartCount } from "@/lib/cartCount";
 import {
   createPaymentSession,
   isRazorpayScriptReady,
@@ -262,9 +263,9 @@ export default function CheckoutPage() {
 
   // Shared by both payment methods - pickup/address selection already lives
   // on the cart page (see comments below); only payment_method differs.
-  const runCartCheckout = (method: "cod" | "online") => {
+  const runCartCheckout = async (method: "cod" | "online") => {
     const pickupPrefs = readPickupPrefs();
-    return apiClient<CheckoutResult>("/cart/checkout", {
+    const result = await apiClient<CheckoutResult>("/cart/checkout", {
       method: "POST",
       body: {
         payment_method: method,
@@ -279,6 +280,16 @@ export default function CheckoutPage() {
       },
       idempotencyKey: generateIdempotencyKey(),
     });
+    // Only COD actually converts/empties the cart at this point - an
+    // online-payment checkout leaves the cart at CHECKOUT_PENDING until
+    // payment verification succeeds (see checkout_service.py), so zeroing
+    // the badge here for "online" would be wrong if the payment then
+    // fails or is abandoned. The online success path zeroes it itself,
+    // right where payment verification actually succeeds.
+    if (method === "cod") {
+      useCartCount.getState().setCount(0);
+    }
+    return result;
   };
 
   const placeOrder = async () => {
@@ -480,6 +491,10 @@ export default function CheckoutPage() {
       pendingOnlineOrderRef.current = null;
       pendingSessionRef.current = null;
       setPlacingOrder(false);
+      // Payment is now genuinely verified - the cart is actually converted/
+      // emptied server-side at this point (see runCartCheckout's comment
+      // on why this couldn't happen any earlier for the online path).
+      useCartCount.getState().setCount(0);
       setOrderResult({
         order_id: orderId,
         order_code: verified.order_code ?? orderCode,

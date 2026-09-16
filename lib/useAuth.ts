@@ -129,5 +129,11 @@ export const useAuth = create<AuthState>((set) => ({
     // store). A still-logged-in user's own items already live in the real
     // server cart, unaffected by this.
     useGuestCart.getState().clear();
+    // The header switches its badge to the guest count the instant `user`
+    // is null (see components/Header.tsx), so this doesn't change what's
+    // displayed - just avoids leaving this session's stale server-cart
+    // count sitting in memory for no reason.
+    const { useCartCount } = await import("./cartCount");
+    useCartCount.getState().setCount(0);
   },
 }));
