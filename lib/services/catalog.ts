@@ -1,5 +1,6 @@
 import "server-only";
 import { bmdFetch } from "@/lib/api";
+import { BMD_API_V1 } from "@/lib/config";
 import type { CatalogCategoriesTreeResponse, ServiceAddon } from "@/lib/types/catalog";
 
 /**
@@ -7,11 +8,24 @@ import type { CatalogCategoriesTreeResponse, ServiceAddon } from "@/lib/types/ca
  * Public endpoint (no auth) - safe to call from any Server Component,
  * including at build/request time for SEO-friendly rendering. Mirrors
  * react_app/src/services/catalogService.ts's use of the same endpoint.
+ *
+ * Deliberately does NOT go through bmdFetch, which always sets
+ * cache: "no-store" - correct for authenticated/per-user data, but this
+ * catalog tree is genuinely public and shared, and no-store was forcing
+ * every page that calls this (/services and its category/service-line/
+ * detail pages) to fully opt out of static generation and re-fetch on
+ * every request. A 60s revalidation window is a standard, safe tradeoff
+ * for a catalog that changes via occasional admin edits, not per-request -
+ * a price/availability change being visible within a minute instead of
+ * instantly is normal for a storefront.
  */
 export async function getCatalogTree(): Promise<CatalogCategoriesTreeResponse> {
-  return bmdFetch<CatalogCategoriesTreeResponse>("/catalog/categories/tree", {
-    skipAuth: true,
+  const res = await fetch(`${BMD_API_V1}/catalog/categories/tree`, {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 60 },
   });
+  if (!res.ok) throw new Error(`catalog tree fetch failed: ${res.status}`);
+  return res.json();
 }
 
 /**
