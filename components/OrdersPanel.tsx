@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, PackageSearch } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, PackageSearch, Shirt } from "lucide-react";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { getOrderStatusMeta, STATUS_TONE_CLASSES } from "@/lib/orderStatus";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
@@ -38,29 +39,65 @@ function OrderCard({ order }: { order: CustomerOrderListItem }) {
       : order.created_at
         ? formatDate(order.created_at)
         : "-";
+  const dateVerb = order.completed_at ? "Completed" : order.cancelled_at ? "Cancelled" : "Placed";
+  const isCancelled = !!order.cancelled_at;
 
   return (
     <Link
       href={`/orders/${order.order_id}`}
-      className="group block rounded-3xl border border-black/5 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+      className="group flex gap-4 rounded-3xl border border-black/5 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-xl sm:p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-bold text-gray-400">
-            {order.order_code ?? `ORD${order.order_id}`} · {dateLabel}
-          </p>
-          <h2 className="mt-2 text-xl font-black">{order.service_name ?? "Tailoring service"}</h2>
-          {order.category_name && <p className="mt-1 text-sm text-gray-500">{order.category_name}</p>}
-        </div>
-        <span className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${STATUS_TONE_CLASSES[meta.tone]}`}>
-          {meta.customerLabel}
-        </span>
+      <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-cream sm:h-24 sm:w-24">
+        {order.thumbnail ? (
+          <Image
+            src={order.thumbnail}
+            alt={order.service_name ?? "Order"}
+            fill
+            sizes="96px"
+            className="object-cover"
+          />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-gray-300">
+            <Shirt size={26} />
+          </div>
+        )}
       </div>
-      <div className="mt-6 flex items-center justify-between border-t border-black/5 pt-4">
-        <span className="text-lg font-black">{formatAmount(order.price)}</span>
-        <span className="flex items-center gap-1 text-sm font-bold text-gray-700 group-hover:text-gold-deep">
-          View details <ChevronRight size={16} />
-        </span>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-gray-400">
+              {order.order_code ?? `ORD${order.order_id}`} · {dateVerb} {dateLabel}
+            </p>
+            <h2 className="mt-1 truncate text-lg font-black sm:text-xl">
+              {order.service_name ?? "Tailoring service"}
+            </h2>
+            {order.category_name && (
+              <p className="mt-0.5 truncate text-sm text-gray-500">{order.category_name}</p>
+            )}
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${STATUS_TONE_CLASSES[meta.tone]}`}
+          >
+            {meta.customerLabel}
+          </span>
+        </div>
+
+        {isCancelled && order.reason ? (
+          <p className="mt-2 line-clamp-1 text-xs font-medium text-red-600">Reason: {order.reason}</p>
+        ) : order.expected_delivery_date && !order.completed_at && !isCancelled ? (
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+            <CalendarClock size={13} className="text-gold-deep" />
+            Expected by {formatDate(order.expected_delivery_date)}
+          </p>
+        ) : null}
+
+        <div className="mt-3 flex items-center justify-between border-t border-black/5 pt-3 sm:mt-4 sm:pt-4">
+          <span className="text-base font-black sm:text-lg">{formatAmount(order.price)}</span>
+          <span className="flex items-center gap-1 text-sm font-bold text-gray-700 group-hover:text-gold-deep">
+            View details <ChevronRight size={16} />
+          </span>
+        </div>
       </div>
     </Link>
   );
@@ -197,13 +234,15 @@ export default function OrdersPanel() {
 
   return (
     <div>
-      <div className="flex gap-2 border-b border-black/5">
+      <div className="flex gap-1 rounded-2xl bg-cream p-1 sm:inline-flex sm:gap-2 sm:bg-transparent sm:p-0 sm:border-b sm:border-black/5">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => changeTab(t.key)}
-            className={`rounded-t-xl px-4 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 ${
-              tab === t.key ? "border-b-2 border-ink text-ink" : "text-gray-400 hover:text-gray-600"
+            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 sm:flex-none sm:rounded-t-xl sm:rounded-b-none sm:py-3 ${
+              tab === t.key
+                ? "bg-white text-ink shadow-sm sm:bg-transparent sm:border-b-2 sm:border-ink sm:shadow-none"
+                : "text-gray-500 hover:text-gray-700 sm:text-gray-400 sm:hover:text-gray-600"
             }`}
           >
             {t.label}
@@ -214,8 +253,8 @@ export default function OrdersPanel() {
       <div className="mt-6 space-y-4">
         {loading && (
           <div className="space-y-4">
-            {[0, 1].map((i) => (
-              <div key={i} className="h-40 animate-pulse rounded-3xl bg-gray-100" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-[104px] animate-pulse rounded-3xl bg-gray-100 sm:h-[120px]" />
             ))}
           </div>
         )}
