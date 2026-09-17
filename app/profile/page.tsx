@@ -222,6 +222,9 @@ function OverviewTab() {
       const updated = await apiClient<UserProfile>("/users/profile", { method: "PATCH", body });
       setProfile(updated);
       setEditing(false);
+      // Sync the shared auth store so Header.tsx reflects the new name
+      // immediately instead of only after a full reload re-fetches the session.
+      useAuth.setState((s) => ({ user: s.user ? { ...s.user, ...updated } : s.user }));
     } catch (err) {
       setSaveError(err instanceof ClientApiError ? err.message : "Couldn't save changes.");
     } finally {
@@ -247,7 +250,13 @@ function OverviewTab() {
     <div className="space-y-6">
     <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm">
       <div className="flex flex-wrap items-center gap-4 bg-[#f8f6f1] p-6">
-        <EditableAvatar profile={profile} onUploaded={(url) => setProfile((p) => (p ? { ...p, ProfileImageUrl: url } : p))} />
+        <EditableAvatar
+          profile={profile}
+          onUploaded={(url) => {
+            setProfile((p) => (p ? { ...p, ProfileImageUrl: url } : p));
+            useAuth.setState((s) => (s.user ? { user: { ...s.user, ProfileImageUrl: url } } : {}));
+          }}
+        />
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-black">
             {profile.FullName || `${profile.FirstName} ${profile.LastName}`.trim() || "Your account"}
