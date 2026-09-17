@@ -15,6 +15,7 @@ import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
+import { groupAlterationTiers } from "@/lib/services/alterationGroups";
 
 type LinePageParams = { categoryId: string; lineId: string };
 
@@ -81,6 +82,14 @@ export default async function ServiceLineDetailPage({
   const fastestDays = stitchingTypes.length
     ? Math.min(...stitchingTypes.map((t) => t.estimated_delivery_days))
     : null;
+  // Only group by type on a genuine Custom Alterations line, and only when
+  // grouping actually produces more than one bucket - a single-group result
+  // (or a plain stitching line like "Shirts" under Men Clothing, whose tiers
+  // are "Normal Stitching"/"Designer Stitching", not repair/resize work)
+  // would just add a redundant header over the same flat list.
+  const alterationGroups =
+    category.name === "Custom Alterations" ? groupAlterationTiers(stitchingTypes) : [];
+  const showGroups = alterationGroups.length > 1;
   // Fall through to any real photo we have for this product, rather than
   // showing the branded placeholder just because this specific line has no
   // image of its own - a sibling line/service in the same category almost
@@ -235,61 +244,34 @@ export default async function ServiceLineDetailPage({
           are taken by our team at pickup - no guesswork on your end.
         </p>
 
-        <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {stitchingTypes.map((tier) => (
-            <Link
-              key={tier.service_id}
-              href={`/services/${category.id}/${line.id}/${tier.service_id}`}
-              className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-            >
-              {tier.image_url && (
-                <div className="relative h-44 w-full overflow-hidden">
-                  <Image
-                    src={tier.image_url}
-                    alt={tier.name}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-              )}
-              <div className="flex flex-1 flex-col p-6">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-lg font-black">{tier.name}</h3>
-                  {tier.is_premium && (
-                    <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
-                      <Sparkles size={11} /> Premium
-                    </span>
-                  )}
-                </div>
-
-                {/* Same threshold-based fallback as the services grid card -
-                    a short backend label (e.g. "Suit") next to a full
-                    sentence on a sibling tier reads as unfinished. */}
-                <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
-                  {tier.description && tier.description.trim().length >= 20
-                    ? tier.description
-                    : `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
-                </p>
-
-                <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-                  <Clock3 size={13} />
-                  Delivered in {tier.estimated_delivery_days} day
-                  {tier.estimated_delivery_days === 1 ? "" : "s"}
-                </p>
-
-                <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-                  <span className="text-xl font-black">
-                    ₹{tier.base_price.toLocaleString("en-IN")}
-                  </span>
-                  <span className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-xs font-bold text-white transition group-hover:-translate-y-0.5 group-hover:bg-black">
-                    View details <ArrowRight className="ml-1.5" size={14} />
-                  </span>
+        {/* Grouped by type (Repair/Resize/Restyle) on a Custom Alterations
+            line with more than one group - purely a visual grouping of the
+            same flat tier list, still one click to a bookable tier, not an
+            extra navigation level. Falls back to the plain flat grid for
+            every other line (e.g. a stitching line whose tiers are
+            "Normal Stitching"/"Designer Stitching", not repair/resize work). */}
+        {showGroups ? (
+          <div className="mt-6 space-y-10">
+            {alterationGroups.map((group) => (
+              <div key={group.key}>
+                <h3 className="text-sm font-black uppercase tracking-wide text-gold-deep">
+                  {group.label}
+                </h3>
+                <div className="mt-4 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  {group.tiers.map((tier) => (
+                    <TierCard key={tier.service_id} tier={tier} categoryId={category.id} lineId={line.id} />
+                  ))}
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {stitchingTypes.map((tier) => (
+              <TierCard key={tier.service_id} tier={tier} categoryId={category.id} lineId={line.id} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-16 rounded-[2rem] bg-cream-deep p-7 md:p-10">
@@ -312,5 +294,66 @@ export default async function ServiceLineDetailPage({
         </div>
       </section>
     </main>
+  );
+}
+
+function TierCard({
+  tier,
+  categoryId,
+  lineId,
+}: {
+  tier: CatalogStitchingType;
+  categoryId: number;
+  lineId: number;
+}) {
+  return (
+    <Link
+      href={`/services/${categoryId}/${lineId}/${tier.service_id}`}
+      className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+    >
+      {tier.image_url && (
+        <div className="relative h-44 w-full overflow-hidden">
+          <Image
+            src={tier.image_url}
+            alt={tier.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-6">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-lg font-black">{tier.name}</h3>
+          {tier.is_premium && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
+              <Sparkles size={11} /> Premium
+            </span>
+          )}
+        </div>
+
+        {/* Same threshold-based fallback as the services grid card - a
+            short backend label (e.g. "Suit") next to a full sentence on a
+            sibling tier reads as unfinished. */}
+        <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
+          {tier.description && tier.description.trim().length >= 20
+            ? tier.description
+            : `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
+        </p>
+
+        <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+          <Clock3 size={13} />
+          Delivered in {tier.estimated_delivery_days} day
+          {tier.estimated_delivery_days === 1 ? "" : "s"}
+        </p>
+
+        <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
+          <span className="text-xl font-black">₹{tier.base_price.toLocaleString("en-IN")}</span>
+          <span className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-xs font-bold text-white transition group-hover:-translate-y-0.5 group-hover:bg-black">
+            View details <ArrowRight className="ml-1.5" size={14} />
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
