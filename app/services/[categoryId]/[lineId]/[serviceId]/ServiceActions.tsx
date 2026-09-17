@@ -46,8 +46,8 @@ export default function ServiceActions({
   }, [serviceId, name, imageUrl, selectedAddons]);
 
   return (
-    <>
-      <div className="mt-7 flex flex-wrap items-end gap-x-8 gap-y-3">
+    <div className="mt-7 rounded-3xl border border-black/5 bg-cream p-6">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Price</p>
           <p className="text-3xl font-black text-ink transition-all duration-200">
@@ -68,7 +68,7 @@ export default function ServiceActions({
 
       <AddonPicker addons={addons} onChange={setSelectedAddons} />
 
-      <div className="mt-7 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         <AddToCartButton
           serviceId={serviceId}
           name={name}
@@ -86,6 +86,6 @@ export default function ServiceActions({
           Book Now <ArrowRight className="ml-2" size={16} />
         </Link>
       </div>
-    </>
+    </div>
   );
 }
