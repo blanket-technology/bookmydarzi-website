@@ -162,25 +162,28 @@ export default async function ServiceLineDetailPage({
           )}
 
           {(cheapest || fastestDays != null) && (
-            <div className="mt-6 rounded-3xl border border-black/5 bg-cream p-6">
-              <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
-                {cheapest && (
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
-                      Starting from
-                    </p>
-                    <p className="text-3xl font-black text-ink">
-                      ₹{cheapest.base_price.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                )}
-                {fastestDays != null && (
-                  <div className="flex items-center gap-1.5 pb-1.5 text-sm font-semibold text-gray-600">
-                    <Clock3 size={16} className="text-gold-deep" />
-                    Delivered in as little as {fastestDays} day{fastestDays === 1 ? "" : "s"}
-                  </div>
-                )}
-              </div>
+            <div className="mt-6 flex items-stretch divide-x divide-black/10 overflow-hidden rounded-3xl border border-black/5 bg-cream">
+              {cheapest && (
+                <div className="flex-1 px-6 py-5">
+                  <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                    Starting from
+                  </p>
+                  <p className="mt-1 text-4xl font-black tracking-tight text-ink">
+                    ₹{cheapest.base_price.toLocaleString("en-IN")}
+                  </p>
+                </div>
+              )}
+              {fastestDays != null && (
+                <div className="flex flex-1 flex-col justify-center gap-1.5 px-6 py-5">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-white text-gold-deep">
+                    <Clock3 size={16} />
+                  </span>
+                  <p className="text-sm font-bold text-ink">
+                    {fastestDays} day{fastestDays === 1 ? "" : "s"}
+                  </p>
+                  <p className="text-xs font-semibold text-gray-500">Fastest delivery</p>
+                </div>
+              )}
             </div>
           )}
 

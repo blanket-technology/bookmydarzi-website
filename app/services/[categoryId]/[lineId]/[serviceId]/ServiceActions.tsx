@@ -47,22 +47,28 @@ export default function ServiceActions({
 
   return (
     <div className="mt-7 rounded-3xl border border-black/5 bg-cream p-6">
-      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Price</p>
-          <p className="text-3xl font-black text-ink transition-all duration-200">
+          <p className="mt-1 text-4xl font-black tracking-tight text-ink transition-all duration-200">
             ₹{liveTotal.toLocaleString("en-IN")}
           </p>
           {addonsTotal > 0 && (
-            <p className="mt-0.5 text-xs font-semibold text-gray-400">
+            <p className="mt-1 text-xs font-semibold text-gray-400">
               ₹{basePrice.toLocaleString("en-IN")} + ₹{addonsTotal.toLocaleString("en-IN")} extras
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1.5 pb-1.5 text-sm font-semibold text-gray-600">
-          <Clock3 size={16} className="text-gold-deep" />
-          Delivered in {estimatedDeliveryDays} day
-          {estimatedDeliveryDays === 1 ? "" : "s"}
+        <div className="flex items-center gap-2.5 pb-1">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-gold-deep">
+            <Clock3 size={16} />
+          </span>
+          <div>
+            <p className="text-sm font-bold text-ink">
+              {estimatedDeliveryDays} day{estimatedDeliveryDays === 1 ? "" : "s"}
+            </p>
+            <p className="text-xs font-semibold text-gray-500">Delivery time</p>
+          </div>
         </div>
       </div>
 
