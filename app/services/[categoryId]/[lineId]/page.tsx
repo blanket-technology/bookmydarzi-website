@@ -123,7 +123,7 @@ export default async function ServiceLineDetailPage({
         <span className="text-ink">{line.name}</span>
       </nav>
 
-      <div className="mt-6 grid gap-10 md:grid-cols-2 md:items-start">
+      <div className="mt-6 grid gap-6 md:grid-cols-2 md:items-start md:gap-10">
         <div>
           {heroImage ? (
             // Catalog product photography is genuinely mixed - some shots
@@ -145,40 +145,6 @@ export default async function ServiceLineDetailPage({
               </span>
             </div>
           )}
-
-          {/* What's included - every order on the platform, not per-product
-              claims, so this stays honest even when a tier has no copy of
-              its own in the catalog. */}
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <Truck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Free pickup</p>
-                <p className="text-[11px] text-gray-500">Fabric collected from your door</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <BadgeCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Verified tailor</p>
-                <p className="text-[11px] text-gray-500">Background-checked & skill-vetted</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Tracked order</p>
-                <p className="text-[11px] text-gray-500">Status updates at every stage</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <RefreshCcw size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Cancellation protection</p>
-                <p className="text-[11px] text-gray-500">Covered by our refund policy</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div>
@@ -195,23 +161,67 @@ export default async function ServiceLineDetailPage({
             </p>
           )}
 
-          <div className="mt-6 flex flex-wrap items-end gap-x-8 gap-y-3">
-            {cheapest && (
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Starting from</p>
-                <p className="text-3xl font-black text-ink">
-                  ₹{cheapest.base_price.toLocaleString("en-IN")}
-                </p>
+          {(cheapest || fastestDays != null) && (
+            <div className="mt-6 rounded-3xl border border-black/5 bg-cream p-6">
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+                {cheapest && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                      Starting from
+                    </p>
+                    <p className="text-3xl font-black text-ink">
+                      ₹{cheapest.base_price.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                )}
+                {fastestDays != null && (
+                  <div className="flex items-center gap-1.5 pb-1.5 text-sm font-semibold text-gray-600">
+                    <Clock3 size={16} className="text-gold-deep" />
+                    Delivered in as little as {fastestDays} day{fastestDays === 1 ? "" : "s"}
+                  </div>
+                )}
               </div>
-            )}
-            {fastestDays != null && (
-              <div className="flex items-center gap-1.5 pb-1.5 text-sm font-semibold text-gray-600">
-                <Clock3 size={16} className="text-gold-deep" />
-                Delivered in as little as {fastestDays} day{fastestDays === 1 ? "" : "s"}
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
+          {/* Below pricing (not above it) - reassurance signals a buyer
+              checks after seeing the price, matching the tier detail
+              page's layout for the same 4 cards. */}
+          <div className="mt-8 border-t border-black/5 pt-6">
+            <p className="text-xs font-black uppercase tracking-wide text-gray-400">
+              What's included
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <Truck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Free pickup</p>
+                  <p className="text-[11px] text-gray-500">Fabric collected from your door</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <BadgeCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Verified tailor</p>
+                  <p className="text-[11px] text-gray-500">Background-checked & skill-vetted</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Tracked order</p>
+                  <p className="text-[11px] text-gray-500">Status updates at every stage</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <RefreshCcw size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Cancellation protection</p>
+                  <p className="text-[11px] text-gray-500">Covered by our refund policy</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
