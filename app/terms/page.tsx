@@ -11,10 +11,9 @@ export const metadata: Metadata = {
 
 // Same grounding rule as app/privacy/page.tsx: describes the real service
 // (doorstep pickup, tailor stitching, delivery, Razorpay payments, in-app
-// chat support) as it actually works today, with no invented legal entity
-// name or registration number. Cancellation/refund specifics are
-// deliberately NOT hardcoded with numbers here (e.g. "50% penalty after X
-// hours") since that policy is admin-configurable server-side
+// chat support) as it actually works today. Cancellation/refund specifics
+// are deliberately NOT hardcoded with numbers here (e.g. "50% penalty
+// after X hours") since that policy is admin-configurable server-side
 // (app/services/cancellation/policy_service.py) and could drift out of
 // sync with a static page - this points to the order-flow UI, which always
 // shows the current live terms before a customer cancels.
@@ -22,8 +21,9 @@ const SECTIONS = [
   {
     title: "1. The service",
     body: [
+      `${SITE_NAME} is operated by Blanket Technologies Pvt Ltd. ("we", "us", "our"), a company registered in Noida, Uttar Pradesh, India. Blanket Technologies Pvt Ltd. is the parent company of ${SITE_NAME}.`,
       `${SITE_NAME} is a doorstep tailoring platform. We connect you with verified tailors, arrange fabric pickup from your home, and deliver the finished garment back to you - currently serving ${SERVICE_AREA}.`,
-      "By creating an account or placing an order, you agree to these terms.",
+      "By creating an account or placing an order, you agree to these terms. You must be at least 18 years old, or using the service under the supervision of a parent or legal guardian, to place an order.",
     ],
   },
   {
@@ -75,7 +75,13 @@ const SECTIONS = [
     ],
   },
   {
-    title: "9. Changes to these terms",
+    title: "9. Governing law and jurisdiction",
+    body: [
+      "These terms are governed by the laws of India. Any dispute arising out of or relating to these terms will be subject to the exclusive jurisdiction of the courts in Noida, Uttar Pradesh.",
+    ],
+  },
+  {
+    title: "10. Changes to these terms",
     body: [
       "We may update these terms as the service evolves. Continuing to use the platform after an update means you accept the revised terms.",
     ],
