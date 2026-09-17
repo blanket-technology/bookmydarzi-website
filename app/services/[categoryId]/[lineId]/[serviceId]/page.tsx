@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
-  CheckCircle2,
   RefreshCcw,
   ShieldCheck,
   Sparkles,
@@ -142,8 +141,29 @@ export default async function TierDetailPage({
               </span>
             </div>
           )}
+        </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">{line.name}</p>
+          <div className="mt-2 flex items-start justify-between gap-3">
+            <h1 className="text-4xl font-black tracking-tight">{tier.name}</h1>
+            {tier.is_premium && (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-gold">
+                <Sparkles size={12} /> Premium
+              </span>
+            )}
+          </div>
+
+          <p className="mt-4 text-base leading-7 text-gray-600">
+            {tier.description ||
+              `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
+          </p>
+
+          {/* Moved here (below the title/description) from under the
+              product image - these 4 cards are order-level trust signals
+              tied to what you're about to buy, so they read better next to
+              the price/CTA than stacked under the photo. */}
+          <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
               <Truck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
               <div>
@@ -173,35 +193,6 @@ export default async function TierDetailPage({
               </div>
             </div>
           </div>
-        </div>
-
-        <div>
-          <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">{line.name}</p>
-          <div className="mt-2 flex items-start justify-between gap-3">
-            <h1 className="text-4xl font-black tracking-tight">{tier.name}</h1>
-            {tier.is_premium && (
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-gold">
-                <Sparkles size={12} /> Premium
-              </span>
-            )}
-          </div>
-
-          <p className="mt-4 text-base leading-7 text-gray-600">
-            {tier.description ||
-              `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
-          </p>
-
-          <ul className="mt-5 space-y-2">
-            {(tier.highlights.length > 0
-              ? tier.highlights
-              : ["Verified tailor", "Quality-checked before dispatch", "Doorstep delivery"]
-            ).map((h) => (
-              <li key={h} className="flex items-start gap-2 text-sm text-gray-600">
-                <CheckCircle2 className="mt-0.5 shrink-0 text-gold-deep" size={15} />
-                {h}
-              </li>
-            ))}
-          </ul>
 
           <ServiceActions
             serviceId={tier.service_id}
