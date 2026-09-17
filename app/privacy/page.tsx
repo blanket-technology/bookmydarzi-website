@@ -73,11 +73,21 @@ const SECTIONS = [
     ],
   },
   {
-    title: "8. Governing law",
+    title: "8. Data governance",
+    body: [
+      "We collect only the data described in Section 2, for the specific purposes described in Section 3 - we do not repurpose it for unrelated uses without telling you.",
+      "Your data is stored on secured, access-controlled infrastructure. Access within our team is role-based: only staff who need a piece of data to do their job (e.g. support responding to your ticket, or the tailor assigned to your order) can see it, and access is logged.",
+      "We do not use your personal data to train third-party AI models, and we do not share it with data brokers or advertisers.",
+      "You have the right to access, correct, export, or delete your personal data at any time (see Section 6), and the right to withdraw consent for any processing that relies on it.",
+      "If a data breach occurs that risks your personal data, we will notify affected users and, where required, the relevant authority, in line with applicable Indian data protection law.",
+    ],
+  },
+  {
+    title: "9. Governing law",
     body: ["This policy is governed by the laws of India, with the courts of Noida, Uttar Pradesh having exclusive jurisdiction over any related dispute."],
   },
   {
-    title: "9. Changes to this policy",
+    title: "10. Changes to this policy",
     body: [
       "If this policy changes in a way that affects how we handle your data, we'll update this page and, for material changes, notify you through the app or via email.",
     ],

@@ -49,10 +49,12 @@ const SECTIONS = [
     ],
   },
   {
-    title: "5. Cancellations and refunds",
+    title: "5. Cancellation and return policy",
     body: [
-      "You can cancel an order from the Orders page, subject to our current cancellation policy, which is shown to you at the time of cancellation and may vary depending on how far along the order is.",
-      "Refunds for eligible cancellations are processed back to your original payment method through Razorpay, typically within a few business days.",
+      "Cancellation: You can cancel an order from the Orders page at any point before the tailor begins stitching, free of charge. Once stitching has started, cancellation is still possible but may carry a cancellation charge to cover fabric and work already committed - the exact charge, if any, is always shown to you before you confirm the cancellation.",
+      "If we cancel an order ourselves - for example because your address turns out to be outside our service area, or no tailor is available - any cancellation charge is automatically waived and a full refund is issued; this is never charged to you as a result of our own error.",
+      "Returns: Because every garment is custom-stitched to your measurements and fabric, we do not offer returns for a simple change of mind, in line with standard practice for made-to-order goods under Indian consumer law. If a finished garment doesn't match what was ordered, has a genuine manufacturing/stitching defect, or was damaged in transit, contact us through in-app chat with your order code within 7 days of delivery - we will offer a free alteration, re-stitch, or refund depending on the issue.",
+      "Refunds: Approved refunds (for a cancellation or an upheld quality complaint) are processed back to your original payment method through Razorpay, typically within 5-7 business days.",
     ],
   },
   {
