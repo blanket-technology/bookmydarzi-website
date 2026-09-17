@@ -52,11 +52,24 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
     [categories],
   );
 
-  const filtered = flatLines.filter(
-    (x) =>
-      (cat === "All" || x.categoryName === cat) &&
-      x.line.name.toLowerCase().includes(q.toLowerCase()),
-  );
+  // Matches against the line's own description and its tiers' names too,
+  // not just the line's own name - previously "kurta" typed here found
+  // nothing if the matching line's name was, say, "Custom Stitching" with
+  // "Kurta" only appearing as one of its tiers, which read as search being
+  // broken even though the data existed (BUG-01).
+  const normalizedQuery = q.trim().toLowerCase();
+  const filtered = flatLines.filter((x) => {
+    if (cat !== "All" && x.categoryName !== cat) return false;
+    if (!normalizedQuery) return true;
+    const haystack = [
+      x.line.name,
+      x.line.description ?? "",
+      ...x.line.stitching_types.map((t) => t.name),
+    ]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(normalizedQuery);
+  });
 
   return (
     <>

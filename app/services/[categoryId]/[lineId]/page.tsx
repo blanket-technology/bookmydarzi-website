@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import {
   ArrowRight,
   BadgeCheck,
-  CheckCircle2,
   Clock3,
   RefreshCcw,
   ShieldCheck,
@@ -213,24 +212,13 @@ export default async function ServiceLineDetailPage({
             )}
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold uppercase tracking-wide text-gray-500">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-gold-deep" /> {stitchingTypes.length} tier
-              {stitchingTypes.length === 1 ? "" : "s"} to choose from
-            </span>
-          </div>
         </div>
       </div>
 
       <section className="mt-14">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-2xl font-black tracking-tight">Choose your tier</h2>
-          <span className="text-xs font-semibold text-gray-400">
-            {stitchingTypes.length} option{stitchingTypes.length === 1 ? "" : "s"}
-          </span>
-        </div>
+        <h2 className="text-2xl font-black tracking-tight">Choose your alteration type</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Every tier is stitched to your exact measurements by a verified tailor. Measurements
+          Every option is stitched to your exact measurements by a verified tailor. Measurements
           are taken by our team at pickup - no guesswork on your end.
         </p>
 
@@ -270,18 +258,6 @@ export default async function ServiceLineDetailPage({
                     ? tier.description
                     : `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
                 </p>
-
-                <ul className="mt-4 space-y-1.5">
-                  {(tier.highlights.length > 0
-                    ? tier.highlights
-                    : ["Verified tailor", "Quality-checked before dispatch", "Doorstep delivery"]
-                  ).map((h) => (
-                    <li key={h} className="flex items-start gap-2 text-xs text-gray-600">
-                      <CheckCircle2 className="mt-0.5 shrink-0 text-gold-deep" size={13} />
-                      {h}
-                    </li>
-                  ))}
-                </ul>
 
                 <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
                   <Clock3 size={13} />

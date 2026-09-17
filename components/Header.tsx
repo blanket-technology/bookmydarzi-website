@@ -3,19 +3,37 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Bell, Search, ShoppingBag, Menu, X, User, LogOut, ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/apiClient";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
 import { useUnreadNotifications } from "@/lib/unreadNotifications";
 import { useCartCount } from "@/lib/cartCount";
 import { useGuestCartCount } from "@/lib/guestCart";
+import { useSearchIndex } from "@/lib/services/useSearchIndex";
+import { searchEntries } from "@/lib/services/searchIndex";
+import SearchSuggestions from "@/components/SearchSuggestions";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const searchIndex = useSearchIndex();
+  // Debounced so a fast typist doesn't re-rank the whole index on every
+  // keystroke - 150ms is imperceptible to type against but still cheap
+  // since this is scoring an in-memory array, not a network round trip.
+  // Shared by both the desktop and mobile search boxes, same as `query`
+  // itself and handleSearchSubmit below.
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(t);
+  }, [query]);
+  const suggestions = useMemo(
+    () => searchEntries(searchIndex, debouncedQuery),
+    [searchIndex, debouncedQuery],
+  );
   const unreadCount = useUnreadNotifications((s) => s.count);
   const setUnreadCount = useUnreadNotifications((s) => s.setCount);
   const refetchUnreadCount = useUnreadNotifications((s) => s.refetch);
@@ -187,25 +205,34 @@ export default function Header() {
               <Search size={19} />
             </button>
             {searchOpen && (
-              <form
-                onSubmit={handleSearchSubmit}
-                className="absolute right-0 top-full mt-2 flex w-72 items-center gap-2 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"
-              >
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search services..."
-                  className="w-full rounded-xl bg-gray-50 px-3 py-2 text-sm outline-none"
-                />
-                <button
-                  type="submit"
-                  aria-label="Submit search"
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white hover:bg-black"
+              <div className="absolute right-0 top-full mt-2 w-80">
+                <form
+                  onSubmit={handleSearchSubmit}
+                  className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"
                 >
-                  <Search size={14} />
-                </button>
-              </form>
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search services..."
+                    className="w-full rounded-xl bg-gray-50 px-3 py-2 text-sm outline-none"
+                  />
+                  <button
+                    type="submit"
+                    aria-label="Submit search"
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white hover:bg-black"
+                  >
+                    <Search size={14} />
+                  </button>
+                </form>
+                <div className="relative">
+                  <SearchSuggestions
+                    results={suggestions}
+                    query={query}
+                    onSelect={() => setSearchOpen(false)}
+                  />
+                </div>
+              </div>
             )}
           </div>
           <Link href="/cart" aria-label="Cart" className="relative rounded-full p-2.5 hover:bg-gray-100">
@@ -281,22 +308,29 @@ export default function Header() {
               mobile had no way to search from the header at all before this,
               only by first navigating to /services. Reuses the same
               handleSearchSubmit/query state the desktop search box uses. */}
-          <form onSubmit={handleSearchSubmit} className="mb-4 flex items-center gap-2 rounded-2xl border border-black/10 bg-gray-50 p-2">
-            <Search size={16} className="ml-2 shrink-0 text-gray-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search services..."
-              className="w-full bg-transparent text-sm outline-none"
+          <div className="relative mb-4">
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-2xl border border-black/10 bg-gray-50 p-2">
+              <Search size={16} className="ml-2 shrink-0 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search services..."
+                className="w-full bg-transparent text-sm outline-none"
+              />
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white hover:bg-black"
+              >
+                <Search size={14} />
+              </button>
+            </form>
+            <SearchSuggestions
+              results={suggestions}
+              query={query}
+              onSelect={() => setOpen(false)}
             />
-            <button
-              type="submit"
-              aria-label="Submit search"
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink text-white hover:bg-black"
-            >
-              <Search size={14} />
-            </button>
-          </form>
+          </div>
           <div className="flex flex-col gap-4 text-sm font-semibold">
             <Link onClick={() => setOpen(false)} href="/">Home</Link>
             <Link onClick={() => setOpen(false)} href="/services">Services</Link>
