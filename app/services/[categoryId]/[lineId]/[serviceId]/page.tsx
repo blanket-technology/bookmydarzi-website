@@ -159,41 +159,6 @@ export default async function TierDetailPage({
               `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
           </p>
 
-          {/* Moved here (below the title/description) from under the
-              product image - these 4 cards are order-level trust signals
-              tied to what you're about to buy, so they read better next to
-              the price/CTA than stacked under the photo. */}
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <Truck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Free pickup</p>
-                <p className="text-[11px] text-gray-500">Fabric collected from your door</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <BadgeCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Verified tailor</p>
-                <p className="text-[11px] text-gray-500">Background-checked & skill-vetted</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Tracked order</p>
-                <p className="text-[11px] text-gray-500">Status updates at every stage</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
-              <RefreshCcw size={16} className="mt-0.5 shrink-0 text-gold-deep" />
-              <div>
-                <p className="text-xs font-black">Cancellation protection</p>
-                <p className="text-[11px] text-gray-500">Covered by our refund policy</p>
-              </div>
-            </div>
-          </div>
-
           <ServiceActions
             serviceId={tier.service_id}
             name={tier.name}
@@ -204,6 +169,48 @@ export default async function TierDetailPage({
             estimatedDeliveryDays={tier.estimated_delivery_days}
             addons={addons}
           />
+
+          {/* Below pricing/CTA (not above it) - these are reassurance
+              signals a buyer checks after they've seen the price and are
+              deciding whether to commit, not before. A divider + label
+              separates them from the price/CTA block above so the page
+              reads as "here's the deal" then "here's what backs it", not
+              one undifferentiated stack. */}
+          <div className="mt-8 border-t border-black/5 pt-6">
+            <p className="text-xs font-black uppercase tracking-wide text-gray-400">
+              What's included
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <Truck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Free pickup</p>
+                  <p className="text-[11px] text-gray-500">Fabric collected from your door</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <BadgeCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Verified tailor</p>
+                  <p className="text-[11px] text-gray-500">Background-checked & skill-vetted</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <ShieldCheck size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Tracked order</p>
+                  <p className="text-[11px] text-gray-500">Status updates at every stage</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-2xl border border-black/5 bg-cream p-4">
+                <RefreshCcw size={16} className="mt-0.5 shrink-0 text-gold-deep" />
+                <div>
+                  <p className="text-xs font-black">Cancellation protection</p>
+                  <p className="text-[11px] text-gray-500">Covered by our refund policy</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
