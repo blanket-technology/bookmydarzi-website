@@ -12,15 +12,16 @@ export const metadata: Metadata = {
 // Written to describe what this platform actually does with data, verified
 // against the real data model/flows (app/models/user.py, address.py,
 // measurement.py, and the Razorpay payment integration in
-// app/integrations/razorpay/), not a generic boilerplate template. No
-// company registration number, legal entity name, or dedicated privacy
-// email is stated here - none of those exist for this business yet (see
-// app/contact/page.tsx's own note on this), so "contact us about this"
-// language below routes to the same real chat channel every other page
-// uses, rather than inventing an address nobody can reply to.
+// app/integrations/razorpay/), not a generic boilerplate template.
 const SECTIONS = [
   {
-    title: "1. Information we collect",
+    title: "1. Who we are",
+    body: [
+      `${SITE_NAME} is operated by Blanket Technologies Pvt Ltd. ("we", "us", "our"), a company registered in Noida, Uttar Pradesh, India. Blanket Technologies Pvt Ltd. is the parent company of ${SITE_NAME}. This policy applies to the ${SITE_NAME} website and mobile app alike.`,
+    ],
+  },
+  {
+    title: "2. Information we collect",
     body: [
       "Account details you provide directly: name, email address, mobile number, and a password (stored as a one-way hash - we never see or store your actual password).",
       "Service information: delivery addresses, garment measurements, fabric/style notes, and photos you choose to upload for a custom order.",
@@ -30,7 +31,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: "2. How we use your information",
+    title: "3. How we use your information",
     body: [
       "To create and manage your account, and to process and fulfil your orders (assigning a tailor, scheduling pickup/delivery, and tracking status).",
       "To communicate with you about an order - confirmations, status updates, and support responses.",
@@ -40,7 +41,7 @@ const SECTIONS = [
     ],
   },
   {
-    title: "3. Who we share information with",
+    title: "4. Who we share information with",
     body: [
       "The tailor assigned to your order sees only what's needed to complete it (garment type, measurements, delivery pincode/area) - never your full address, phone number, or payment details.",
       "Our delivery/pickup staff see your address and contact number only for orders assigned to them, only for as long as needed to complete that pickup or delivery.",
@@ -50,14 +51,14 @@ const SECTIONS = [
     ],
   },
   {
-    title: "4. Data retention",
+    title: "5. Data retention",
     body: [
       "We keep your account and order history for as long as your account is active, so you can view past orders and reorder easily.",
       "When you delete your account, it is deactivated immediately - you're signed out everywhere and your profile, saved addresses, and measurements are no longer visible to you or to our staff. Order, payment, and tax records tied to your account are retained for the period required by Indian tax and consumer-protection law, and to prevent fraud, even after deletion.",
     ],
   },
   {
-    title: "5. Your choices",
+    title: "6. Your choices",
     body: [
       "You can review and update your name, email, mobile number, and saved addresses at any time from your Profile page.",
       "You can permanently delete your account yourself, any time, from your Profile page's Account details tab - see the Delete Account page for details on what happens.",
@@ -65,14 +66,18 @@ const SECTIONS = [
     ],
   },
   {
-    title: "6. Security",
+    title: "7. Security",
     body: [
       "Passwords are stored using industry-standard one-way hashing, never in plain text. Payment details are handled entirely by Razorpay's PCI-DSS-compliant infrastructure - they never pass through our servers in a readable form.",
       "We use HTTPS encryption for all data transmitted between your device and our servers.",
     ],
   },
   {
-    title: "7. Changes to this policy",
+    title: "8. Governing law",
+    body: ["This policy is governed by the laws of India, with the courts of Noida, Uttar Pradesh having exclusive jurisdiction over any related dispute."],
+  },
+  {
+    title: "9. Changes to this policy",
     body: [
       "If this policy changes in a way that affects how we handle your data, we'll update this page and, for material changes, notify you through the app or via email.",
     ],
