@@ -331,7 +331,9 @@ export default function SignupPage() {
                   className="h-11 w-11 object-contain"
                 />
                 <span className="text-[19px] font-black tracking-[-.03em]">
-                  <span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span>
+                  {/* See the matching comment in login/page.tsx - navy has
+                      no contrast on this panel's near-black bg-ink. */}
+                  <span className="text-white">BookMy</span><span className="text-[#e85720]">Darzi</span>
                 </span>
               </Link>
 
