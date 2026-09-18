@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Bell, Search, ShoppingBag, Menu, X, User, LogOut, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/useAuth";
@@ -14,7 +14,23 @@ import { useSearchIndex } from "@/lib/services/useSearchIndex";
 import { searchEntries } from "@/lib/services/searchIndex";
 import SearchSuggestions from "@/components/SearchSuggestions";
 
+const NAV_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/services", label: "Services" },
+  { href: "/about", label: "About" },
+  { href: "/contact", label: "Contact" },
+] as const;
+
+// "/" only matches the home page exactly; every other nav link also
+// matches its own sub-pages (e.g. /services/4/64/2425 keeps "Services"
+// active) so the customer can always tell which section they're in.
+function isNavLinkActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export default function Header() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -190,10 +206,20 @@ export default function Header() {
           <span className="text-[19px] font-black tracking-[-.03em]"><span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span></span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-semibold md:flex">
-          <Link href="/" className="hover:text-[#c99a3d]">Home</Link>
-          <Link href="/services" className="hover:text-[#c99a3d]">Services</Link>
-          <Link href="/about" className="hover:text-[#c99a3d]">About</Link>
-          <Link href="/contact" className="hover:text-[#c99a3d]">Contact</Link>
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isNavLinkActive(pathname, link.href) ? "page" : undefined}
+              className={
+                isNavLinkActive(pathname, link.href)
+                  ? "text-[#053448]"
+                  : "hover:text-[#c99a3d]"
+              }
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
         <div className="flex items-center gap-2">
           <div className="relative hidden sm:block" ref={searchRef}>
@@ -332,10 +358,17 @@ export default function Header() {
             />
           </div>
           <div className="flex flex-col gap-4 text-sm font-semibold">
-            <Link onClick={() => setOpen(false)} href="/">Home</Link>
-            <Link onClick={() => setOpen(false)} href="/services">Services</Link>
-            <Link onClick={() => setOpen(false)} href="/about">About</Link>
-            <Link onClick={() => setOpen(false)} href="/contact">Contact</Link>
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                onClick={() => setOpen(false)}
+                href={link.href}
+                aria-current={isNavLinkActive(pathname, link.href) ? "page" : undefined}
+                className={isNavLinkActive(pathname, link.href) ? "text-[#053448]" : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
             {user ? (
               <>
                 <Link onClick={() => setOpen(false)} href="/profile">Profile</Link>
