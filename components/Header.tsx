@@ -187,7 +187,7 @@ export default function Header() {
             priority
             className="h-11 w-11 object-contain"
           />
-          <span className="text-[19px] font-black tracking-[-.03em]">BookMy<span className="text-[#c99a3d]">Darzi</span></span>
+          <span className="text-[19px] font-black tracking-[-.03em]"><span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span></span>
         </Link>
         <nav className="hidden items-center gap-8 text-sm font-semibold md:flex">
           <Link href="/" className="hover:text-[#c99a3d]">Home</Link>
