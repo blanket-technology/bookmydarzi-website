@@ -21,6 +21,7 @@ export default function AddToCartButton({
   serviceLineName,
   estimatedDeliveryDays,
   selectedAddons,
+  extraTiers,
 }: {
   serviceId: number;
   name: string;
@@ -30,18 +31,19 @@ export default function AddToCartButton({
   serviceLineName: string;
   estimatedDeliveryDays: number;
   selectedAddons?: SelectedAddon[];
+  /** Other tiers ticked in "Add more work to this garment" - each becomes
+   * its own separate cart line alongside this primary one. */
+  extraTiers?: { service_id: number; name: string; image_url?: string | null; base_price: number }[];
 }) {
-  const { addToCart, addingId } = useAddToCart();
+  const { addToCart, addMultipleToCart, addingId } = useAddToCart();
   const adding = addingId === serviceId;
 
-  return (
-    <button
-      type="button"
-      disabled={adding}
-      onClick={() =>
-        addToCart(
+  const handleClick = () => {
+    if (extraTiers && extraTiers.length > 0) {
+      void addMultipleToCart([
+        {
           serviceId,
-          {
+          displayInfo: {
             name,
             image_url: imageUrl,
             base_price: basePrice,
@@ -49,10 +51,41 @@ export default function AddToCartButton({
             service_line_name: serviceLineName,
             estimated_delivery_days: estimatedDeliveryDays,
           },
-          1,
-          selectedAddons,
-        )
-      }
+        },
+        ...extraTiers.map((t) => ({
+          serviceId: t.service_id,
+          displayInfo: {
+            name: t.name,
+            image_url: t.image_url ?? null,
+            base_price: t.base_price,
+            category_name: categoryName,
+            service_line_name: serviceLineName,
+            estimated_delivery_days: estimatedDeliveryDays,
+          },
+        })),
+      ]);
+      return;
+    }
+    void addToCart(
+      serviceId,
+      {
+        name,
+        image_url: imageUrl,
+        base_price: basePrice,
+        category_name: categoryName,
+        service_line_name: serviceLineName,
+        estimated_delivery_days: estimatedDeliveryDays,
+      },
+      1,
+      selectedAddons,
+    );
+  };
+
+  return (
+    <button
+      type="button"
+      disabled={adding}
+      onClick={handleClick}
       className="inline-flex items-center rounded-xl border-2 border-ink px-6 py-3.5 text-sm font-bold text-ink transition hover:-translate-y-0.5 hover:bg-cream disabled:cursor-not-allowed disabled:opacity-60"
     >
       {adding ? (
@@ -60,7 +93,7 @@ export default function AddToCartButton({
       ) : (
         <ShoppingBag className="mr-2" size={16} />
       )}
-      Add to Cart
+      {extraTiers && extraTiers.length > 0 ? `Add to Cart (${extraTiers.length + 1})` : "Add to Cart"}
     </button>
   );
 }

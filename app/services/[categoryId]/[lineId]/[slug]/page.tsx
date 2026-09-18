@@ -294,6 +294,7 @@ async function TierDetailPage({
             serviceLineName={line.name}
             estimatedDeliveryDays={tier.estimated_delivery_days}
             addons={addons}
+            otherTiers={category.name === "Custom Alterations" ? otherTiers : undefined}
           />
 
           <div className="mt-8 border-t border-black/5 pt-6">
