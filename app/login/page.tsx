@@ -245,7 +245,7 @@ function LoginForm() {
                   className="h-11 w-11 object-contain"
                 />
                 <span className="text-[19px] font-black tracking-[-.03em]">
-                  BookMy<span className="text-gold">Darzi</span>
+                  <span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span>
                 </span>
               </Link>
 

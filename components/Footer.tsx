@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="md:col-span-2">
           <div className="flex items-center gap-2">
             <Image src="/logo.png" alt="BookMyDarzi" width={36} height={36} className="h-9 w-9 object-contain" />
-            <div className="text-xl font-black">BookMy<span className="text-[#c99a3d]">Darzi</span></div>
+            <div className="text-xl font-black">BookMy<span className="text-[#e85720]">Darzi</span></div>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-6 text-white/50">
             Professional tailoring services, made simple. Book from home and get the perfect fit.
@@ -33,7 +33,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/10 px-5 py-5">
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-3 text-center text-xs text-white/35 sm:flex-row sm:justify-between sm:text-left">
-          <p>© 2026 Blanket Technologies Pvt. Ltd. All rights reserved. BookMyDarzi is a Blanket Technologies product.</p>
+          <p>© 2026 Blanket Technologies Pvt. Ltd. All rights reserved. BookMyDarzi - A Blanket Technologies  Product.</p>
           <div className="flex items-center gap-4">
             <Link className="transition-colors hover:text-white/70" href="/privacy">Privacy Policy</Link>
             <Link className="transition-colors hover:text-white/70" href="/terms">Terms of Service</Link>
