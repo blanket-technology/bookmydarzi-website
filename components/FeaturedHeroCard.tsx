@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { CatalogServiceLine } from "@/lib/types/catalog";
 
@@ -68,14 +69,15 @@ export default function FeaturedHeroCard({ featured }: { featured: FeaturedLine[
           </div>
           <Link
             href={current ? `/services/${current.categoryId}/${current.line.id}` : "/services"}
-            className="shrink-0 rounded-xl bg-[#171717] px-4 py-2.5 text-xs font-bold text-white"
+            className="group shrink-0 rounded-xl bg-[#171717] px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
           >
             Book now
+            <ArrowRight className="ml-2 inline transition-transform duration-300 group-hover:translate-x-1" size={16} />
           </Link>
         </div>
       </div>
       {featured.length > 1 && (
-        <div className="mt-4 flex justify-center gap-1.5">
+        <div className="mt-4 flex justify-center">
           {featured.map((f, i) => (
             <button
               key={f.line.id}
@@ -83,10 +85,14 @@ export default function FeaturedHeroCard({ featured }: { featured: FeaturedLine[
               onClick={() => setIndex(i)}
               aria-label={`Show ${f.line.name}`}
               aria-current={i === index}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-6 bg-[#171717]" : "w-1.5 bg-black/15"
-              }`}
-            />
+              className="flex h-11 w-11 items-center justify-center"
+            >
+              <span
+                className={`block h-2.5 rounded-full transition-all ${
+                  i === index ? "w-7 bg-[#171717]" : "w-2.5 bg-black/25"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

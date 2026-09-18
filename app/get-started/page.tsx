@@ -97,7 +97,7 @@ export default async function GetStartedPage() {
 
       {/* Social proof */}
       <section className="mx-auto max-w-6xl px-5 py-20 lg:px-8">
-        <p className="text-center text-xs font-black uppercase tracking-[.25em] text-[#e0b25e]">
+        <p className="text-center text-xs font-black tracking-[.1em] text-[#e0b25e]">
           Real reviews, Delhi NCR
         </p>
         <h2 className="mt-3 text-center text-3xl font-black tracking-tight md:text-4xl">
