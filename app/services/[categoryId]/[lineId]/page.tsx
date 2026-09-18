@@ -246,7 +246,15 @@ export default async function ServiceLineDetailPage({
       </div>
 
       <section className="mt-14">
-        <h2 className="text-2xl font-black tracking-tight">Choose your alteration type</h2>
+        {/* "Alteration type" only makes sense for Custom Alterations lines
+            (repair/resize/restyle work on an existing garment) - every
+            other category (Men/Women/Kids Clothing, Home Decor, ...) is
+            picking a stitching tier/product variant, not an "alteration",
+            so this was showing the wrong word for e.g. "Curtains" under
+            Home Decor. */}
+        <h2 className="text-2xl font-black tracking-tight">
+          {category.name === "Custom Alterations" ? "Choose your alteration type" : "Choose an option"}
+        </h2>
         <p className="mt-2 text-sm text-gray-500">
           {showGroups
             ? "Pick the kind of work your garment needs - we'll show you the exact options next."
