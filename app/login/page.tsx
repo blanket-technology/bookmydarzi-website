@@ -245,7 +245,13 @@ function LoginForm() {
                   className="h-11 w-11 object-contain"
                 />
                 <span className="text-[19px] font-black tracking-[-.03em]">
-                  <span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span>
+                  {/* Navy #053448 (used on the white-background Header/
+                      Footer nav) has almost no contrast against this
+                      panel's near-black bg-ink - swapped to white here,
+                      matching how Footer.tsx already renders "BookMy" on
+                      its own dark background. Orange stays - it already
+                      reads clearly on both light and dark grounds. */}
+                  <span className="text-white">BookMy</span><span className="text-[#e85720]">Darzi</span>
                 </span>
               </Link>
 
