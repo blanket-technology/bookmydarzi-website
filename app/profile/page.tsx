@@ -29,6 +29,7 @@ import { usePincodeLookup } from "@/lib/usePincodeLookup";
 import { AddressLocationField } from "@/components/AddressLocationField";
 import OrdersPanel from "@/components/OrdersPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 import type {
   Address,
   AddressListResponse,
@@ -378,6 +379,8 @@ function OverviewTab() {
         )}
       </div>
     </div>
+
+      <PushPermissionPrompt variant="toggle" />
 
       <DangerZoneSection />
     </div>

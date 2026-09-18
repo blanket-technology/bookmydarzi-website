@@ -26,7 +26,12 @@ async function handle(
 
   const method = request.method as "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   let body: unknown;
-  if (method !== "GET" && method !== "DELETE") {
+  // DELETE can carry a body too (e.g. /notifications/device-tokens needs
+  // {token, platform} to know which one to remove) - .json() on a request
+  // with no body just rejects/resolves to undefined via the catch below,
+  // so reading it unconditionally here is safe for the common bodyless
+  // DELETE case too.
+  if (method !== "GET") {
     body = await request.json().catch(() => undefined);
   }
 
