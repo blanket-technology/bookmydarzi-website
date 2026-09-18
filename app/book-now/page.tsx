@@ -269,8 +269,18 @@ function BookNowContent() {
         : {}),
       ...(extraItems.length > 0
         ? {
+            // Backend ignores the top-level addons above once items is
+            // set - the primary item's own addons must ride on items[0]
+            // instead, or they silently get dropped the moment an extra
+            // tier is checked.
             items: [
-              { service_id: serviceId, quantity: 1 },
+              {
+                service_id: serviceId,
+                quantity: 1,
+                ...(selectedAddons.length > 0
+                  ? { addons: selectedAddons.map((a) => ({ addon_id: a.addon_id, note: a.note })) }
+                  : {}),
+              },
               ...extraItems.map((e) => ({ service_id: e.service_id, quantity: 1 })),
             ],
           }
