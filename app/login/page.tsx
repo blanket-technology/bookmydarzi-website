@@ -344,7 +344,7 @@ function LoginForm() {
                           value={mobile}
                           onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
                           onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                          placeholder="98765 43210"
+                          placeholder="Enter mobile number"
                           className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
                         />
                       </div>
@@ -457,7 +457,7 @@ function LoginForm() {
                       autoComplete="email"
                       {...register("email")}
                       className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                      placeholder="you@example.com"
+                      placeholder="Enter email address"
                     />
                   </div>
                   {errors.email && (
@@ -483,7 +483,7 @@ function LoginForm() {
                       autoComplete="current-password"
                       {...register("password")}
                       className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                      placeholder="••••••••"
+                      placeholder="Enter password"
                     />
                   </div>
                   {errors.password && (

@@ -425,7 +425,7 @@ export default function SignupPage() {
                           value={mobile}
                           onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
                           onKeyDown={(e) => e.key === "Enter" && handleSendMobileOtp()}
-                          placeholder="98765 43210"
+                          placeholder="Enter mobile number"
                           className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
                         />
                       </div>
@@ -531,7 +531,7 @@ export default function SignupPage() {
                           <input
                             {...detailsForm.register("first_name")}
                             className="w-full rounded-xl border border-black/10 bg-white py-3 pl-10 pr-3 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                            placeholder="Priya"
+                            placeholder="Enter first name"
                           />
                         </div>
                         {detailsForm.formState.errors.first_name && (
@@ -547,7 +547,7 @@ export default function SignupPage() {
                         <input
                           {...detailsForm.register("last_name")}
                           className="w-full rounded-xl border border-black/10 bg-white px-3 py-3 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                          placeholder="Sharma"
+                          placeholder="Enter last name"
                         />
                         {detailsForm.formState.errors.last_name && (
                           <p className="mt-1.5 text-xs font-semibold text-red-600">
@@ -571,7 +571,7 @@ export default function SignupPage() {
                           autoComplete="email"
                           {...detailsForm.register("email")}
                           className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                          placeholder="you@example.com"
+                          placeholder="Enter email address"
                         />
                       </div>
                       {detailsForm.formState.errors.email && (
@@ -595,7 +595,7 @@ export default function SignupPage() {
                           autoComplete="tel"
                           {...detailsForm.register("mobile")}
                           className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                          placeholder="9876543210"
+                          placeholder="Enter mobile number"
                         />
                       </div>
                       {detailsForm.formState.errors.mobile && (
@@ -619,7 +619,7 @@ export default function SignupPage() {
                           autoComplete="new-password"
                           {...detailsForm.register("password")}
                           className="w-full rounded-xl border border-black/10 bg-white py-3 pl-11 pr-4 text-sm outline-none transition focus:border-ink focus:shadow-[0_0_0_4px_rgba(23,23,23,0.06)]"
-                          placeholder="At least 8 characters"
+                          placeholder="Create a password"
                         />
                       </div>
                       {detailsForm.formState.errors.password ? (
