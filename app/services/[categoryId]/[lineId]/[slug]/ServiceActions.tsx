@@ -1,16 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Circle, Clock3, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Circle, Clock3 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import AddonPicker from "./AddonPicker";
 import AddToCartButton from "./AddToCartButton";
 import type { CatalogStitchingType, ServiceAddon } from "@/lib/types/catalog";
 import type { SelectedAddon } from "@/lib/selectedAddons";
 import { selectedAddonsTotal } from "@/lib/selectedAddons";
-import { useAddToCart } from "@/lib/useAddToCart";
 
 // Client-side coordinator between the addon picker and the two purchase
 // actions (Add to Cart / Book Now) - the page itself is a Server Component
@@ -41,13 +39,10 @@ export default function ServiceActions({
    * Custom Alterations. */
   otherTiers?: CatalogStitchingType[];
 }) {
-  const router = useRouter();
-  const { addMultipleToCart, addingId } = useAddToCart();
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [checkedTierIds, setCheckedTierIds] = useState<Set<number>>(new Set());
   const addonsTotal = selectedAddonsTotal(selectedAddons);
   const liveTotal = basePrice + addonsTotal;
-  const bookingWithExtras = addingId === serviceId && checkedTierIds.size > 0;
 
   const toggleTier = (id: number) => {
     setCheckedTierIds((prev) => {
@@ -69,8 +64,16 @@ export default function ServiceActions({
     if (selectedAddons.length > 0) {
       params.set("addons", JSON.stringify(selectedAddons));
     }
+    if (extraTiers.length > 0) {
+      params.set(
+        "items",
+        JSON.stringify(
+          extraTiers.map((t) => ({ service_id: t.service_id, name: t.name, base_price: t.base_price })),
+        ),
+      );
+    }
     return `/book-now?${params.toString()}`;
-  }, [serviceId, name, imageUrl, selectedAddons]);
+  }, [serviceId, name, imageUrl, selectedAddons, extraTiers]);
 
   return (
     <div className="mt-7 rounded-3xl border border-black/5 bg-cream p-6">
@@ -154,65 +157,17 @@ export default function ServiceActions({
           selectedAddons={selectedAddons}
           extraTiers={extraTiers}
         />
-        {extraTiers.length > 0 ? (
-          // The direct-order ("Book Now") backend endpoint only ever takes
-          // one service_id - rather than build a second multi-item order
-          // path, this reuses the cart (already correct for multi-item
-          // billing) as the mechanism: add the primary tier + every
-          // checked extra, then land on /cart to finish checkout, instead
-          // of the single-item /book-now flow.
-          <button
-            type="button"
-            disabled={bookingWithExtras}
-            onClick={async () => {
-              const addedCount = await addMultipleToCart([
-                {
-                  serviceId,
-                  displayInfo: {
-                    name,
-                    image_url: imageUrl,
-                    base_price: basePrice,
-                    category_name: categoryName,
-                    service_line_name: serviceLineName,
-                    estimated_delivery_days: estimatedDeliveryDays,
-                  },
-                },
-                ...extraTiers.map((t) => ({
-                  serviceId: t.service_id,
-                  displayInfo: {
-                    name: t.name,
-                    image_url: t.image_url ?? null,
-                    base_price: t.base_price,
-                    category_name: categoryName,
-                    service_line_name: serviceLineName,
-                    estimated_delivery_days: estimatedDeliveryDays,
-                  },
-                })),
-              ]);
-              // Only navigate if at least one item actually made it into
-              // the cart - otherwise the customer lands on an unchanged
-              // cart with just a toast as the only sign anything failed.
-              if (addedCount > 0) router.push("/cart");
-            }}
-            className="inline-flex items-center rounded-xl bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {bookingWithExtras ? (
-              <Loader2 className="mr-2 animate-spin" size={16} />
-            ) : null}
-            Book Now ({extraTiers.length + 1}) <ArrowRight className="ml-2" size={16} />
-          </button>
-        ) : (
-          <Link
-            href={bookNowHref}
-            className="inline-flex items-center rounded-xl bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black"
-          >
-            Book Now <ArrowRight className="ml-2" size={16} />
-          </Link>
-        )}
+        <Link
+          href={bookNowHref}
+          className="inline-flex items-center rounded-xl bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black"
+        >
+          {extraTiers.length > 0 ? `Book Now (${extraTiers.length + 1})` : "Book Now"}
+          <ArrowRight className="ml-2" size={16} />
+        </Link>
       </div>
       {extraTiers.length > 0 && (
         <p className="mt-2 text-xs text-gray-500">
-          Booking {extraTiers.length + 1} items together will take you to your cart to finish checkout.
+          All {extraTiers.length + 1} items will be booked together in one order.
         </p>
       )}
     </div>
