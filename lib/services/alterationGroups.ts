@@ -1,13 +1,17 @@
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 
-// Purely presentational grouping for a Custom Alterations line's tiers -
-// no backend/catalog change, no new URL level. The catalog has no explicit
-// "type" field for a tier, so this classifies by keywords already present
-// in every real tier name today (see the live catalog: "Sleeve Repair",
-// "Button Replacement", "Waist Adjustment", "Length Shortening", ...).
-// Keeps the buying path at one click (line -> tier), just groups the same
-// cards under headers instead of one flat, unsorted list - see the
-// "box-in-a-box" navigation-depth discussion this was built for.
+// Classifies a Custom Alterations line's tiers into Repair/Resize/Restyle -
+// no backend/catalog change, the catalog has no explicit "type" field for a
+// tier, so this reads keywords already present in every real tier name
+// today (see the live catalog: "Sleeve Repair", "Button Replacement",
+// "Waist Adjustment", "Length Shortening", ...).
+//
+// Used two ways on the website:
+//  - A dedicated group page (/services/[categoryId]/[lineId]/[groupKey])
+//    lists one group's tiers - the deliberate choice here is a real extra
+//    click (line -> group -> tier) rather than an in-page section, since a
+//    website tolerates that better than the mobile app and a dedicated URL
+//    per group is better for SEO/scannability.
 export type AlterationGroupKey = "repair" | "resize" | "restyle" | "other";
 
 const GROUP_LABELS: Record<AlterationGroupKey, string> = {
@@ -15,6 +19,13 @@ const GROUP_LABELS: Record<AlterationGroupKey, string> = {
   resize: "Resize",
   restyle: "Restyle",
   other: "Other",
+};
+
+export const GROUP_DESCRIPTIONS: Record<AlterationGroupKey, string> = {
+  repair: "Fix a tear, broken zip, worn seam, or missing button - restore the garment to working order.",
+  resize: "Adjust the fit - length, waist, shoulder, or sleeve - to match your exact measurements.",
+  restyle: "Update the look - a design change, redesign, or styling refresh on an existing garment.",
+  other: "Additional alteration work for this garment.",
 };
 
 const GROUP_ORDER: AlterationGroupKey[] = ["repair", "resize", "restyle", "other"];
