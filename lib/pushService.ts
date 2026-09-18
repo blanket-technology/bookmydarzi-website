@@ -64,6 +64,10 @@ export function getNotificationPermission(): NotificationPermission {
   return Notification.permission;
 }
 
+export type PushRegistrationResult =
+  | { ok: true }
+  | { ok: false; reason: "not_configured" | "unsupported" | "permission_denied" | "error" };
+
 /**
  * Request notification permission and register this browser's push token
  * with the backend. Must be called from a real user gesture (a button
@@ -72,16 +76,25 @@ export function getNotificationPermission(): NotificationPermission {
  * repeatedly - a no-op once already granted+registered, and the backend
  * upserts by token so re-registration is harmless.
  */
-export async function requestPushPermission(): Promise<boolean> {
+export async function requestPushPermission(): Promise<PushRegistrationResult> {
   try {
+    if (!isPushConfigured) {
+      // Missing NEXT_PUBLIC_FIREBASE_*/VAPID env vars on this deploy - a
+      // real, distinct failure mode from "browser doesn't support push",
+      // worth surfacing separately since it's fixable by redeploying with
+      // the right env vars, not something the customer's browser controls.
+      console.warn("Push not configured - missing NEXT_PUBLIC_FIREBASE_* env vars");
+      return { ok: false, reason: "not_configured" };
+    }
+
     const messaging = await getMessagingInstance();
-    if (!messaging) return false;
+    if (!messaging) return { ok: false, reason: "unsupported" };
 
     if (Notification.permission === "default") {
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") return false;
+      if (permission !== "granted") return { ok: false, reason: "permission_denied" };
     } else if (Notification.permission !== "granted") {
-      return false;
+      return { ok: false, reason: "permission_denied" };
     }
 
     const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
@@ -90,7 +103,7 @@ export async function requestPushPermission(): Promise<boolean> {
       vapidKey: FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
-    if (!token) return false;
+    if (!token) return { ok: false, reason: "error" };
 
     await apiClient("/notifications/device-tokens", {
       method: "POST",
@@ -104,10 +117,10 @@ export async function requestPushPermission(): Promise<boolean> {
     // about an unhandled foreground message.
     onMessage(messaging, () => {});
 
-    return true;
+    return { ok: true };
   } catch (err) {
     console.warn("Push registration failed", err);
-    return false;
+    return { ok: false, reason: "error" };
   }
 }
 
