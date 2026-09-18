@@ -353,7 +353,9 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
                     ? "bg-red-600 text-white"
                     : step.completed
                       ? "bg-[#171717] text-white"
-                      : "bg-gray-100 text-gray-400"
+                      : step.current
+                        ? "bg-white text-[#171717] ring-2 ring-[#171717]"
+                        : "bg-gray-100 text-gray-400"
                 }`}
               >
                 {step.completed ? <CheckCircle2 size={16} /> : i + 1}
@@ -365,13 +367,22 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
                 />
               )}
             </div>
-            <div className={`pb-7 ${step.current ? "" : "opacity-80"}`}>
+            <div className="pb-7">
               <p
                 className={`text-sm font-bold ${
-                  isCancelled ? "text-red-700" : step.completed ? "text-[#171717]" : "text-gray-400"
+                  isCancelled
+                    ? "text-red-700"
+                    : step.completed || step.current
+                      ? "text-[#171717]"
+                      : "text-gray-400"
                 }`}
               >
                 {step.title}
+                {step.current && !isCancelled && (
+                  <span className="ml-2 rounded-full bg-[#171717]/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#171717]">
+                    Latest
+                  </span>
+                )}
               </p>
               {step.timestamp && (
                 <p className="mt-1 text-xs leading-5 text-gray-500">
