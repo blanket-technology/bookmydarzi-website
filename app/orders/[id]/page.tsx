@@ -39,6 +39,7 @@ import {
 } from "@/lib/razorpayPayment";
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
 import { buildPickupTimeSlots } from "@/lib/pickupPrefs";
+import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 
 // Mirrors react_app/app/order-details.tsx's onlineFailed/onlinePending gate
 // (lines ~764-765) - "Pay now" only makes sense for a non-COD order sitting
@@ -1388,6 +1389,11 @@ export default function OrderDetailPage() {
           <div className="mt-6">
             <StatusTimeline orderId={order.order.order_id} refreshOn={order.order.status} />
           </div>
+          {!["delivered", "cancelled", "completed"].includes(order.order.status) && (
+            <div className="mt-6">
+              <PushPermissionPrompt />
+            </div>
+          )}
           {order.order.pickup_partner && (
             <BridgePartnerCard partner={order.order.pickup_partner} subtitle="Your pickup partner" />
           )}
