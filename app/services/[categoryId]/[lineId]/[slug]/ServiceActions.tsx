@@ -165,7 +165,7 @@ export default function ServiceActions({
             type="button"
             disabled={bookingWithExtras}
             onClick={async () => {
-              await addMultipleToCart([
+              const addedCount = await addMultipleToCart([
                 {
                   serviceId,
                   displayInfo: {
@@ -189,7 +189,10 @@ export default function ServiceActions({
                   },
                 })),
               ]);
-              router.push("/cart");
+              // Only navigate if at least one item actually made it into
+              // the cart - otherwise the customer lands on an unchanged
+              // cart with just a toast as the only sign anything failed.
+              if (addedCount > 0) router.push("/cart");
             }}
             className="inline-flex items-center rounded-xl bg-ink px-6 py-3.5 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
           >

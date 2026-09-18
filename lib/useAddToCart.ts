@@ -67,13 +67,24 @@ export function useAddToCart() {
   // consistent call-by-call; a tier that fails partway through does not
   // roll back ones that already succeeded - those are valid lines the
   // customer would still want, and they're told exactly which one failed.
+  // Returns the count actually added, so a caller that navigates afterward
+  // (e.g. Book Now routing to /cart) can skip that navigation when nothing
+  // was added - without this, a customer whose session hadn't finished
+  // loading yet (checked still false) or whose every add failed would be
+  // silently sent to an unchanged cart with only a toast (easy to miss) as
+  // the only sign anything went wrong.
   const addMultipleToCart = async (
     items: { serviceId: number; displayInfo: GuestCartDisplayInfo }[],
-  ) => {
-    if (!checked || items.length === 0) return;
+  ): Promise<number> => {
+    if (!checked) {
+      show("Still loading your session - please try again in a moment.", "error");
+      return 0;
+    }
+    if (items.length === 0) return 0;
     const primary = items[0];
     setAddingId(primary.serviceId);
     const failedNames: string[] = [];
+    let addedCount = 0;
     try {
       for (const item of items) {
         try {
@@ -87,15 +98,19 @@ export function useAddToCart() {
           } else {
             guestAddItem(item.serviceId, 1, item.displayInfo);
           }
+          addedCount += 1;
         } catch {
           failedNames.push(item.displayInfo.name);
         }
       }
-      if (failedNames.length > 0) {
+      if (addedCount === 0) {
+        show("Couldn't add these items to cart. Please try again.", "error");
+      } else if (failedNames.length > 0) {
         show(`Added to cart, but couldn't add: ${failedNames.join(", ")}. Try again from the cart.`, "error");
       } else {
         show(items.length > 1 ? `Added ${items.length} items to cart` : "Added to cart");
       }
+      return addedCount;
     } finally {
       setAddingId(null);
     }
