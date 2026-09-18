@@ -351,14 +351,12 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
                 className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold ${
                   isCancelled
                     ? "bg-red-600 text-white"
-                    : step.completed
+                    : step.completed || step.current
                       ? "bg-[#171717] text-white"
-                      : step.current
-                        ? "bg-white text-[#171717] ring-2 ring-[#171717]"
-                        : "bg-gray-100 text-gray-400"
+                      : "bg-gray-100 text-gray-400"
                 }`}
               >
-                {step.completed ? <CheckCircle2 size={16} /> : i + 1}
+                {step.completed || step.current ? <CheckCircle2 size={16} /> : i + 1}
               </span>
               {!isLast && (
                 <div
