@@ -205,7 +205,7 @@ export default function Header() {
           />
           <span className="text-[19px] font-black tracking-[-.03em]"><span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span></span>
         </Link>
-        <nav className="hidden items-center gap-8 text-sm font-semibold md:flex">
+        <nav className="hidden h-full items-center gap-8 text-sm font-semibold md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -213,8 +213,8 @@ export default function Header() {
               aria-current={isNavLinkActive(pathname, link.href) ? "page" : undefined}
               className={
                 isNavLinkActive(pathname, link.href)
-                  ? "text-[#053448]"
-                  : "hover:text-[#c99a3d]"
+                  ? "flex h-full items-center border-b-[3px] border-[#c99a3d] text-[#c99a3d]"
+                  : "flex h-full items-center border-b-[3px] border-transparent text-ink hover:text-[#c99a3d]"
               }
             >
               {link.label}
@@ -358,17 +358,21 @@ export default function Header() {
             />
           </div>
           <div className="flex flex-col gap-4 text-sm font-semibold">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                onClick={() => setOpen(false)}
-                href={link.href}
-                aria-current={isNavLinkActive(pathname, link.href) ? "page" : undefined}
-                className={isNavLinkActive(pathname, link.href) ? "text-[#053448]" : undefined}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const active = isNavLinkActive(pathname, link.href);
+              return (
+                <Link
+                  key={link.href}
+                  onClick={() => setOpen(false)}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={active ? "flex items-center gap-2 text-[#c99a3d]" : undefined}
+                >
+                  {active && <span className="h-1.5 w-1.5 rounded-full bg-[#c99a3d]" />}
+                  {link.label}
+                </Link>
+              );
+            })}
             {user ? (
               <>
                 <Link onClick={() => setOpen(false)} href="/profile">Profile</Link>
