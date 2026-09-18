@@ -216,7 +216,7 @@ export default async function Home() {
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c99a3d] text-[#171717] transition-transform duration-300 hover:scale-110">
                     <step.icon size={16} />
                   </span>
-                  <span className="text-xs font-bold text-[#d2aa5c]">
+                  <span className="text-sm font-black uppercase tracking-wide text-[#d2aa5c]">
                     Step {i + 1}
                   </span>
                 </div>
@@ -254,7 +254,7 @@ export default async function Home() {
 
       <section className="bg-[#f8f6f1]">
         <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <p className="text-xs font-black uppercase tracking-[.2em] text-[#b4832e]">
+          <p className="text-xs font-black tracking-[.1em] text-[#b4832e]">
             Real reviews, Delhi NCR
           </p>
           <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
@@ -268,7 +268,7 @@ export default async function Home() {
                   delay={i * 90}
                   className="hover-lift rounded-3xl border border-black/5 bg-white p-6 shadow-sm hover:shadow-lg"
                 >
-                  <p className="text-sm leading-6 text-gray-600">&ldquo;{t.quote}&rdquo;</p>
+                  <p className="max-w-[32ch] text-sm leading-6 text-gray-600">&ldquo;{t.quote}&rdquo;</p>
                   <div className="mt-5 flex items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-[#171717] text-sm font-black text-white">
                       {t.name.charAt(0)}

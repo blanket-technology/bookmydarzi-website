@@ -290,7 +290,7 @@ function BridgePartnerCard({
   );
 }
 
-function StatusTimeline({ orderId }: { orderId: number }) {
+function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: string }) {
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -312,7 +312,11 @@ function StatusTimeline({ orderId }: { orderId: number }) {
     return () => {
       cancelled = true;
     };
-  }, [orderId]);
+    // refreshOn is the parent's own order.status - it changes whenever the
+    // page's WebSocket-triggered refetch (useNotificationsWS below) lands a
+    // new status, so this timeline re-fetches in lockstep instead of
+    // staying stale until the customer manually reloads the page.
+  }, [orderId, refreshOn]);
 
   if (loading) {
     return (
@@ -1382,7 +1386,7 @@ export default function OrderDetailPage() {
             <p className="mt-1 text-sm text-gray-500">{meta.nextStep}</p>
           )}
           <div className="mt-6">
-            <StatusTimeline orderId={order.order.order_id} />
+            <StatusTimeline orderId={order.order.order_id} refreshOn={order.order.status} />
           </div>
           {order.order.pickup_partner && (
             <BridgePartnerCard partner={order.order.pickup_partner} subtitle="Your pickup partner" />
