@@ -26,9 +26,19 @@ export function PushPermissionPrompt({ variant = "card" }: { variant?: "card" | 
   const handleEnable = async () => {
     setBusy(true);
     try {
-      const ok = await requestPushPermission();
+      const result = await requestPushPermission();
       setPermission(getNotificationPermission());
-      show(ok ? "Notifications enabled" : "Could not enable notifications", ok ? "success" : "error");
+      if (result.ok) {
+        show("Notifications enabled", "success");
+        return;
+      }
+      const messages: Record<typeof result.reason, string> = {
+        not_configured: "Notifications aren't set up on this site yet - check back soon.",
+        unsupported: "Your browser doesn't support notifications on this site.",
+        permission_denied: "Notifications were blocked - enable them from your browser's site settings.",
+        error: "Could not enable notifications. Please try again.",
+      };
+      show(messages[result.reason], "error");
     } finally {
       setBusy(false);
     }
