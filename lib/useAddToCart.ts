@@ -59,5 +59,47 @@ export function useAddToCart() {
     }
   };
 
-  return { addToCart, addingId };
+  // Adds a primary item plus N extra tiers as separate cart lines in one
+  // action (each is a full, independently priced/bookable service, not a
+  // ServiceAddon extra) - see the "Add more work to this garment" checkbox
+  // list on the tier detail page. Calls are fired sequentially, each with
+  // its own fresh idempotency key (same as addToCart), so cart state stays
+  // consistent call-by-call; a tier that fails partway through does not
+  // roll back ones that already succeeded - those are valid lines the
+  // customer would still want, and they're told exactly which one failed.
+  const addMultipleToCart = async (
+    items: { serviceId: number; displayInfo: GuestCartDisplayInfo }[],
+  ) => {
+    if (!checked || items.length === 0) return;
+    const primary = items[0];
+    setAddingId(primary.serviceId);
+    const failedNames: string[] = [];
+    try {
+      for (const item of items) {
+        try {
+          if (user) {
+            await apiClient("/cart/service-entry", {
+              method: "POST",
+              body: { service_id: item.serviceId, quantity: 1 },
+              idempotencyKey: generateIdempotencyKey(),
+            });
+            useCartCount.getState().setCount(useCartCount.getState().count + 1);
+          } else {
+            guestAddItem(item.serviceId, 1, item.displayInfo);
+          }
+        } catch {
+          failedNames.push(item.displayInfo.name);
+        }
+      }
+      if (failedNames.length > 0) {
+        show(`Added to cart, but couldn't add: ${failedNames.join(", ")}. Try again from the cart.`, "error");
+      } else {
+        show(items.length > 1 ? `Added ${items.length} items to cart` : "Added to cart");
+      }
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  return { addToCart, addMultipleToCart, addingId };
 }
