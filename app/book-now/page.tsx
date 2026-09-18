@@ -95,6 +95,20 @@ function BookNowContent() {
     }
   })();
   const addonIdsParam = selectedAddons.map((a) => a.addon_id).join(",");
+  // Other tiers checked under "Add more work to this garment" on the
+  // service page - each becomes its own line on this same direct order.
+  // Passed through as {service_id, name, base_price}[] purely for display;
+  // the actual charge is always recomputed server-side from service_id.
+  const extraItems: { service_id: number; name: string; base_price: number }[] = (() => {
+    const raw = params.get("items");
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
 
   const [estimate, setEstimate] = useState<BillingEstimate | null>(null);
   const [estimateError, setEstimateError] = useState<string | null>(null);
@@ -183,7 +197,13 @@ function BookNowContent() {
     if (!checked || !user || !serviceId) return;
     let cancelled = false;
     const addonQuery = addonIdsParam ? `&addon_ids=${encodeURIComponent(addonIdsParam)}` : "";
-    apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}`)
+    const itemsQuery = extraItems.length > 0
+      ? `&items=${encodeURIComponent(JSON.stringify([
+          { service_id: serviceId, quantity: 1 },
+          ...extraItems.map((e) => ({ service_id: e.service_id, quantity: 1 })),
+        ]))}`
+      : "";
+    apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}${itemsQuery}`)
       .then((res) => {
         if (!cancelled) setEstimate(res);
       })
@@ -195,7 +215,10 @@ function BookNowContent() {
     return () => {
       cancelled = true;
     };
-  }, [checked, user, serviceId, addonIdsParam]);
+    // extraItems is parsed fresh from params on every render - depend on a
+    // stable derived key, not the array reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked, user, serviceId, addonIdsParam, extraItems.map((e) => e.service_id).join(",")]);
 
   const loadAddresses = useCallback(async () => {
     setAddressesLoading(true);
@@ -243,6 +266,14 @@ function BookNowContent() {
       ...(appliedOffer ? { offer_id: appliedOffer.offer_id } : {}),
       ...(selectedAddons.length > 0
         ? { addons: selectedAddons.map((a) => ({ addon_id: a.addon_id, note: a.note })) }
+        : {}),
+      ...(extraItems.length > 0
+        ? {
+            items: [
+              { service_id: serviceId, quantity: 1 },
+              ...extraItems.map((e) => ({ service_id: e.service_id, quantity: 1 })),
+            ],
+          }
         : {}),
     };
   };
@@ -701,6 +732,17 @@ function BookNowContent() {
                   <li key={a.addon_id} className="flex justify-between text-xs text-gray-600">
                     <span>+ {a.name}</span>
                     <span>₹{a.price.toLocaleString("en-IN")}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {extraItems.length > 0 && (
+              <ul className="mt-3 space-y-1 border-t border-black/5 pt-3">
+                {extraItems.map((e) => (
+                  <li key={e.service_id} className="flex justify-between text-xs text-gray-600">
+                    <span>+ {e.name}</span>
+                    <span>₹{e.base_price.toLocaleString("en-IN")}</span>
                   </li>
                 ))}
               </ul>
