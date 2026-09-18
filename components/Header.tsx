@@ -194,7 +194,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-black/5 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-5 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" onClick={() => setOpen(false)} className="flex items-center gap-2">
           <Image
             src="/logo.png"
             alt="BookMyDarzi"

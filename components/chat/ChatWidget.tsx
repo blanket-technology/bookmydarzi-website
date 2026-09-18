@@ -263,7 +263,15 @@ export default function ChatWidget() {
       )}
 
       {open && (
-        <div className="relative flex h-[min(600px,calc(100vh-6rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-2xl shadow-black/25">
+        // Full-screen sheet on mobile (a 380px floating card either
+        // overflows a small viewport or leaves the panel too cramped for
+        // comfortable typing/reading) - fixed to the viewport with safe-area
+        // padding, no rounded corners/border/margin since it fills the
+        // screen. From sm: up, reverts to the original floating corner
+        // card anchored by the wrapper's `fixed bottom-6 right-6`.
+        <div
+          className="fixed inset-0 z-[100] flex h-[100dvh] w-screen flex-col overflow-hidden bg-white pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:static sm:h-[min(600px,calc(100vh-6rem))] sm:w-[min(380px,calc(100vw-2.5rem))] sm:rounded-3xl sm:border sm:border-black/5 sm:pt-0 sm:pb-0 sm:shadow-2xl sm:shadow-black/25"
+        >
           {/* Header */}
           <div className="flex items-center gap-3 border-b border-black/5 bg-ink px-4 py-3.5 text-white">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold text-sm font-black text-ink">
