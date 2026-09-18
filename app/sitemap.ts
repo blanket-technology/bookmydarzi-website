@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getCatalogTree } from "@/lib/services/catalog";
+import { groupAlterationTiers } from "@/lib/services/alterationGroups";
 import { SITE_URL } from "@/lib/seo";
 
 // Static, low-value-churn pages. Auth-gated/transactional pages (login,
@@ -36,6 +37,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           changeFrequency: "weekly",
           priority: 0.8,
         });
+
+        // Custom Alterations lines with more than one group render
+        // dedicated Repair/Resize/Restyle pages instead of tier cards
+        // directly (see app/services/[categoryId]/[lineId]/[slug]/page.tsx) -
+        // those need their own sitemap entries too, since they're real,
+        // separately-indexable pages now, not just an in-page section.
+        if (category.name === "Custom Alterations") {
+          const groups = groupAlterationTiers(line.stitching_types);
+          if (groups.length > 1) {
+            for (const group of groups) {
+              entries.push({
+                url: `${SITE_URL}/services/${category.id}/${line.id}/${group.key}`,
+                changeFrequency: "weekly",
+                priority: 0.75,
+              });
+            }
+          }
+        }
+
         for (const tier of line.stitching_types) {
           if (!tier.is_active) continue;
           entries.push({
