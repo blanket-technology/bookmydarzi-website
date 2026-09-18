@@ -6,16 +6,23 @@ import {
   ArrowRight,
   BadgeCheck,
   Clock3,
+  Hammer,
   RefreshCcw,
-  ShieldCheck,
+  Ruler,
   Sparkles,
+  ShieldCheck,
   Truck,
+  Wand2,
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
-import { groupAlterationTiers } from "@/lib/services/alterationGroups";
+import {
+  GROUP_DESCRIPTIONS,
+  groupAlterationTiers,
+  type AlterationGroup,
+} from "@/lib/services/alterationGroups";
 
 type LinePageParams = { categoryId: string; lineId: string };
 
@@ -240,29 +247,27 @@ export default async function ServiceLineDetailPage({
       <section className="mt-14">
         <h2 className="text-2xl font-black tracking-tight">Choose your alteration type</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Every option is stitched to your exact measurements by a verified tailor. Measurements
-          are taken by our team at pickup - no guesswork on your end.
+          {showGroups
+            ? "Pick the kind of work your garment needs - we'll show you the exact options next."
+            : "Every option is stitched to your exact measurements by a verified tailor. Measurements are taken by our team at pickup - no guesswork on your end."}
         </p>
 
-        {/* Grouped by type (Repair/Resize/Restyle) on a Custom Alterations
-            line with more than one group - purely a visual grouping of the
-            same flat tier list, still one click to a bookable tier, not an
-            extra navigation level. Falls back to the plain flat grid for
-            every other line (e.g. a stitching line whose tiers are
-            "Normal Stitching"/"Designer Stitching", not repair/resize work). */}
+        {/* On a Custom Alterations line with more than one group, this page
+            shows group cards (Repair/Resize/Restyle) that link to their own
+            page - a deliberate real click before the tier list, not an
+            in-page section (see alterationGroups.ts's header comment for
+            why). Falls back to the plain flat tier grid for every other
+            line (e.g. a stitching line whose tiers are "Normal Stitching"/
+            "Designer Stitching", not repair/resize work). */}
         {showGroups ? (
-          <div className="mt-6 space-y-10">
+          <div className="mt-6 grid gap-5 sm:grid-cols-3">
             {alterationGroups.map((group) => (
-              <div key={group.key}>
-                <h3 className="text-sm font-black uppercase tracking-wide text-gold-deep">
-                  {group.label}
-                </h3>
-                <div className="mt-4 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                  {group.tiers.map((tier) => (
-                    <TierCard key={tier.service_id} tier={tier} categoryId={category.id} lineId={line.id} />
-                  ))}
-                </div>
-              </div>
+              <GroupCard
+                key={group.key}
+                group={group}
+                categoryId={category.id}
+                lineId={line.id}
+              />
             ))}
           </div>
         ) : (
@@ -294,6 +299,56 @@ export default async function ServiceLineDetailPage({
         </div>
       </section>
     </main>
+  );
+}
+
+const GROUP_ICONS = {
+  repair: Hammer,
+  resize: Ruler,
+  restyle: Wand2,
+  other: Sparkles,
+} as const;
+
+function GroupCard({
+  group,
+  categoryId,
+  lineId,
+}: {
+  group: AlterationGroup;
+  categoryId: number;
+  lineId: number;
+}) {
+  const Icon = GROUP_ICONS[group.key];
+  const cheapest = group.tiers.reduce(
+    (min, t) => (min === null || t.base_price < min ? t.base_price : min),
+    null as number | null,
+  );
+  return (
+    <Link
+      href={`/services/${categoryId}/${lineId}/${group.key}`}
+      className="group flex flex-col rounded-3xl border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+    >
+      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-cream text-gold-deep">
+        <Icon size={22} />
+      </span>
+      <h3 className="mt-4 text-lg font-black">{group.label}</h3>
+      <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
+        {GROUP_DESCRIPTIONS[group.key]}
+      </p>
+      <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+            {group.tiers.length} option{group.tiers.length === 1 ? "" : "s"}
+          </p>
+          {cheapest != null && (
+            <p className="text-sm font-black">from ₹{cheapest.toLocaleString("en-IN")}</p>
+          )}
+        </div>
+        <span className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-xs font-bold text-white transition group-hover:-translate-y-0.5 group-hover:bg-black">
+          View options <ArrowRight className="ml-1.5" size={14} />
+        </span>
+      </div>
+    </Link>
   );
 }
 
