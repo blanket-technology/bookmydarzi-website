@@ -89,13 +89,12 @@ export function useChatWS(sessionUuid: string | null) {
 
         case "typing_indicator": {
           // The backend broadcasts to every subscriber of the session,
-          // including the sender - filtering own frames here requires
-          // knowing our own user id, which this widget doesn't track
-          // client-side (see useChatStore/useAuth). We instead rely on the
-          // fact that a customer never sees their own typing_start echo
-          // rendered against themselves in the UI (only non-customer
-          // indicators are shown) - see ChatWidget's TypingIndicator usage,
-          // which never fires from the customer's own send path.
+          // including the sender - this widget can't compare user_id
+          // against its own id (guest sessions have none client-side), so
+          // it filters by role instead: only an agent/admin typing should
+          // ever render here. A customer's own typing_start echoing back
+          // to themselves previously rendered as if the bot were typing.
+          if (frame.role === "customer") break;
           setTypingUsers(frame.is_typing ? [frame.user_id] : []);
           break;
         }
