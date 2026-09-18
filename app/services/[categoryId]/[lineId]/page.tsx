@@ -18,6 +18,7 @@ import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
+import { fallbackTierDescription } from "@/lib/services/fallbackDescription";
 import {
   GROUP_DESCRIPTIONS,
   groupAlterationTiers,
@@ -393,7 +394,12 @@ function TierCard({
         <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
           {tier.description && tier.description.trim().length >= 20
             ? tier.description
-            : `Professional ${tier.name.toLowerCase()}, finished by a verified tailor and quality-checked before dispatch.`}
+            : fallbackTierDescription({
+                name: tier.name,
+                basePrice: tier.base_price,
+                estimatedDeliveryDays: tier.estimated_delivery_days,
+                categoryName: tier.category_name,
+              })}
         </p>
 
         <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
