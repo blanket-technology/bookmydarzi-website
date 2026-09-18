@@ -100,7 +100,7 @@ export type ChatClientFrame =
 export type ChatServerFrame =
   | { event: "message_created"; message: ChatMessage }
   | { event: "ai_typing"; session_uuid: string }
-  | { event: "typing_indicator"; user_id: number; is_typing: boolean }
+  | { event: "typing_indicator"; user_id: number; role?: "customer" | "agent" | "admin"; is_typing: boolean }
   | { event: "read_receipt_updated"; user_id: number; last_read_seq: number }
   | { event: "session_status_changed"; status: ChatSessionStatus; session_uuid: string }
   | { event: "session_assigned"; agent_name: string; session_uuid: string }
