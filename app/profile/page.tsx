@@ -529,7 +529,27 @@ function AddressForm({
     });
   };
 
+  // Mirrors InlineAddressForm.tsx's validate() (same backend schema,
+  // app/schemas/address.py's AddressCreateSchema) - this form previously had
+  // no client-side validation at all, so a blank full_name or a malformed
+  // mobile number reached the network and only got caught by the backend's
+  // generic error message, one round trip later.
+  const validate = (): string | null => {
+    if (!form.full_name.trim()) return "Please enter the recipient's full name.";
+    if (!/^[6-9]\d{9}$/.test(form.mobile.trim())) return "Please enter a valid 10-digit mobile number starting with 6-9.";
+    if (!form.address_line_1.trim()) return "Please enter the address (house/flat, street).";
+    if (!form.city.trim()) return "Please enter a city.";
+    if (!form.state.trim()) return "Please enter a state.";
+    if (!/^\d{6}$/.test(form.pincode.trim())) return "Please enter a valid 6-digit pincode.";
+    return null;
+  };
+
   const submit = async () => {
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     // Geolocation is optional, not required, to save an address - see
     // InlineAddressForm.tsx's matching submit() for the full reasoning
     // (backend only enforces serviceability when coordinates are actually

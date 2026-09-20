@@ -88,7 +88,9 @@ export function InlineAddressForm({
   // something checkable instantly client-side.
   const validate = (): string | null => {
     if (!form.full_name.trim()) return "Please enter the recipient's full name.";
-    if (!/^\d{10}$/.test(form.mobile.trim())) return "Please enter a valid 10-digit mobile number.";
+    // Mirrors backend's AddressCreateSchema.validate_mobile (app/schemas/
+    // address.py) - must also start with 6/7/8/9, not just be 10 digits.
+    if (!/^[6-9]\d{9}$/.test(form.mobile.trim())) return "Please enter a valid 10-digit mobile number starting with 6-9.";
     if (!form.address_line_1.trim()) return "Please enter the address (house/flat, street).";
     if (!form.city.trim()) return "Please enter a city.";
     if (!form.state.trim()) return "Please enter a state.";

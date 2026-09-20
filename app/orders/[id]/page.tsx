@@ -1409,6 +1409,9 @@ export default function OrderDetailPage() {
           {order.order.delivery_partner && (
             <BridgePartnerCard partner={order.order.delivery_partner} subtitle="Your delivery partner" />
           )}
+          {order.order.return_partner && (
+            <BridgePartnerCard partner={order.order.return_partner} subtitle="Your return partner" />
+          )}
         </section>
 
         <div className="space-y-6 md:col-span-2">

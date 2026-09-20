@@ -477,7 +477,13 @@ function BookNowContent() {
         <h1 className="text-3xl font-black">Log in to book this service</h1>
         <p className="mt-2 text-gray-500">Sign in to choose a delivery address and place your order.</p>
         <Link
-          href={`/login?redirect=/book-now?service_id=${serviceId}%26name=${encodeURIComponent(serviceName)}`}
+          // Forward the FULL current query string (addons/items/image
+          // included), not just service_id+name - previously a logged-out
+          // customer's selected add-ons and extra alteration tiers were
+          // silently dropped on the login round-trip, so they'd land back
+          // here and place an order for the base service only, at a lower
+          // price than what they'd actually configured, with no warning.
+          href={`/login?redirect=${encodeURIComponent(`/book-now?${params.toString()}`)}`}
           className="mt-8 inline-block rounded-xl bg-[#171717] px-6 py-3 text-sm font-bold text-white hover:-translate-y-0.5 hover:bg-black"
         >
           Log in
