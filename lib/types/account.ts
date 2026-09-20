@@ -49,6 +49,12 @@ export interface CustomerPickupPartner {
  * the same person as pickup_partner. */
 export type CustomerDeliveryPartner = CustomerPickupPartner;
 
+/** Return-leg equivalent of CustomerPickupPartner - who's bringing the
+ * garment back after a cancellation past custody (see
+ * OrderStatus.CUSTODY_STAGES on the backend). Never assumed to be the same
+ * person as pickup_partner/delivery_partner. */
+export type CustomerReturnPartner = CustomerPickupPartner;
+
 export interface CustomerDetailsOrder {
   order_id: number;
   order_code: string | null;
@@ -62,6 +68,7 @@ export interface CustomerDetailsOrder {
   customization_notes: string | null;
   pickup_partner: CustomerPickupPartner | null;
   delivery_partner: CustomerDeliveryPartner | null;
+  return_partner: CustomerReturnPartner | null;
 }
 
 export interface CustomerDetailsService {

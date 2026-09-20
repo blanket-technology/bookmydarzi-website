@@ -32,7 +32,16 @@ const detailsSchema = z.object({
     .string()
     .min(1, "Mobile number is required")
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  // Mirrors backend's EmailSignupRequest.validate_password (app/schemas/
+  // auth.py) exactly - min 6 chars, 1 uppercase, 1 digit. Was previously
+  // min(8) with no character-class checks, so an all-lowercase 8+ char
+  // password passed client-side and 422'd server-side with no field-level
+  // indication why.
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
 });
 type DetailsFormValues = z.infer<typeof detailsSchema>;
 
@@ -41,10 +50,11 @@ const otpSchema = z.object({
 });
 type OtpFormValues = z.infer<typeof otpSchema>;
 
-// Purely a visual nudge, not a validation gate - the 8-character minimum in
-// detailsSchema above is the only hard requirement. Scored 0-3 on simple,
-// visible signals (length + character variety) rather than a strength
-// library, since the goal is guidance, not a security audit of the password.
+// Purely a visual nudge, not a validation gate - detailsSchema above (which
+// mirrors the backend's actual rule: 6+ chars, 1 uppercase, 1 digit) is the
+// only hard requirement. Scored 0-3 on simple, visible signals (length +
+// character variety) rather than a strength library, since the goal is
+// guidance, not a security audit of the password.
 function getPasswordStrength(password: string): {
   score: 0 | 1 | 2 | 3;
   label: string;
@@ -59,7 +69,7 @@ function getPasswordStrength(password: string): {
 
   let score: 0 | 1 | 2 | 3 = 0;
   if (password.length >= 8 && variety >= 3) score = 3;
-  else if (password.length >= 8 && variety >= 2) score = 2;
+  else if (password.length >= 6 && variety >= 2) score = 2;
   else if (password.length > 0) score = 1;
 
   const styles = [
