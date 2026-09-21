@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Search, ShoppingBag, Menu, X, User, LogOut, ChevronDown } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useAuth } from "@/lib/useAuth";
 import { apiClient } from "@/lib/apiClient";
 import { useNotificationsWS } from "@/lib/useNotificationsWS";
@@ -13,6 +13,7 @@ import { useGuestCartCount } from "@/lib/guestCart";
 import { useSearchIndex } from "@/lib/services/useSearchIndex";
 import { searchEntries } from "@/lib/services/searchIndex";
 import SearchSuggestions from "@/components/SearchSuggestions";
+import { useRecentSearches } from "@/lib/recentSearches";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -40,16 +41,33 @@ export default function Header() {
   // keystroke - 150ms is imperceptible to type against but still cheap
   // since this is scoring an in-memory array, not a network round trip.
   // Shared by both the desktop and mobile search boxes, same as `query`
-  // itself and handleSearchSubmit below.
+  // itself and handleSearchSubmit below. `searchLoading` reflects that same
+  // debounce window - a real "Searching…" state instead of the dropdown
+  // silently sitting empty/stale for the ~150ms between keystroke and re-rank.
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 150);
+    if (query.trim()) setSearchLoading(true);
+    const t = setTimeout(() => {
+      setDebouncedQuery(query);
+      setSearchLoading(false);
+    }, 150);
     return () => clearTimeout(t);
   }, [query]);
   const suggestions = useMemo(
     () => searchEntries(searchIndex, debouncedQuery),
     [searchIndex, debouncedQuery],
   );
+  // Keyboard navigation (arrow keys / Enter / Escape) - reset to "nothing
+  // highlighted" whenever the result set itself changes, so an old index
+  // never points at a now-different row.
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [suggestions]);
+  const recentSearchQueries = useRecentSearches((s) => s.queries);
+  const addRecentSearch = useRecentSearches((s) => s.add);
+  const removeRecentSearch = useRecentSearches((s) => s.remove);
   const unreadCount = useUnreadNotifications((s) => s.count);
   const setUnreadCount = useUnreadNotifications((s) => s.setCount);
   const refetchUnreadCount = useUnreadNotifications((s) => s.refetch);
@@ -163,9 +181,51 @@ export default function Header() {
   const handleSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
     const trimmed = query.trim();
+    if (trimmed) addRecentSearch(trimmed);
     setSearchOpen(false);
     setOpen(false);
     router.push(trimmed ? `/services?q=${encodeURIComponent(trimmed)}` : "/services");
+  };
+
+  const handleSelectRecentSearch = (recent: string) => {
+    setQuery(recent);
+    setDebouncedQuery(recent);
+    addRecentSearch(recent);
+    router.push(`/services?q=${encodeURIComponent(recent)}`);
+    setSearchOpen(false);
+    setOpen(false);
+  };
+
+  const handleSuggestionSelect = () => {
+    if (query.trim()) addRecentSearch(query);
+    setSearchOpen(false);
+    setOpen(false);
+  };
+
+  // Arrow-down/up move the highlight through the current result rows,
+  // Enter either follows the highlighted row (same as clicking it) or falls
+  // through to a normal form submit if nothing's highlighted, Escape closes
+  // the dropdown without submitting - the exact keyboard contract Amazon/
+  // Flipkart's own search boxes support.
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!query.trim() || suggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((i) => (i + 1) % suggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((i) => (i <= 0 ? suggestions.length - 1 : i - 1));
+    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+      e.preventDefault();
+      const chosen = suggestions[highlightedIndex];
+      addRecentSearch(query);
+      setSearchOpen(false);
+      setOpen(false);
+      router.push(chosen.href);
+    } else if (e.key === "Escape") {
+      setSearchOpen(false);
+      (e.target as HTMLInputElement).blur();
+    }
   };
 
   useEffect(() => {
@@ -205,7 +265,7 @@ export default function Header() {
           />
           <span className="text-[19px] font-black tracking-[-.03em]"><span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span></span>
         </Link>
-        <nav className="hidden h-full items-center gap-8 text-sm font-semibold md:flex">
+        <nav className="hidden h-full items-center gap-8 text-sm font-semibold lg:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -221,8 +281,75 @@ export default function Header() {
             </Link>
           ))}
         </nav>
+
+        {/* Persistent, always-visible search bar (not a click-to-reveal
+            icon) - the one structural change that actually matters most for
+            matching Amazon/Flipkart/Blinkit's search UX, where the search
+            box is the header's centerpiece, not a hidden affordance. Kept
+            in its own flex-1 zone so it grows to fill the space between nav
+            and the action icons on wider screens; collapses to the old
+            icon-toggle pattern below `sm` where there isn't room. */}
+        <div className="mx-4 hidden max-w-md flex-1 sm:block" ref={searchRef}>
+          <div className="relative">
+            <form
+              onSubmit={handleSearchSubmit}
+              className={`flex items-center gap-2 rounded-full border bg-gray-50 pl-4 pr-1.5 py-1.5 transition-colors ${
+                searchOpen ? "border-[#171717] bg-white shadow-sm" : "border-transparent hover:bg-gray-100"
+              }`}
+            >
+              <Search size={16} className="shrink-0 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setSearchOpen(true)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder="Search for shirt alteration, blouse stitching…"
+                aria-label="Search services"
+                autoComplete="off"
+                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
+              />
+              {query && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setQuery("");
+                    setDebouncedQuery("");
+                  }}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-white hover:bg-black"
+              >
+                <Search size={14} />
+              </button>
+            </form>
+            {searchOpen && (
+              <SearchSuggestions
+                results={suggestions}
+                query={query}
+                loading={searchLoading}
+                recentSearches={recentSearchQueries}
+                highlightedIndex={highlightedIndex}
+                onHighlight={setHighlightedIndex}
+                onSelect={handleSuggestionSelect}
+                onSelectRecent={handleSelectRecentSearch}
+                onRemoveRecent={removeRecentSearch}
+              />
+            )}
+          </div>
+        </div>
+
         <div className="flex items-center gap-2">
-          <div className="relative hidden sm:block" ref={searchRef}>
+          {/* Compact icon-toggle fallback, sm-only (the persistent bar above
+              covers everything from sm upward already - hidden there so
+              there's never two search entry points visible at once). */}
+          <div className="relative sm:hidden">
             <button
               aria-label="Search"
               onClick={() => setSearchOpen((v) => !v)}
@@ -240,6 +367,7 @@ export default function Header() {
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
                     placeholder="Search services..."
                     className="w-full rounded-xl bg-gray-50 px-3 py-2 text-sm outline-none"
                   />
@@ -255,7 +383,13 @@ export default function Header() {
                   <SearchSuggestions
                     results={suggestions}
                     query={query}
-                    onSelect={() => setSearchOpen(false)}
+                    loading={searchLoading}
+                    recentSearches={recentSearchQueries}
+                    highlightedIndex={highlightedIndex}
+                    onHighlight={setHighlightedIndex}
+                    onSelect={handleSuggestionSelect}
+                    onSelectRecent={handleSelectRecentSearch}
+                    onRemoveRecent={removeRecentSearch}
                   />
                 </div>
               </div>
@@ -284,9 +418,9 @@ export default function Header() {
           )}
 
           {!checked ? (
-            <div className="hidden h-9 w-24 animate-pulse rounded-full bg-gray-100 md:block" />
+            <div className="hidden h-9 w-24 animate-pulse rounded-full bg-gray-100 lg:block" />
           ) : user ? (
-            <div className="relative hidden md:block" ref={menuRef}>
+            <div className="relative hidden lg:block" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 transition hover:bg-gray-100"
@@ -319,27 +453,29 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full bg-[#171717] px-5 py-2.5 text-sm font-bold text-white hover:bg-black md:block"
+              className="hidden rounded-full bg-[#171717] px-5 py-2.5 text-sm font-bold text-white hover:bg-black lg:block"
             >
               Log in
             </Link>
           )}
 
-          <button onClick={() => setOpen(!open)} className="rounded-full p-2.5 hover:bg-gray-100 md:hidden">{open ? <X size={20} /> : <Menu size={20} />}</button>
+          <button onClick={() => setOpen(!open)} className="rounded-full p-2.5 hover:bg-gray-100 lg:hidden">{open ? <X size={20} /> : <Menu size={20} />}</button>
         </div>
       </div>
       {open && (
-        <nav className="border-t bg-white px-5 py-4 md:hidden">
-          {/* The header search icon is desktop-only (hidden sm:block above) -
-              mobile had no way to search from the header at all before this,
-              only by first navigating to /services. Reuses the same
-              handleSearchSubmit/query state the desktop search box uses. */}
-          <div className="relative mb-4">
+        <nav className="border-t bg-white px-5 py-4 lg:hidden">
+          {/* Only rendered below `sm` today (the persistent bar above covers
+              sm-lg), but kept self-contained here in case the hamburger
+              menu is ever shown at a narrower breakpoint than the search
+              bar. Reuses the same handleSearchSubmit/query state as the
+              other search boxes. */}
+          <div className="relative mb-4 sm:hidden">
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-2xl border border-black/10 bg-gray-50 p-2">
               <Search size={16} className="ml-2 shrink-0 text-gray-400" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Search services..."
                 className="w-full bg-transparent text-sm outline-none"
               />
@@ -354,7 +490,13 @@ export default function Header() {
             <SearchSuggestions
               results={suggestions}
               query={query}
+              loading={searchLoading}
+              recentSearches={recentSearchQueries}
+              highlightedIndex={highlightedIndex}
+              onHighlight={setHighlightedIndex}
               onSelect={() => setOpen(false)}
+              onSelectRecent={handleSelectRecentSearch}
+              onRemoveRecent={removeRecentSearch}
             />
           </div>
           <div className="flex flex-col gap-4 text-sm font-semibold">
