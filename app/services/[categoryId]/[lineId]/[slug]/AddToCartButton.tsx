@@ -20,6 +20,11 @@ export default function AddToCartButton({
   categoryName,
   serviceLineName,
   estimatedDeliveryDays,
+  // Accepted for signature parity with ServiceActions' props (mirrors the
+  // page's tier data) but not forwarded into cart display metadata below -
+  // the guest cart's line-item estimate is days-only today and isn't shown
+  // anywhere in the cart UI, so there's nothing rendered to fix here yet.
+  estimatedDeliveryHours: _estimatedDeliveryHours,
   selectedAddons,
   extraTiers,
 }: {
@@ -30,6 +35,7 @@ export default function AddToCartButton({
   categoryName: string;
   serviceLineName: string;
   estimatedDeliveryDays: number;
+  estimatedDeliveryHours?: number | null;
   selectedAddons?: SelectedAddon[];
   /** Other tiers ticked in "Add more work to this garment" - each becomes
    * its own separate cart line alongside this primary one. */

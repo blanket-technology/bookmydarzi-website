@@ -18,7 +18,7 @@ import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
-import { fallbackTierDescription } from "@/lib/services/fallbackDescription";
+import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
 import {
   GROUP_DESCRIPTIONS,
   groupAlterationTiers,
@@ -87,9 +87,18 @@ export default async function ServiceLineDetailPage({
     (min, t) => (min === null || t.base_price < min.base_price ? t : min),
     null,
   );
-  const fastestDays = stitchingTypes.length
-    ? Math.min(...stitchingTypes.map((t) => t.estimated_delivery_days))
-    : null;
+  // Compare in a common unit (hours) so a rush tier (e.g. 6 hours) correctly
+  // wins "fastest" over a 1-day tier, then format back in whichever unit
+  // that winning tier actually used - a 6-hour tier should read "6 hours",
+  // not get rounded/miscompared against day-based siblings.
+  const fastestTier = stitchingTypes.reduce<CatalogStitchingType | null>((fastest, t) => {
+    const tHours = t.estimated_delivery_hours ? t.estimated_delivery_hours : t.estimated_delivery_days * 24;
+    if (!fastest) return t;
+    const fastestHours = fastest.estimated_delivery_hours
+      ? fastest.estimated_delivery_hours
+      : fastest.estimated_delivery_days * 24;
+    return tHours < fastestHours ? t : fastest;
+  }, null);
   // Only group by type on a genuine Custom Alterations line, and only when
   // grouping actually produces more than one bucket - a single-group result
   // (or a plain stitching line like "Shirts" under Men Clothing, whose tiers
@@ -178,7 +187,7 @@ export default async function ServiceLineDetailPage({
             </p>
           )}
 
-          {(cheapest || fastestDays != null) && (
+          {(cheapest || fastestTier) && (
             <div className="mt-6 flex items-stretch divide-x divide-black/10 overflow-hidden rounded-3xl border border-black/5 bg-cream">
               {cheapest && (
                 <div className="flex-1 px-6 py-5">
@@ -190,13 +199,13 @@ export default async function ServiceLineDetailPage({
                   </p>
                 </div>
               )}
-              {fastestDays != null && (
+              {fastestTier && (
                 <div className="flex flex-1 flex-col justify-center gap-1.5 px-6 py-5">
                   <span className="grid h-8 w-8 place-items-center rounded-full bg-white text-gold-deep">
                     <Clock3 size={16} />
                   </span>
                   <p className="text-sm font-bold text-ink">
-                    {fastestDays} day{fastestDays === 1 ? "" : "s"}
+                    {formatDeliveryEta(fastestTier.estimated_delivery_days, fastestTier.estimated_delivery_hours)}
                   </p>
                   <p className="text-xs font-semibold text-gray-500">Fastest delivery</p>
                 </div>
@@ -406,14 +415,14 @@ function TierCard({
                 name: tier.name,
                 basePrice: tier.base_price,
                 estimatedDeliveryDays: tier.estimated_delivery_days,
+                estimatedDeliveryHours: tier.estimated_delivery_hours,
                 categoryName: tier.category_name,
               })}
         </p>
 
         <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
           <Clock3 size={13} />
-          Delivered in {tier.estimated_delivery_days} day
-          {tier.estimated_delivery_days === 1 ? "" : "s"}
+          Delivered in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
         </p>
 
         <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">

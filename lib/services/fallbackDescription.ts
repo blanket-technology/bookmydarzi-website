@@ -10,15 +10,28 @@
 // delivery time, category) so the fallback itself isn't identical
 // page-to-page - a stopgap until real descriptions are added in the admin
 // panel, not a replacement for them.
+// Shared turnaround-time phrase - "6 hours" for a rush alteration
+// (estimatedDeliveryHours set by the admin), otherwise the usual "3 days"
+// wording. Used everywhere a tier's delivery estimate is shown to the
+// customer, so a rush service actually reads as fast instead of silently
+// falling back to a days-based sentence.
+export function formatDeliveryEta(estimatedDeliveryDays: number, estimatedDeliveryHours?: number | null): string {
+  if (estimatedDeliveryHours && estimatedDeliveryHours > 0) {
+    return `${estimatedDeliveryHours} hour${estimatedDeliveryHours === 1 ? "" : "s"}`;
+  }
+  return `${estimatedDeliveryDays} day${estimatedDeliveryDays === 1 ? "" : "s"}`;
+}
+
 export function fallbackTierDescription(params: {
   name: string;
   basePrice: number;
   estimatedDeliveryDays: number;
+  estimatedDeliveryHours?: number | null;
   categoryName: string;
 }): string {
-  const { name, basePrice, estimatedDeliveryDays, categoryName } = params;
+  const { name, basePrice, estimatedDeliveryDays, estimatedDeliveryHours } = params;
   const lower = name.toLowerCase();
-  const days = `${estimatedDeliveryDays} day${estimatedDeliveryDays === 1 ? "" : "s"}`;
+  const days = formatDeliveryEta(estimatedDeliveryDays, estimatedDeliveryHours);
   const price = `₹${basePrice.toLocaleString("en-IN")}`;
 
   // Rotates between a few real, distinct phrasings keyed off the tier's own
