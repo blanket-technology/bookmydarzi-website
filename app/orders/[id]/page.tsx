@@ -398,6 +398,135 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
   );
 }
 
+interface OrderProgressPhoto {
+  id: number;
+  photo_url: string;
+  tailor_id: number | null;
+  stage: string;
+  caption: string | null;
+  sequence: number;
+  visible_to_customer: boolean;
+  uploaded_at: string | null;
+}
+
+interface OrderPhotosResponse {
+  order_id: number;
+  photos: OrderProgressPhoto[];
+}
+
+// Mirrors react_app's stageLabel (src/services/orderPhotoService.ts) exactly
+// - same stage vocabulary, same fallback for any legacy value.
+function progressPhotoStageLabel(stage: string): string {
+  const labels: Record<string, string> = {
+    measuring: "Measuring",
+    stitching_started: "Stitching Started",
+    in_progress: "In Progress",
+    final_check: "Final Check",
+    ready_for_dispatch: "Ready for Dispatch",
+    stitching_completed: "Stitching Done",
+    delivered: "Delivered",
+  };
+  return labels[stage] ?? stage.replace(/_/g, " ");
+}
+
+// GET /orders/{id}/photos already filters to VisibleToCustomer=true rows for
+// a plain customer viewer server-side (app/api/v1/endpoints/orders.py) - no
+// extra filtering needed here. Mirrors react_app's ProgressGallery: fetch
+// once, show nothing at all if there are no photos yet (no permanent empty
+// card on every order) rather than a dead-looking "no photos" state most
+// orders would show forever.
+function ProgressPhotoGallery({ orderId, refreshOn }: { orderId: number; refreshOn?: string }) {
+  const [photos, setPhotos] = useState<OrderProgressPhoto[] | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient<OrderPhotosResponse>(`/orders/${orderId}/photos`)
+      .then((res) => {
+        if (!cancelled) setPhotos(res.photos);
+      })
+      .catch(() => {
+        // Best-effort section - a failed fetch just means the gallery stays
+        // hidden, same as "no photos yet". Never blocks the rest of the page.
+        if (!cancelled) setPhotos((prev) => prev ?? []);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, refreshOn]);
+
+  if (!photos || photos.length === 0) return null;
+
+  const viewerPhoto = viewerIndex != null ? photos[viewerIndex] : null;
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-sm font-black uppercase tracking-wide text-gray-500">
+        Your garment in progress
+      </h3>
+      <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
+        {photos.map((photo, i) => (
+          <button
+            key={photo.id}
+            type="button"
+            onClick={() => setViewerIndex(i)}
+            className="group relative shrink-0"
+          >
+            <Image
+              src={photo.photo_url}
+              alt={progressPhotoStageLabel(photo.stage)}
+              width={96}
+              height={96}
+              className="h-24 w-24 rounded-2xl object-cover"
+              unoptimized
+            />
+            <span className="absolute inset-x-1 bottom-1 truncate rounded-lg bg-black/60 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
+              {progressPhotoStageLabel(photo.stage)}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {viewerPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setViewerIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setViewerIndex(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+            aria-label="Close"
+          >
+            <X size={22} />
+          </button>
+          <div className="flex max-w-lg flex-col items-center" onClick={(e) => e.stopPropagation()}>
+            <Image
+              src={viewerPhoto.photo_url}
+              alt={progressPhotoStageLabel(viewerPhoto.stage)}
+              width={480}
+              height={480}
+              className="max-h-[70vh] w-auto rounded-2xl object-contain"
+              unoptimized
+            />
+            <p className="mt-4 text-lg font-black text-white">
+              {progressPhotoStageLabel(viewerPhoto.stage)}
+            </p>
+            {viewerPhoto.caption && (
+              <p className="mt-1 text-center text-sm text-white/80">{viewerPhoto.caption}</p>
+            )}
+            {viewerPhoto.uploaded_at && (
+              <p className="mt-2 text-xs text-white/50">
+                {formatTimelineTimestamp(viewerPhoto.uploaded_at)}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** service_id -> resolved catalog image_url, built from stitching_types[] and
  * direct_services[] across the whole tree (a line item's service can be
  * either a tiered stitching type or a direct service). */
@@ -1398,6 +1527,7 @@ export default function OrderDetailPage() {
           <div className="mt-6">
             <StatusTimeline orderId={order.order.order_id} refreshOn={order.order.status} />
           </div>
+          <ProgressPhotoGallery orderId={order.order.order_id} refreshOn={order.order.status} />
           {!["delivered", "cancelled", "completed"].includes(order.order.status) && (
             <div className="mt-6">
               <PushPermissionPrompt />
