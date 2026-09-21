@@ -461,8 +461,13 @@ function ProgressPhotoGallery({ orderId, refreshOn }: { orderId: number; refresh
 
   return (
     <div className="mt-6">
+      {/* "Your garment in progress" read as actively-happening ("in
+          progress") even once the order had already moved past stitching
+          entirely (delivered, completed) - these are a historical photo log
+          from the tailor, not a live status, so the heading needs to be
+          accurate at any order stage, not just mid-stitching. */}
       <h3 className="text-sm font-black uppercase tracking-wide text-gray-500">
-        Your garment in progress
+        Photos from your tailor
       </h3>
       <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
         {photos.map((photo, i) => (
@@ -470,7 +475,7 @@ function ProgressPhotoGallery({ orderId, refreshOn }: { orderId: number; refresh
             key={photo.id}
             type="button"
             onClick={() => setViewerIndex(i)}
-            className="group relative shrink-0"
+            className="shrink-0"
           >
             <Image
               src={photo.photo_url}
@@ -480,9 +485,6 @@ function ProgressPhotoGallery({ orderId, refreshOn }: { orderId: number; refresh
               className="h-24 w-24 rounded-2xl object-cover"
               unoptimized
             />
-            <span className="absolute inset-x-1 bottom-1 truncate rounded-lg bg-black/60 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">
-              {progressPhotoStageLabel(photo.stage)}
-            </span>
           </button>
         ))}
       </div>
