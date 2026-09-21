@@ -66,20 +66,57 @@ export function buildSearchIndex(categories: CatalogCategory[]): SearchEntry[] {
   return entries;
 }
 
-// Amazon/Facebook-style ranking, not a plain substring filter: an exact
-// name match beats a name-prefix match, which beats a name-contains match,
-// which beats a hit only in the description/category/line text - so typing
-// "kurta" surfaces the Kurta tiers before some unrelated line whose long
-// description happens to mention "kurta" once in passing.
+// Bounded edit distance - only computed against short tokens (service/line
+// names are a handful of words), so the classic O(len_a * len_b) DP table is
+// cheap. Used purely for typo tolerance (see fuzzyTokenScore below), not as
+// the primary ranking signal.
+function levenshtein(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const prev = new Array(b.length + 1);
+  const curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+  }
+  return prev[b.length];
+}
+
+// A query token "fuzzily hits" a name token if it's within a typo-scale edit
+// distance of it - 1 typo allowed for short words, 2 for longer ones, so
+// "shrit"/"shrt" still finds "shirt" but a totally different short word
+// doesn't accidentally match.
+function fuzzyTokenHit(queryToken: string, nameToken: string): boolean {
+  if (nameToken.startsWith(queryToken)) return true;
+  if (queryToken.length < 3) return false; // too short to fuzzy-match safely
+  const maxDistance = queryToken.length <= 5 ? 1 : 2;
+  return levenshtein(queryToken, nameToken.slice(0, queryToken.length + maxDistance)) <= maxDistance;
+}
+
+// Amazon/Flipkart-style ranking, not a plain substring filter: an exact name
+// match beats a name-prefix match, which beats a name-contains match, which
+// beats a hit only in the description/category/line text, which beats a
+// fuzzy/typo-tolerant match - so typing "kurta" surfaces the Kurta tiers
+// before some unrelated line whose long description happens to mention
+// "kurta" once in passing, and misspelling it ("kurtha", "kurata") still
+// finds them instead of returning nothing.
 export function searchEntries(index: SearchEntry[], rawQuery: string, limit = 8): SearchEntry[] {
   const query = rawQuery.trim().toLowerCase();
   if (!query) return [];
 
   const scored: { entry: SearchEntry; score: number }[] = [];
+  const queryTokens = query.split(/\s+/).filter(Boolean);
 
   for (const entry of index) {
     const name = entry.name.toLowerCase();
     const haystack = `${entry.categoryName} ${entry.lineName ?? ""} ${entry.description}`.toLowerCase();
+    const nameTokens = name.split(/\s+/);
 
     let score = 0;
     if (name === query) score = 100;
@@ -87,12 +124,20 @@ export function searchEntries(index: SearchEntry[], rawQuery: string, limit = 8)
     else if (name.includes(query)) score = 60;
     else if (haystack.includes(query)) score = 20;
     else {
-      // Token-level match: "cotton kurta" should still find "Kurta - Cotton"
-      // even though neither string contains the other as a substring.
-      const queryTokens = query.split(/\s+/).filter(Boolean);
-      const nameTokens = name.split(/\s+/);
-      const hitCount = queryTokens.filter((qt) => nameTokens.some((nt) => nt.startsWith(qt))).length;
-      if (hitCount > 0 && hitCount === queryTokens.length) score = 40;
+      // Token-level prefix match: "cotton kurta" still finds "Kurta -
+      // Cotton" even though neither string contains the other as a
+      // substring.
+      const prefixHits = queryTokens.filter((qt) => nameTokens.some((nt) => nt.startsWith(qt))).length;
+      if (prefixHits > 0 && prefixHits === queryTokens.length) {
+        score = 40;
+      } else {
+        // Fuzzy fallback: allow small typos per token. Scored lower than
+        // every exact-ish match above, and only counted a hit if every
+        // query token fuzzily matches something in the name (so "shrit
+        // xyz" doesn't match "Shirt Alteration" off one lucky token).
+        const fuzzyHits = queryTokens.filter((qt) => nameTokens.some((nt) => fuzzyTokenHit(qt, nt))).length;
+        if (fuzzyHits > 0 && fuzzyHits === queryTokens.length) score = 10;
+      }
     }
 
     if (score > 0) scored.push({ entry, score });

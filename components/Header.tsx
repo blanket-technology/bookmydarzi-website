@@ -184,14 +184,14 @@ export default function Header() {
     if (trimmed) addRecentSearch(trimmed);
     setSearchOpen(false);
     setOpen(false);
-    router.push(trimmed ? `/services?q=${encodeURIComponent(trimmed)}` : "/services");
+    router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
   };
 
   const handleSelectRecentSearch = (recent: string) => {
     setQuery(recent);
     setDebouncedQuery(recent);
     addRecentSearch(recent);
-    router.push(`/services?q=${encodeURIComponent(recent)}`);
+    router.push(`/search?q=${encodeURIComponent(recent)}`);
     setSearchOpen(false);
     setOpen(false);
   };
@@ -265,7 +265,7 @@ export default function Header() {
           />
           <span className="text-[19px] font-black tracking-[-.03em]"><span className="text-[#053448]">BookMy</span><span className="text-[#e85720]">Darzi</span></span>
         </Link>
-        <nav className="hidden h-full items-center gap-8 text-sm font-semibold lg:flex">
+        <nav className="hidden h-full items-center gap-8 text-sm font-semibold md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -289,7 +289,7 @@ export default function Header() {
             in its own flex-1 zone so it grows to fill the space between nav
             and the action icons on wider screens; collapses to the old
             icon-toggle pattern below `sm` where there isn't room. */}
-        <div className="mx-4 hidden max-w-md flex-1 sm:block" ref={searchRef}>
+        <div className="mx-4 hidden max-w-md flex-1 md:block" ref={searchRef}>
           <div className="relative">
             <form
               onSubmit={handleSearchSubmit}
@@ -346,10 +346,10 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Compact icon-toggle fallback, sm-only (the persistent bar above
-              covers everything from sm upward already - hidden there so
-              there's never two search entry points visible at once). */}
-          <div className="relative sm:hidden">
+          {/* Compact icon-toggle fallback, below md only (the persistent bar
+              above covers md and up already - hidden there so there's never
+              two search entry points visible at once). */}
+          <div className="relative md:hidden">
             <button
               aria-label="Search"
               onClick={() => setSearchOpen((v) => !v)}
@@ -418,9 +418,9 @@ export default function Header() {
           )}
 
           {!checked ? (
-            <div className="hidden h-9 w-24 animate-pulse rounded-full bg-gray-100 lg:block" />
+            <div className="hidden h-9 w-24 animate-pulse rounded-full bg-gray-100 md:block" />
           ) : user ? (
-            <div className="relative hidden lg:block" ref={menuRef}>
+            <div className="relative hidden md:block" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-full py-1.5 pl-1.5 pr-3 transition hover:bg-gray-100"
@@ -453,23 +453,22 @@ export default function Header() {
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full bg-[#171717] px-5 py-2.5 text-sm font-bold text-white hover:bg-black lg:block"
+              className="hidden rounded-full bg-[#171717] px-5 py-2.5 text-sm font-bold text-white hover:bg-black md:block"
             >
               Log in
             </Link>
           )}
 
-          <button onClick={() => setOpen(!open)} className="rounded-full p-2.5 hover:bg-gray-100 lg:hidden">{open ? <X size={20} /> : <Menu size={20} />}</button>
+          <button onClick={() => setOpen(!open)} className="rounded-full p-2.5 hover:bg-gray-100 md:hidden">{open ? <X size={20} /> : <Menu size={20} />}</button>
         </div>
       </div>
       {open && (
-        <nav className="border-t bg-white px-5 py-4 lg:hidden">
-          {/* Only rendered below `sm` today (the persistent bar above covers
-              sm-lg), but kept self-contained here in case the hamburger
-              menu is ever shown at a narrower breakpoint than the search
-              bar. Reuses the same handleSearchSubmit/query state as the
-              other search boxes. */}
-          <div className="relative mb-4 sm:hidden">
+        <nav className="border-t bg-white px-5 py-4 md:hidden">
+          {/* This hamburger nav only ever opens below `md` (the persistent
+              bar above covers md and up), so this inline search box is
+              always the one in view when it's shown. Reuses the same
+              handleSearchSubmit/query state as the other search boxes. */}
+          <div className="relative mb-4 md:hidden">
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-2xl border border-black/10 bg-gray-50 p-2">
               <Search size={16} className="ml-2 shrink-0 text-gray-400" />
               <input
