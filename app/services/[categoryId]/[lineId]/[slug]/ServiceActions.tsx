@@ -9,6 +9,7 @@ import AddToCartButton from "./AddToCartButton";
 import type { CatalogStitchingType, ServiceAddon } from "@/lib/types/catalog";
 import type { SelectedAddon } from "@/lib/selectedAddons";
 import { selectedAddonsTotal } from "@/lib/selectedAddons";
+import { formatDeliveryEta } from "@/lib/services/fallbackDescription";
 
 // Client-side coordinator between the addon picker and the two purchase
 // actions (Add to Cart / Book Now) - the page itself is a Server Component
@@ -22,6 +23,7 @@ export default function ServiceActions({
   categoryName,
   serviceLineName,
   estimatedDeliveryDays,
+  estimatedDeliveryHours,
   addons,
   otherTiers,
 }: {
@@ -32,6 +34,7 @@ export default function ServiceActions({
   categoryName: string;
   serviceLineName: string;
   estimatedDeliveryDays: number;
+  estimatedDeliveryHours?: number | null;
   addons: ServiceAddon[];
   /** Other tiers on the same line (any group) - offered as "Add more work
    * to this garment" checkboxes so several alteration tiers can be added
@@ -95,7 +98,7 @@ export default function ServiceActions({
           </span>
           <div>
             <p className="text-sm font-bold text-ink">
-              {estimatedDeliveryDays} day{estimatedDeliveryDays === 1 ? "" : "s"}
+              {formatDeliveryEta(estimatedDeliveryDays, estimatedDeliveryHours)}
             </p>
             <p className="text-xs font-semibold text-gray-500">Delivery time</p>
           </div>
@@ -130,7 +133,8 @@ export default function ServiceActions({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-bold text-ink">{t.name}</p>
                     <p className="mt-0.5 text-xs font-semibold text-gray-500">
-                      ₹{t.base_price.toLocaleString("en-IN")} · {t.estimated_delivery_days}d
+                      ₹{t.base_price.toLocaleString("en-IN")} ·{" "}
+                      {t.estimated_delivery_hours ? `${t.estimated_delivery_hours}h` : `${t.estimated_delivery_days}d`}
                     </p>
                   </div>
                   {checked ? (
@@ -154,6 +158,7 @@ export default function ServiceActions({
           categoryName={categoryName}
           serviceLineName={serviceLineName}
           estimatedDeliveryDays={estimatedDeliveryDays}
+          estimatedDeliveryHours={estimatedDeliveryHours}
           selectedAddons={selectedAddons}
           extraTiers={extraTiers}
         />

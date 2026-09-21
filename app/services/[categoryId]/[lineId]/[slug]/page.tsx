@@ -14,7 +14,7 @@ import {
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree, getServiceAddons } from "@/lib/services/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
-import { fallbackTierDescription } from "@/lib/services/fallbackDescription";
+import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
 import {
   GROUP_DESCRIPTIONS,
   groupAlterationTiers,
@@ -62,7 +62,7 @@ export async function generateMetadata({
   const title = `${tier.name} - ₹${tier.base_price.toLocaleString("en-IN")}`;
   const description =
     tier.description ||
-    `Book ${tier.name.toLowerCase()} online - ₹${tier.base_price.toLocaleString("en-IN")}, delivered in ${tier.estimated_delivery_days} day${tier.estimated_delivery_days === 1 ? "" : "s"}. Doorstep pickup in Noida & Delhi NCR, stitched by a verified tailor.`;
+    `Book ${tier.name.toLowerCase()} online - ₹${tier.base_price.toLocaleString("en-IN")}, delivered in ${formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}. Doorstep pickup in Noida & Delhi NCR, stitched by a verified tailor.`;
   const path = `/services/${category.id}/${line.id}/${tier.service_id}`;
 
   return {
@@ -281,6 +281,7 @@ async function TierDetailPage({
                 name: tier.name,
                 basePrice: tier.base_price,
                 estimatedDeliveryDays: tier.estimated_delivery_days,
+                estimatedDeliveryHours: tier.estimated_delivery_hours,
                 categoryName: category.name,
               })}
           </p>
@@ -293,6 +294,7 @@ async function TierDetailPage({
             categoryName={category.name}
             serviceLineName={line.name}
             estimatedDeliveryDays={tier.estimated_delivery_days}
+            estimatedDeliveryHours={tier.estimated_delivery_hours}
             addons={addons}
             otherTiers={category.name === "Custom Alterations" ? otherTiers : undefined}
           />
@@ -411,14 +413,14 @@ function TierCard({
                 name: tier.name,
                 basePrice: tier.base_price,
                 estimatedDeliveryDays: tier.estimated_delivery_days,
+                estimatedDeliveryHours: tier.estimated_delivery_hours,
                 categoryName: tier.category_name,
               })}
         </p>
 
         <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
           <Clock3 size={13} />
-          Delivered in {tier.estimated_delivery_days} day
-          {tier.estimated_delivery_days === 1 ? "" : "s"}
+          Delivered in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
         </p>
 
         <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
