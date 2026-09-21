@@ -282,74 +282,13 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Persistent, always-visible search bar (not a click-to-reveal
-            icon) - the one structural change that actually matters most for
-            matching Amazon/Flipkart/Blinkit's search UX, where the search
-            box is the header's centerpiece, not a hidden affordance. Kept
-            in its own flex-1 zone so it grows to fill the space between nav
-            and the action icons on wider screens; collapses to the old
-            icon-toggle pattern below `sm` where there isn't room. */}
-        <div className="mx-4 hidden max-w-md flex-1 md:block" ref={searchRef}>
-          <div className="relative">
-            <form
-              onSubmit={handleSearchSubmit}
-              className={`flex items-center gap-2 rounded-full border bg-gray-50 pl-4 pr-1.5 py-1.5 transition-colors ${
-                searchOpen ? "border-[#171717] bg-white shadow-sm" : "border-transparent hover:bg-gray-100"
-              }`}
-            >
-              <Search size={16} className="shrink-0 text-gray-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setSearchOpen(true)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder="Search for shirt alteration, blouse stitching…"
-                aria-label="Search services"
-                autoComplete="off"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
-              />
-              {query && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setQuery("");
-                    setDebouncedQuery("");
-                  }}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-                >
-                  <X size={14} />
-                </button>
-              )}
-              <button
-                type="submit"
-                aria-label="Submit search"
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink text-white hover:bg-black"
-              >
-                <Search size={14} />
-              </button>
-            </form>
-            {searchOpen && (
-              <SearchSuggestions
-                results={suggestions}
-                query={query}
-                loading={searchLoading}
-                recentSearches={recentSearchQueries}
-                highlightedIndex={highlightedIndex}
-                onHighlight={setHighlightedIndex}
-                onSelect={handleSuggestionSelect}
-                onSelectRecent={handleSelectRecentSearch}
-                onRemoveRecent={removeRecentSearch}
-              />
-            )}
-          </div>
-        </div>
-
         <div className="flex items-center gap-2">
-          {/* Compact icon-toggle fallback, below md only (the persistent bar
-              above covers md and up already - hidden there so there's never
-              two search entry points visible at once). */}
-          <div className="relative md:hidden">
+          {/* Compact icon-toggle search, every screen size - keeps the
+              navbar's own links/logo/account cluster from ever getting
+              squeezed by a persistent search box competing for the same
+              row. Opens a small dropdown with live suggestions; Enter/
+              submit goes to the full /search results page. */}
+          <div className="relative" ref={searchRef}>
             <button
               aria-label="Search"
               onClick={() => setSearchOpen((v) => !v)}
@@ -358,7 +297,7 @@ export default function Header() {
               <Search size={19} />
             </button>
             {searchOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80">
+              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96">
                 <form
                   onSubmit={handleSearchSubmit}
                   className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white p-2 shadow-xl"
@@ -464,11 +403,10 @@ export default function Header() {
       </div>
       {open && (
         <nav className="border-t bg-white px-5 py-4 md:hidden">
-          {/* This hamburger nav only ever opens below `md` (the persistent
-              bar above covers md and up), so this inline search box is
-              always the one in view when it's shown. Reuses the same
+          {/* Inline search box inside the open hamburger menu, alongside the
+              search icon in the top bar - reuses the same
               handleSearchSubmit/query state as the other search boxes. */}
-          <div className="relative mb-4 md:hidden">
+          <div className="relative mb-4">
             <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-2xl border border-black/10 bg-gray-50 p-2">
               <Search size={16} className="ml-2 shrink-0 text-gray-400" />
               <input
