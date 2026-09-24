@@ -2,16 +2,19 @@
 
 import { create } from "zustand";
 import { useGuestCart, syncGuestCartToServer } from "./guestCart";
+import type { UserProfile } from "./types/account";
 
-export interface WebUser {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  email?: string;
-  mobile?: string;
-  [key: string]: unknown;
-}
+// Bug fix: this used to be its own lowercase-field interface
+// (first_name/full_name/email/mobile) that never matched what the backend
+// actually sends - GET /users/profile returns UserResponse
+// (app/schemas/user.py), which is PascalCase (FirstName/FullName/Email/
+// Mobile/ProfileImageUrl) end to end, same as lib/types/account.ts's
+// UserProfile (already correctly typed for the profile page). Every read
+// against the old WebUser shape silently fell through to undefined,
+// which is why the header showed the literal "Account" fallback for
+// every user, not just after an edit - reusing UserProfile here instead
+// of maintaining two conflicting shapes for the same API response.
+export type WebUser = UserProfile;
 
 interface AuthState {
   user: WebUser | null;
