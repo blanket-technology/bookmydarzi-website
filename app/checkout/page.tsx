@@ -429,9 +429,9 @@ export default function CheckoutPage() {
         description: orderCode ? `Order #${orderCode}` : `Order #${orderId}`,
         order_id: session.razorpay_order_id,
         prefill: {
-          name: session.prefill?.name ?? user?.full_name ?? undefined,
-          email: session.prefill?.email ?? user?.email ?? undefined,
-          contact: session.prefill?.contact ?? user?.mobile ?? undefined,
+          name: session.prefill?.name ?? user?.FullName ?? undefined,
+          email: session.prefill?.email ?? user?.Email ?? undefined,
+          contact: session.prefill?.contact ?? user?.Mobile ?? undefined,
         },
         theme: { color: "#171717" },
         handler: (response) => {

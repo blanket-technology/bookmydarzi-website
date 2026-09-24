@@ -1121,19 +1121,23 @@ function ProfileSidebar({
   onLogout: () => void;
   loggingOut: boolean;
 }) {
-  const displayName = user?.first_name || user?.full_name || "Your account";
+  const displayName = user?.FirstName || user?.FullName || "Your account";
   const initials = (displayName.charAt(0) || "U").toUpperCase();
 
   return (
     <aside className="lg:w-72 lg:shrink-0">
       <div className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3 border-b border-black/5 pb-5">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink text-base font-black text-white">
-            {initials}
+          <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-ink text-base font-black text-white">
+            {user?.ProfileImageUrl ? (
+              <Image src={user.ProfileImageUrl} alt="" fill sizes="48px" className="object-cover" />
+            ) : (
+              initials
+            )}
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-black">{displayName}</p>
-            <p className="truncate text-xs text-muted">{user?.email ?? user?.mobile ?? ""}</p>
+            <p className="truncate text-xs text-muted">{user?.Email ?? user?.Mobile ?? ""}</p>
           </div>
         </div>
 
@@ -1237,7 +1241,7 @@ function ProfileContent() {
     <main className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
       <p className="text-xs font-black uppercase tracking-[.2em] text-gold-deep">Account</p>
       <h1 className="mt-2 text-4xl font-black tracking-[-.03em]">
-        {user.first_name ? `Hi, ${user.first_name}` : "My account"}
+        {user.FirstName ? `Hi, ${user.FirstName}` : "My account"}
       </h1>
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
