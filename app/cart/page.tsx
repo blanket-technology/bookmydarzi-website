@@ -222,6 +222,12 @@ function GuestCartView({
                     <span className="w-5 text-center text-sm font-bold">{item.quantity}</span>
                     <button
                       onClick={() => updateQuantity(item.service_id, item.quantity + 1)}
+                      // Capped at 5 (matches the backend's own cap,
+                      // app/schemas/cart.py) - without this, "+" past the
+                      // cap silently failed server-side with a generic
+                      // "Could not update quantity" message and no
+                      // indication the button had reached a real limit.
+                      disabled={item.quantity >= 5}
                       className="grid h-9 w-9 place-items-center rounded-lg border disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label="Increase quantity"
                     >
@@ -842,7 +848,9 @@ function CartContent() {
                       <span className="w-5 text-center text-sm font-bold">{entry.quantity}</span>
                       <button
                         onClick={() => updateQuantity(entry, entry.quantity + 1)}
-                        disabled={busy}
+                        // Capped at 5 (matches the backend's own cap) -
+                        // same fix as the logged-in cart list above.
+                        disabled={busy || entry.quantity >= 5}
                         className="grid h-9 w-9 place-items-center rounded-lg border disabled:cursor-not-allowed disabled:opacity-40"
                         aria-label="Increase quantity"
                       >

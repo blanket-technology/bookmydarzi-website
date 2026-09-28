@@ -1666,16 +1666,28 @@ export default function OrderDetailPage() {
                         {item.measurement.fit ? ` · ${item.measurement.fit} fit` : ""}
                       </p>
                     )}
+                    {/* Bug fix: this was fetched (the type already had it)
+                        but never rendered anywhere - the customer's own
+                        per-item note simply vanished after checkout. */}
+                    {item.notes && (
+                      <p className="mt-1 text-xs italic text-gray-500">Note: {item.notes}</p>
+                    )}
                     {item.addons.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-col gap-1">
                         {item.addons.map((addon, ai) => (
-                          <span
-                            key={addon.addon_id ?? ai}
-                            className="rounded-full bg-[#f8f6f1] px-2.5 py-1 text-[11px] font-semibold text-[#b4832e]"
-                            title={addon.note ?? undefined}
-                          >
-                            + {addon.name} ({money(addon.price)})
-                          </span>
+                          <div key={addon.addon_id ?? ai} className="flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full bg-[#f8f6f1] px-2.5 py-1 text-[11px] font-semibold text-[#b4832e]">
+                              + {addon.name} ({money(addon.price)})
+                            </span>
+                            {/* Bug fix: this note was only reachable via a
+                                hover tooltip (title attribute) - invisible
+                                on mobile web (no hover) and easy to miss
+                                on desktop too, for something the customer
+                                explicitly typed. Shown as visible text now. */}
+                            {addon.note && (
+                              <span className="text-[11px] italic text-gray-500">Note: {addon.note}</span>
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}

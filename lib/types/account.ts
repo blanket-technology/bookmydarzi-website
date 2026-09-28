@@ -111,6 +111,10 @@ export interface CustomerOrderLineItem {
   line_total: number | null;
   measurement: CustomerMeasurementSnapshot | null;
   stitching_preferences: Record<string, unknown> | null;
+  /** Customer's plain-text note for this specific sub-service, carried
+   * over from the cart entry at checkout (OrderItem.Notes on the backend).
+   * Was missing from this type entirely - fetched but silently dropped. */
+  notes: string | null;
   /** Extras selected at booking or added later by Bridge/employee at
    * pickup (e.g. Button Replacement) - see SelectedAddonSummary on the
    * backend. */
