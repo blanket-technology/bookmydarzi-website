@@ -24,10 +24,15 @@ const GROUP_LABELS: Record<AlterationGroupKey, string> = {
   other: "Other",
 };
 
+// Kept in sync with react_app's lib/services/alterationGroups.ts exactly
+// (see that file's comment) - shortened from the original ~90-char wording
+// so the app's GroupCard (fixed 2-line height) doesn't clip mid-sentence;
+// the shorter copy reads fine here too, so kept identical rather than
+// diverging.
 export const GROUP_DESCRIPTIONS: Record<AlterationGroupKey, string> = {
-  repair: "Fix a tear, broken zip, worn seam, or missing button - restore the garment to working order.",
-  resize: "Adjust the fit - length, waist, shoulder, or sleeve - to match your exact measurements.",
-  restyle: "Update the look - a design change, redesign, or styling refresh on an existing garment.",
+  repair: "Fix tears, broken zips, worn seams, or missing buttons.",
+  resize: "Adjust length, waist, shoulder, or sleeve to fit you.",
+  restyle: "Refresh the look with a design change or restyling.",
   other: "Additional alteration work for this garment.",
 };
 
