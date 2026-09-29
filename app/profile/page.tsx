@@ -26,6 +26,7 @@ import { useAuth, type WebUser } from "@/lib/useAuth";
 import { apiClient, ClientApiError } from "@/lib/apiClient";
 import { useAddressLocation } from "@/lib/useAddressLocation";
 import { usePincodeLookup } from "@/lib/usePincodeLookup";
+import { UNSERVICEABLE_ERROR_PATTERN, registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 import { AddressLocationField } from "@/components/AddressLocationField";
 import OrdersPanel from "@/components/OrdersPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -478,6 +479,7 @@ function AddressForm({
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
   const location = useAddressLocation();
   const pincodeLookup = usePincodeLookup();
   // City/State lock only once THIS session's pincode lookup resolves them
@@ -556,6 +558,7 @@ function AddressForm({
     // provided).
     setSaving(true);
     setError(null);
+    setInterestState("idle");
     try {
       await onSaved({
         ...form,
@@ -566,6 +569,25 @@ function AddressForm({
       setError(err instanceof ClientApiError ? err.message : "Couldn't save this address.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleRegisterInterest = async () => {
+    setInterestState("submitting");
+    try {
+      // No stable coordinates for a manually-typed address here (GPS detect
+      // is optional, see submit() above) - backend best-effort forward-
+      // geocodes city/pincode instead, same as checkout's identical call.
+      await registerServiceAreaInterest({
+        latitude: location.coords?.latitude ?? null,
+        longitude: location.coords?.longitude ?? null,
+        city: form.city,
+        pincode: form.pincode,
+        address_text: `${form.address_line_1}, ${form.city}`,
+      });
+      setInterestState("done");
+    } catch {
+      setInterestState("idle");
     }
   };
 
@@ -707,7 +729,25 @@ function AddressForm({
         Set as default address
       </label>
 
-      {error && <p className="mt-3 text-sm font-semibold text-red-600">{error}</p>}
+      {error && UNSERVICEABLE_ERROR_PATTERN.test(error) ? (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+          <p>{error}</p>
+          <button
+            type="button"
+            onClick={handleRegisterInterest}
+            disabled={interestState === "submitting" || interestState === "done"}
+            className="mt-2 shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {interestState === "done"
+              ? "Thanks! We'll notify you 🎉"
+              : interestState === "submitting"
+                ? "Submitting..."
+                : "I'm interested — notify me"}
+          </button>
+        </div>
+      ) : error ? (
+        <p className="mt-3 text-sm font-semibold text-red-600">{error}</p>
+      ) : null}
 
       <div className="mt-5 flex gap-3">
         <button
