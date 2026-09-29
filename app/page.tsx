@@ -41,10 +41,18 @@ interface FeaturedLine {
   categoryId: number;
 }
 
-function pickFeaturedServiceLines(
+// Business is launching on Custom Alterations only - the homepage should
+// showcase that category specifically, not whatever category happens to
+// sort first in the catalog tree (same "Custom Alterations" match used to
+// gate grouping on the line page, app/services/[categoryId]/[lineId]/page.tsx).
+// Falls back to the first category with any lines only if Custom Alterations
+// isn't in the catalog yet, so the homepage never renders an empty section.
+function getCustomAlterationsLines(
   categories: Awaited<ReturnType<typeof getCatalogTree>>["categories"],
 ): FeaturedLine[] {
-  const category = categories.find((c) => c.service_lines.length > 0);
+  const category =
+    categories.find((c) => c.name === "Custom Alterations" && c.service_lines.length > 0) ??
+    categories.find((c) => c.service_lines.length > 0);
   if (!category) return [];
   const sorted = [...category.service_lines].sort((a, b) => a.display_order - b.display_order);
   // The hero uses featured[0] as a large photo card - a line with no
@@ -54,12 +62,15 @@ function pickFeaturedServiceLines(
   // the rest keep their normal display order behind it.
   const withImage = sorted.find((l) => l.image_url);
   const ordered = withImage ? [withImage, ...sorted.filter((l) => l !== withImage)] : sorted;
-  return ordered.slice(0, 3).map((line) => ({ line, categoryId: category.id }));
+  return ordered.map((line) => ({ line, categoryId: category.id }));
 }
 
 export default async function Home() {
   const { categories } = await getCatalogTree();
-  const featured = pickFeaturedServiceLines(categories);
+  const alterationLines = getCustomAlterationsLines(categories);
+  // Hero rotator stays small (image-crossfade + one dot per item) even
+  // though the grid below now shows every Custom Alterations line.
+  const featured = alterationLines.slice(0, 3);
   const testimonials = await getTestimonials();
 
   return (
@@ -112,18 +123,18 @@ export default async function Home() {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[.2em] text-[#b4832e]">
-              Our services
+              Custom Alterations
             </p>
             <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
-              Tailored for you
+              Repairs, resizing & restyling
             </h2>
           </div>
           <Link href="/services" className="hidden text-sm font-bold md:block">
-            View all <ArrowRight className="ml-1 inline" size={15} />
+            View all services <ArrowRight className="ml-1 inline" size={15} />
           </Link>
         </div>
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
-          {featured.map(({ line, categoryId }, i) => (
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {alterationLines.map(({ line, categoryId }, i) => (
             <ScrollReveal key={line.id} delay={i * 90}>
             <Link
               href={`/services/${categoryId}/${line.id}`}
