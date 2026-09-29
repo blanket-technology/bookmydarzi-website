@@ -193,6 +193,7 @@ function OverviewTab() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ first_name: "", last_name: "", email: "" });
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [changingMobile, setChangingMobile] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -344,14 +345,24 @@ function OverviewTab() {
                 value={profile.Mobile ?? ""}
                 className="mt-1.5 w-full cursor-not-allowed rounded-xl border border-black/10 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-400"
               />
-              <p className="mt-1 text-xs text-gray-400">
-                Mobile number can&apos;t be changed here.{" "}
-                <Link href="/contact" className="font-semibold text-gray-500 underline underline-offset-2 hover:text-ink">
-                  Contact support
-                </Link>{" "}
-                to update it.
-              </p>
+              <button
+                type="button"
+                onClick={() => setChangingMobile(true)}
+                className="mt-1 text-xs font-semibold text-gray-500 underline underline-offset-2 hover:text-ink"
+              >
+                Change number
+              </button>
             </label>
+            {changingMobile && (
+              <ChangeMobileFlow
+                onDone={(newMobile) => {
+                  setChangingMobile(false);
+                  setProfile((p) => (p ? { ...p, Mobile: newMobile, IsMobileVerified: true } : p));
+                  useAuth.setState((s) => (s.user ? { user: { ...s.user, Mobile: newMobile } } : {}));
+                }}
+                onCancel={() => setChangingMobile(false)}
+              />
+            )}
             {saveError && <p className="text-sm font-semibold text-red-600">{saveError}</p>}
             <div className="flex gap-3 pt-1">
               <button
@@ -384,6 +395,231 @@ function OverviewTab() {
       <PushPermissionPrompt variant="toggle" />
 
       <DangerZoneSection />
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * OTP-verified self-service mobile number change - 3 backend round trips:
+ * 1. OTP to CURRENT mobile (proves the caller controls the account being
+ *    changed, not just holds a session token for it).
+ * 2. Verify that OTP.
+ * 3. OTP to the NEW mobile (proves the caller controls the number they're
+ *    switching to) -> verify -> backend commits User.Mobile.
+ * Mirrors app/api/v1/endpoints/account_change.py's exact 4-endpoint shape
+ * (POST /users/change-mobile/verify-current/request, .../verify-current,
+ * .../request, .../verify) - no new backend surface, this just wires the
+ * website up to an endpoint set that already existed.
+ */
+function ChangeMobileFlow({
+  onDone,
+  onCancel,
+}: {
+  onDone: (newMobile: string) => void;
+  onCancel: () => void;
+}) {
+  const [step, setStep] = useState<"start" | "current-otp" | "new-number" | "new-otp">("start");
+  const [currentOtp, setCurrentOtp] = useState("");
+  const [newMobile, setNewMobile] = useState("");
+  const [newOtp, setNewOtp] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendCurrentOtp = async () => {
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient("/users/change-mobile/verify-current/request", { method: "POST", body: {} });
+      setStep("current-otp");
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "Couldn't send the verification code.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const verifyCurrentOtp = async () => {
+    if (!/^\d{6}$/.test(currentOtp.trim())) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient("/users/change-mobile/verify-current", { method: "POST", body: { otp: currentOtp.trim() } });
+      setStep("new-number");
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "That code didn't match.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const sendNewOtp = async () => {
+    if (!/^[6-9]\d{9}$/.test(newMobile.trim())) {
+      setError("Enter a valid 10-digit mobile number starting with 6-9.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient("/users/change-mobile/request", {
+        method: "POST",
+        body: { new_mobile: newMobile.trim() },
+      });
+      setStep("new-otp");
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "Couldn't send a code to that number.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const verifyNewOtp = async () => {
+    if (!/^\d{6}$/.test(newOtp.trim())) {
+      setError("Enter the 6-digit code.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient("/users/change-mobile/verify", {
+        method: "POST",
+        body: { new_mobile: newMobile.trim(), otp: newOtp.trim() },
+      });
+      onDone(newMobile.trim());
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "That code didn't match.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-2xl border border-black/10 bg-gray-50 p-4">
+      {step === "start" && (
+        <>
+          <p className="text-sm text-gray-600">
+            We&apos;ll send a one-time code to your current number first, to confirm it&apos;s you.
+          </p>
+          {error && <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={sendCurrentOtp}
+              disabled={submitting}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={13} className="animate-spin" />} Send code
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-black/10 px-4 py-2 text-xs font-bold hover:bg-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === "current-otp" && (
+        <>
+          <p className="text-sm text-gray-600">Enter the 6-digit code sent to your current number.</p>
+          <input
+            inputMode="numeric"
+            maxLength={6}
+            value={currentOtp}
+            onChange={(e) => setCurrentOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            className="mt-2 w-32 rounded-xl border border-black/10 px-3.5 py-2.5 text-center text-sm tracking-widest focus:border-[#171717] focus:outline-none"
+            placeholder="000000"
+          />
+          {error && <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={verifyCurrentOtp}
+              disabled={submitting}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={13} className="animate-spin" />} Verify
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-black/10 px-4 py-2 text-xs font-bold hover:bg-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === "new-number" && (
+        <>
+          <p className="text-sm text-gray-600">Current number verified. Enter your new mobile number.</p>
+          <input
+            inputMode="numeric"
+            maxLength={10}
+            value={newMobile}
+            onChange={(e) => setNewMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            className="mt-2 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none sm:w-56"
+            placeholder="10-digit mobile number"
+          />
+          {error && <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={sendNewOtp}
+              disabled={submitting}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={13} className="animate-spin" />} Send code
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-black/10 px-4 py-2 text-xs font-bold hover:bg-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === "new-otp" && (
+        <>
+          <p className="text-sm text-gray-600">Enter the 6-digit code sent to {newMobile}.</p>
+          <input
+            inputMode="numeric"
+            maxLength={6}
+            value={newOtp}
+            onChange={(e) => setNewOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            className="mt-2 w-32 rounded-xl border border-black/10 px-3.5 py-2.5 text-center text-sm tracking-widest focus:border-[#171717] focus:outline-none"
+            placeholder="000000"
+          />
+          {error && <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>}
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={verifyNewOtp}
+              disabled={submitting}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+            >
+              {submitting && <Loader2 size={13} className="animate-spin" />} Confirm change
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-black/10 px-4 py-2 text-xs font-bold hover:bg-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
