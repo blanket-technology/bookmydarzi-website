@@ -110,7 +110,11 @@ export default function ImageLightbox({
       aria-modal="true"
       aria-label="Image preview"
     >
-      <div className="absolute right-4 top-4 flex items-center gap-2 sm:right-6 sm:top-6">
+      {/* z-10: the zoomed/panned <img> below has an inline `transform`,
+          which creates its own stacking context - without an explicit
+          z-index here, panning the enlarged image toward this corner can
+          paint it over these controls and swallow clicks on Close. */}
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 sm:right-6 sm:top-6">
         <a
           href={src}
           download
@@ -150,7 +154,7 @@ export default function ImageLightbox({
           too, even though drag-to-pan above is mouse-only. */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/10 p-1.5 backdrop-blur"
+        className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white/10 p-1.5 backdrop-blur"
       >
         <button
           onClick={zoomOut}
