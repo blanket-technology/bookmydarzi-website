@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Clock3,
-  RefreshCcw,
-  Sparkles,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
+import { BadgeCheck, Clock3, RefreshCcw, ShieldCheck, Truck } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
-import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
+import { formatDeliveryEta } from "@/lib/services/fallbackDescription";
 import { groupAlterationTiers } from "@/lib/services/alterationGroups";
-import AlterationGroupPicker from "./AlterationGroupPicker";
+import AlterationGroupPicker, { TierCard } from "./AlterationGroupPicker";
 
 type LinePageParams = { categoryId: string; lineId: string };
 
@@ -279,9 +270,15 @@ export default async function ServiceLineDetailPage({
             lineId={line.id}
           />
         ) : (
-          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {stitchingTypes.map((tier) => (
-              <TierCard key={tier.service_id} tier={tier} categoryId={category.id} lineId={line.id} />
+          <div className="mt-6 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {stitchingTypes.map((tier, index) => (
+              <TierCard
+                key={tier.service_id}
+                tier={tier}
+                categoryId={category.id}
+                lineId={line.id}
+                defaultOpen={index === 0}
+              />
             ))}
           </div>
         )}
@@ -307,72 +304,5 @@ export default async function ServiceLineDetailPage({
         </div>
       </section>
     </main>
-  );
-}
-
-
-function TierCard({
-  tier,
-  categoryId,
-  lineId,
-}: {
-  tier: CatalogStitchingType;
-  categoryId: number;
-  lineId: number;
-}) {
-  return (
-    <Link
-      href={`/services/${categoryId}/${lineId}/${tier.service_id}`}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-    >
-      {tier.image_url && (
-        <div className="relative h-44 w-full overflow-hidden">
-          <Image
-            src={tier.image_url}
-            alt={tier.name}
-            fill
-            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        </div>
-      )}
-      <div className="flex flex-1 flex-col p-6">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-lg font-black">{tier.name}</h3>
-          {tier.is_premium && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
-              <Sparkles size={11} /> Premium
-            </span>
-          )}
-        </div>
-
-        {/* Same threshold-based fallback as the services grid card - a
-            short backend label (e.g. "Suit") next to a full sentence on a
-            sibling tier reads as unfinished. */}
-        <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
-          {tier.description && tier.description.trim().length >= 20
-            ? tier.description
-            : fallbackTierDescription({
-                name: tier.name,
-                basePrice: tier.base_price,
-                estimatedDeliveryDays: tier.estimated_delivery_days,
-                estimatedDeliveryHours: tier.estimated_delivery_hours,
-                categoryName: tier.category_name,
-              })}
-        </p>
-
-        <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-          <Clock3 size={13} />
-          Delivered in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
-        </p>
-
-        <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-          <span className="text-xl font-black">₹{tier.base_price.toLocaleString("en-IN")}</span>
-          <span className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-xs font-bold text-white transition group-hover:-translate-y-0.5 group-hover:bg-black">
-            View details <ArrowRight className="ml-1.5" size={14} />
-          </span>
-        </div>
-      </div>
-    </Link>
   );
 }
