@@ -122,7 +122,11 @@ export default function AlterationGroupPicker({
   );
 }
 
-function TierCard({
+// Exported so the flat (non-grouped) tier list on the line page
+// (page.tsx) can reuse the exact same inline add-ons/Add to
+// Cart/Book Now card instead of maintaining a second, divergent
+// tier-card implementation that still links out to a detail page.
+export function TierCard({
   tier,
   categoryId,
   lineId,
