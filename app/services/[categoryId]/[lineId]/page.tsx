@@ -192,7 +192,7 @@ export default async function ServiceLineDetailPage({
                   <p className="text-sm font-bold text-ink">
                     {formatDeliveryEta(fastestTier.estimated_delivery_days, fastestTier.estimated_delivery_hours)}
                   </p>
-                  <p className="text-xs font-semibold text-gray-500">Fastest delivery</p>
+                  <p className="text-xs font-semibold text-gray-500">Fast Delivery</p>
                 </div>
               )}
             </div>

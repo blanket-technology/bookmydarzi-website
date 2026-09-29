@@ -176,7 +176,7 @@ export function TierCard({
 
           <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
             <Clock3 size={13} />
-            Delivered in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
+            Delivery in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
           </p>
 
           <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
