@@ -14,6 +14,8 @@ import {
   Ruler,
   ShoppingBag,
   Sparkles,
+  SquareCheck,
+  Square,
   Wand2,
 } from "lucide-react";
 import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
@@ -101,7 +103,7 @@ export default function AlterationGroupPicker({
             </button>
 
             {expanded && (
-              <div className="grid gap-5 border-t border-black/5 bg-cream/40 p-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid items-start gap-5 border-t border-black/5 bg-cream/40 p-6 md:grid-cols-2 lg:grid-cols-3">
                 {group.tiers.map((tier, index) => (
                   <TierCard
                     key={tier.service_id}
@@ -180,7 +182,11 @@ function TierCard({
           </p>
 
           <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-            <span className="text-xl font-black">₹{tier.base_price.toLocaleString("en-IN")}</span>
+            {open ? (
+              <span className="text-sm font-bold text-gray-400">Options below</span>
+            ) : (
+              <span className="text-xl font-black">₹{tier.base_price.toLocaleString("en-IN")}</span>
+            )}
             <span
               className={`inline-flex items-center rounded-xl px-4 py-2.5 text-xs font-bold transition ${
                 open ? "bg-cream text-ink" : "bg-ink text-white"
@@ -299,11 +305,16 @@ function TierBookingPanel({
                     )
                   }
                   aria-pressed={checked}
-                  className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 p-3 text-left text-sm transition ${
+                  className={`flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left text-sm transition ${
                     checked ? "border-ink bg-cream" : "border-black/5 bg-white hover:border-black/15"
                   }`}
                 >
-                  <span className="font-bold">{addon.name}</span>
+                  {checked ? (
+                    <SquareCheck size={18} className="shrink-0 text-ink" />
+                  ) : (
+                    <Square size={18} className="shrink-0 text-gray-300" />
+                  )}
+                  <span className="flex-1 font-bold">{addon.name}</span>
                   <span
                     className={`shrink-0 rounded-lg px-2 py-1 text-xs font-black ${
                       checked ? "bg-ink text-white" : "bg-cream text-gold-deep"
