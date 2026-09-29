@@ -271,14 +271,8 @@ export default async function ServiceLineDetailPage({
           />
         ) : (
           <div className="mt-6 grid items-start gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {stitchingTypes.map((tier, index) => (
-              <TierCard
-                key={tier.service_id}
-                tier={tier}
-                categoryId={category.id}
-                lineId={line.id}
-                defaultOpen={index === 0}
-              />
+            {stitchingTypes.map((tier) => (
+              <TierCard key={tier.service_id} tier={tier} categoryId={category.id} lineId={line.id} />
             ))}
           </div>
         )}

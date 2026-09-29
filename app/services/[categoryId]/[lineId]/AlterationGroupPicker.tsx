@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Clock3,
   Hammer,
+  Info,
   Loader2,
   PlusCircle,
   RefreshCcw,
@@ -24,6 +25,7 @@ import type { CatalogStitchingType, ServiceAddon } from "@/lib/types/catalog";
 import type { SelectedAddon } from "@/lib/selectedAddons";
 import { selectedAddonsTotal } from "@/lib/selectedAddons";
 import { useAddToCart } from "@/lib/useAddToCart";
+import { useBillingEstimate } from "@/lib/useBillingEstimate";
 
 const GROUP_ICONS = {
   repair: Hammer,
@@ -104,14 +106,8 @@ export default function AlterationGroupPicker({
 
             {expanded && (
               <div className="grid items-start gap-5 border-t border-black/5 bg-cream/40 p-6 md:grid-cols-2 lg:grid-cols-3">
-                {group.tiers.map((tier, index) => (
-                  <TierCard
-                    key={tier.service_id}
-                    tier={tier}
-                    categoryId={categoryId}
-                    lineId={lineId}
-                    defaultOpen={index === 0}
-                  />
+                {group.tiers.map((tier) => (
+                  <TierCard key={tier.service_id} tier={tier} categoryId={categoryId} lineId={lineId} />
                 ))}
               </div>
             )}
@@ -130,14 +126,12 @@ export function TierCard({
   tier,
   categoryId,
   lineId,
-  defaultOpen = false,
 }: {
   tier: CatalogStitchingType;
   categoryId: number;
   lineId: number;
-  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:shadow-lg md:col-span-1 lg:col-span-1">
@@ -231,8 +225,10 @@ function TierBookingPanel({
   const [addons, setAddons] = useState<ServiceAddon[] | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [justAdded, setJustAdded] = useState(false);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const { addToCart, addingId } = useAddToCart();
   const adding = addingId === tier.service_id;
+  const billing = useBillingEstimate();
 
   useEffect(() => {
     let cancelled = false;
@@ -250,7 +246,14 @@ function TierBookingPanel({
   }, [tier.service_id]);
 
   const addonsTotal = selectedAddonsTotal(selectedAddons);
-  const liveTotal = tier.base_price + addonsTotal;
+  const subtotal = tier.base_price + addonsTotal;
+  // Mirrors backend's compute_billing (app/services/orders/billing_breakdown.py):
+  // GST applies to subtotal, platform fee is a flat add-on - matches what
+  // checkout's real GET /cart billing block will charge, so this "Total"
+  // doesn't visibly jump once the customer reaches checkout.
+  const gstAmount = billing ? subtotal * billing.gst_rate : 0;
+  const platformFee = billing?.platform_fee ?? 0;
+  const liveTotal = subtotal + gstAmount + platformFee;
 
   const bookNowHref = useMemo(() => {
     const params = new URLSearchParams({ service_id: String(tier.service_id), name: tier.name });
@@ -334,11 +337,39 @@ function TierBookingPanel({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Total</p>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowBreakdown((v) => !v)}
+            className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-gray-400"
+          >
+            Total (incl. GST & fees)
+            <Info size={12} />
+          </button>
           <p className="text-2xl font-black tracking-tight text-ink">
             ₹{liveTotal.toLocaleString("en-IN")}
           </p>
+
+          {showBreakdown && (
+            <div className="absolute bottom-full left-0 z-10 mb-2 w-56 rounded-2xl border border-black/5 bg-white p-4 text-xs shadow-xl">
+              <div className="flex items-center justify-between text-gray-500">
+                <span>Subtotal</span>
+                <span className="font-bold text-ink">₹{subtotal.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-gray-500">
+                <span>GST{billing ? ` (${billing.gst_percent}%)` : ""}</span>
+                <span className="font-bold text-ink">₹{gstAmount.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="mt-1.5 flex items-center justify-between text-gray-500">
+                <span>Platform fee</span>
+                <span className="font-bold text-ink">₹{platformFee.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-2">
+                <span className="font-bold text-ink">Total</span>
+                <span className="font-black text-ink">₹{liveTotal.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
