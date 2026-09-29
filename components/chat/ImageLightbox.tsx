@@ -110,31 +110,6 @@ export default function ImageLightbox({
       aria-modal="true"
       aria-label="Image preview"
     >
-      {/* z-10: the zoomed/panned <img> below has an inline `transform`,
-          which creates its own stacking context - without an explicit
-          z-index here, panning the enlarged image toward this corner can
-          paint it over these controls and swallow clicks on Close. */}
-      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 sm:right-6 sm:top-6">
-        <a
-          href={src}
-          download
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Download image"
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-        >
-          <Download size={18} />
-        </a>
-        <button
-          onClick={onClose}
-          aria-label="Close preview"
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-        >
-          <X size={20} />
-        </button>
-      </div>
-
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={src}
@@ -148,6 +123,38 @@ export default function ImageLightbox({
         }`}
         style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}
       />
+
+      {/* Controls render AFTER the <img> in DOM order (later siblings paint
+          on top of earlier ones by default) *and* carry an explicit z-10 -
+          the <img>'s own inline `transform` always creates a stacking
+          context (even at 100% zoom, since `transform` is set unconditionally),
+          so relying on DOM order alone isn't enough once z-index enters the
+          picture; both together make Close/Download reliably clickable
+          regardless of zoom/pan state. */}
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2 sm:right-6 sm:top-6">
+        <a
+          href={src}
+          download
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Download image"
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+        >
+          <Download size={18} />
+        </a>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          aria-label="Close preview"
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
       {/* Pro zoom control - +/- with a live percentage, not just a fixed
           hover-magnifier factor. Click targets are large enough for touch
