@@ -6,24 +6,18 @@ import {
   ArrowRight,
   BadgeCheck,
   Clock3,
-  Hammer,
   RefreshCcw,
-  Ruler,
   Sparkles,
   ShieldCheck,
   Truck,
-  Wand2,
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogStitchingType } from "@/lib/types/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
 import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
-import {
-  GROUP_DESCRIPTIONS,
-  groupAlterationTiers,
-  type AlterationGroup,
-} from "@/lib/services/alterationGroups";
+import { groupAlterationTiers } from "@/lib/services/alterationGroups";
+import AlterationGroupPicker from "./AlterationGroupPicker";
 
 type LinePageParams = { categoryId: string; lineId: string };
 
@@ -271,23 +265,19 @@ export default async function ServiceLineDetailPage({
         </p>
 
         {/* On a Custom Alterations line with more than one group, this page
-            shows group cards (Repair/Resize/Restyle) that link to their own
-            page - a deliberate real click before the tier list, not an
-            in-page section (see alterationGroups.ts's header comment for
-            why). Falls back to the plain flat tier grid for every other
-            line (e.g. a stitching line whose tiers are "Normal Stitching"/
+            shows group cards (Repair/Resize/Restyle) that expand their tier
+            list in place when tapped - previously each card linked to its
+            own page, a navigation hop whose only new content was the tier
+            list (the group's own icon/description was already shown here).
+            Falls back to the plain flat tier grid for every other line
+            (e.g. a stitching line whose tiers are "Normal Stitching"/
             "Designer Stitching", not repair/resize work). */}
         {showGroups ? (
-          <div className="mt-6 grid gap-5 sm:grid-cols-3">
-            {alterationGroups.map((group) => (
-              <GroupCard
-                key={group.key}
-                group={group}
-                categoryId={category.id}
-                lineId={line.id}
-              />
-            ))}
-          </div>
+          <AlterationGroupPicker
+            groups={alterationGroups}
+            categoryId={category.id}
+            lineId={line.id}
+          />
         ) : (
           <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {stitchingTypes.map((tier) => (
@@ -320,55 +310,6 @@ export default async function ServiceLineDetailPage({
   );
 }
 
-const GROUP_ICONS = {
-  repair: Hammer,
-  resize: Ruler,
-  restyle: Wand2,
-  other: Sparkles,
-} as const;
-
-function GroupCard({
-  group,
-  categoryId,
-  lineId,
-}: {
-  group: AlterationGroup;
-  categoryId: number;
-  lineId: number;
-}) {
-  const Icon = GROUP_ICONS[group.key];
-  const cheapest = group.tiers.reduce(
-    (min, t) => (min === null || t.base_price < min ? t.base_price : min),
-    null as number | null,
-  );
-  return (
-    <Link
-      href={`/services/${categoryId}/${lineId}/${group.key}`}
-      className="group flex flex-col rounded-3xl border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
-    >
-      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-cream text-gold-deep">
-        <Icon size={22} />
-      </span>
-      <h3 className="mt-4 text-lg font-black">{group.label}</h3>
-      <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
-        {GROUP_DESCRIPTIONS[group.key]}
-      </p>
-      <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
-            {group.tiers.length} option{group.tiers.length === 1 ? "" : "s"}
-          </p>
-          {cheapest != null && (
-            <p className="text-sm font-black">from ₹{cheapest.toLocaleString("en-IN")}</p>
-          )}
-        </div>
-        <span className="inline-flex items-center rounded-xl bg-ink px-4 py-2.5 text-xs font-bold text-white transition group-hover:-translate-y-0.5 group-hover:bg-black">
-          View options <ArrowRight className="ml-1.5" size={14} />
-        </span>
-      </div>
-    </Link>
-  );
-}
 
 function TierCard({
   tier,
