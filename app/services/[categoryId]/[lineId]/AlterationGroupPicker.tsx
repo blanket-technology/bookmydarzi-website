@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
+  Check,
   ChevronDown,
   Clock3,
   Hammer,
@@ -101,8 +102,14 @@ export default function AlterationGroupPicker({
 
             {expanded && (
               <div className="grid gap-5 border-t border-black/5 bg-cream/40 p-6 md:grid-cols-2 lg:grid-cols-3">
-                {group.tiers.map((tier) => (
-                  <TierCard key={tier.service_id} tier={tier} categoryId={categoryId} lineId={lineId} />
+                {group.tiers.map((tier, index) => (
+                  <TierCard
+                    key={tier.service_id}
+                    tier={tier}
+                    categoryId={categoryId}
+                    lineId={lineId}
+                    defaultOpen={index === 0}
+                  />
                 ))}
               </div>
             )}
@@ -117,12 +124,14 @@ function TierCard({
   tier,
   categoryId,
   lineId,
+  defaultOpen = false,
 }: {
   tier: CatalogStitchingType;
   categoryId: number;
   lineId: number;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:shadow-lg md:col-span-1 lg:col-span-1">
@@ -211,6 +220,7 @@ function TierBookingPanel({
 }) {
   const [addons, setAddons] = useState<ServiceAddon[] | null>(null);
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
+  const [justAdded, setJustAdded] = useState(false);
   const { addToCart, addingId } = useAddToCart();
   const adding = addingId === tier.service_id;
 
@@ -239,8 +249,8 @@ function TierBookingPanel({
     return `/book-now?${params.toString()}`;
   }, [tier.service_id, tier.name, tier.image_url, selectedAddons]);
 
-  const handleAddToCart = () => {
-    void addToCart(
+  const handleAddToCart = async () => {
+    await addToCart(
       tier.service_id,
       {
         name: tier.name,
@@ -253,6 +263,8 @@ function TierBookingPanel({
       1,
       selectedAddons,
     );
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1600);
   };
 
   return (
@@ -318,14 +330,20 @@ function TierBookingPanel({
             type="button"
             disabled={adding}
             onClick={handleAddToCart}
-            className="inline-flex items-center rounded-xl border-2 border-ink px-5 py-3 text-sm font-bold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+            className={`inline-flex items-center rounded-xl border-2 px-5 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              justAdded
+                ? "border-green-600 bg-green-600 text-white"
+                : "border-ink text-ink hover:bg-white"
+            }`}
           >
             {adding ? (
               <Loader2 className="mr-2 animate-spin" size={16} />
+            ) : justAdded ? (
+              <Check className="mr-2" size={16} />
             ) : (
               <ShoppingBag className="mr-2" size={16} />
             )}
-            Add to Cart
+            {justAdded ? "Added" : "Add to Cart"}
           </button>
           <Link
             href={bookNowHref}
