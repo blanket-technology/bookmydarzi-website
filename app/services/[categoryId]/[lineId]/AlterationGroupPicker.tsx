@@ -246,13 +246,16 @@ function TierBookingPanel({
   }, [tier.service_id]);
 
   const addonsTotal = selectedAddonsTotal(selectedAddons);
-  const subtotal = tier.base_price + addonsTotal;
-  // Mirrors backend's compute_billing (app/services/orders/billing_breakdown.py):
-  // GST applies to subtotal, platform fee is a flat add-on - matches what
-  // checkout's real GET /cart billing block will charge, so this "Total"
-  // doesn't visibly jump once the customer reaches checkout.
-  const gstAmount = billing ? subtotal * billing.gst_rate : 0;
-  const platformFee = billing?.platform_fee ?? 0;
+  // Mirrors backend's compute_billing (app/services/orders/billing_breakdown.py)
+  // exactly, including ITS rounding rule (_money: whole rupees, rounded at
+  // every intermediate step, not just the final display) - BookMyDarzi
+  // never bills in paise anywhere, so this can't just round the final
+  // total once; it has to round subtotal, GST, and fee independently and
+  // sum the already-rounded pieces, the same order backend does it in, or
+  // this "Total" can land a rupee off from what checkout actually charges.
+  const subtotal = Math.round(tier.base_price + addonsTotal);
+  const gstAmount = billing ? Math.round(subtotal * billing.gst_rate) : 0;
+  const platformFee = billing ? Math.round(billing.platform_fee) : 0;
   const liveTotal = subtotal + gstAmount + platformFee;
 
   const bookNowHref = useMemo(() => {
@@ -337,7 +340,11 @@ function TierBookingPanel({
       ) : null}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-4">
-        <div className="relative">
+        <div
+          className="relative"
+          onMouseEnter={() => setShowBreakdown(true)}
+          onMouseLeave={() => setShowBreakdown(false)}
+        >
           <button
             type="button"
             onClick={() => setShowBreakdown((v) => !v)}
