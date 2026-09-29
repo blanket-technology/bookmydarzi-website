@@ -45,3 +45,27 @@ export async function getServiceAddons(serviceId: number): Promise<ServiceAddon[
     return [];
   }
 }
+
+export interface BillingEstimate {
+  platform_fee: number;
+  gst_rate: number;
+  gst_percent: number;
+}
+
+/**
+ * GST rate + platform fee, public and admin-configurable (same values
+ * checkout's real GET /cart billing block uses) - lets a pre-cart price
+ * (e.g. a tier card's "Total") show an accurate "incl. GST & fees"
+ * estimate instead of a bare base price that visibly changes once the
+ * customer reaches checkout. Falls back to nulls-as-zero (caller treats
+ * a failure the same as "estimate unavailable, show base price only")
+ * rather than hardcoding a rate here that could drift from whatever an
+ * admin has actually configured.
+ */
+export async function getBillingEstimate(): Promise<BillingEstimate | null> {
+  try {
+    return await bmdFetch<BillingEstimate>(`/catalog/billing-estimate`, { skipAuth: true });
+  } catch {
+    return null;
+  }
+}
