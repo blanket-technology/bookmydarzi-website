@@ -386,7 +386,10 @@ function TierCard({
       className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
     >
       {tier.image_url && (
-        <div className="relative h-44 w-full overflow-hidden">
+        // aspect-[4/3], not a fixed height - see AlterationGroupPicker.tsx's
+        // matching tier-card image box for why a fixed px height crops
+        // inconsistently across screen widths.
+        <div className="relative aspect-[4/3] w-full overflow-hidden">
           <Image
             src={tier.image_url}
             alt={tier.name}
