@@ -142,7 +142,15 @@ export function TierCard({
         className="flex flex-1 flex-col text-left"
       >
         {tier.image_url && (
-          <div className="relative h-44 w-full overflow-hidden">
+          // aspect-[4/3], not a fixed height - a fixed-px height with a
+          // fluid width means the box's actual ratio changes at every
+          // breakpoint, so object-cover crops a different amount (and a
+          // different part of the image) depending on screen width. A
+          // fixed aspect ratio keeps the crop identical everywhere, as
+          // long as source photos are generated/cropped to the same 4:3
+          // ratio with the subject centered and ~10-15% margin on all
+          // sides (see catalog image guidelines).
+          <div className="relative aspect-[4/3] w-full overflow-hidden">
             <Image
               src={tier.image_url}
               alt={tier.name}
