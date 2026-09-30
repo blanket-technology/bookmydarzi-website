@@ -66,6 +66,7 @@ export interface CustomerDetailsOrder {
   scheduled_pickup_at: string | null;
   image_references: string[] | null;
   customization_notes: string | null;
+  voice_note_url: string | null;
   pickup_partner: CustomerPickupPartner | null;
   delivery_partner: CustomerDeliveryPartner | null;
   return_partner: CustomerReturnPartner | null;

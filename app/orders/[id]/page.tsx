@@ -1870,10 +1870,19 @@ export default function OrderDetailPage() {
         </section>
       )}
 
-      {order.order.customization_notes && (
+      {(order.order.customization_notes || order.order.voice_note_url) && (
         <section className="mt-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-black uppercase tracking-wide text-gray-500">Notes</h2>
-          <p className="mt-2 text-sm leading-6 text-gray-600">{order.order.customization_notes}</p>
+          {order.order.customization_notes && (
+            <p className="mt-2 text-sm leading-6 text-gray-600">{order.order.customization_notes}</p>
+          )}
+          {order.order.voice_note_url && (
+            <audio
+              controls
+              src={order.order.voice_note_url}
+              className="mt-3 h-9 w-full max-w-xs"
+            />
+          )}
         </section>
       )}
 
