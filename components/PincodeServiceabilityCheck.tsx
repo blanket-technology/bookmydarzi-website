@@ -5,6 +5,39 @@ import { MapPin, X } from "lucide-react";
 import { useAddressLocation } from "@/lib/useAddressLocation";
 import { registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 
+// Bug fix: this used to re-show on every page load/refresh with no
+// memory, even right after the visitor clicked "Maybe later" or already
+// submitted "Notify me" - both are a real answer, not a reason to nag
+// again a moment later. Persisted per-browser (a per-viewer UI
+// convenience, not state that needs to sync anywhere - see the artifact
+// storage guidance this matches), with a cooldown rather than "never
+// again forever", since a visitor's actual location - or the service
+// area itself - can change.
+const DISMISS_STORAGE_KEY = "bmd_serviceability_popup_dismissed_at";
+const DISMISS_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function wasRecentlyDismissed(): boolean {
+  try {
+    const raw = localStorage.getItem(DISMISS_STORAGE_KEY);
+    if (!raw) return false;
+    const dismissedAt = Number(raw);
+    return Number.isFinite(dismissedAt) && Date.now() - dismissedAt < DISMISS_COOLDOWN_MS;
+  } catch {
+    // Private window / blocked storage - fail open (show the popup) rather
+    // than silently never showing it at all.
+    return false;
+  }
+}
+
+function markDismissed(): void {
+  try {
+    localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
+  } catch {
+    // Nothing to do if storage isn't available - the popup will just
+    // reappear next visit, same as before this fix.
+  }
+}
+
 /**
  * Homepage-only "do you serve my area?" check - silent by default, only
  * interrupts with a popup when the area is genuinely unserviceable.
@@ -25,6 +58,7 @@ export default function PincodeServiceabilityCheck() {
   const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
 
   useEffect(() => {
+    if (wasRecentlyDismissed()) return;
     // Fire once on mount - triggers the browser's native permission
     // prompt if location access hasn't been granted/denied yet; if it's
     // already been decided (previously granted or denied), this resolves
@@ -32,6 +66,11 @@ export default function PincodeServiceabilityCheck() {
     void location.detectLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const dismiss = () => {
+    markDismissed();
+    setDismissed(true);
+  };
 
   const handleRegisterInterest = async () => {
     setInterestState("submitting");
@@ -41,6 +80,7 @@ export default function PincodeServiceabilityCheck() {
         longitude: location.coords?.longitude ?? null,
       });
       setInterestState("done");
+      markDismissed();
     } catch {
       setInterestState("idle");
     }
@@ -56,7 +96,7 @@ export default function PincodeServiceabilityCheck() {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      onClick={() => setDismissed(true)}
+      onClick={dismiss}
     >
       <div
         className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
@@ -68,7 +108,7 @@ export default function PincodeServiceabilityCheck() {
           </span>
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
             aria-label="Close"
             className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
           >
@@ -106,7 +146,7 @@ export default function PincodeServiceabilityCheck() {
         )}
         <button
           type="button"
-          onClick={() => setDismissed(true)}
+          onClick={dismiss}
           className="mt-3 w-full rounded-xl border border-black/10 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50"
         >
           {interestState === "done" ? "Close" : "Maybe later"}
