@@ -22,6 +22,7 @@ import {
 } from "@/lib/razorpayPayment";
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
 import type { CancellationPolicyStage } from "@/lib/services/catalog";
+import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 
 // Address already linked to the cart server-side via PUT /cart/address
 // (done on /cart, the only page with the actual address picker). Mirrors
@@ -162,6 +163,12 @@ export default function CheckoutPage() {
       .catch(() => setCancellationPolicy([]));
   }, []);
 
+  // Optional voice note recorded at checkout - matches react_app's
+  // buy-now-review.tsx flow (record/upload first via VoiceNoteRecorder,
+  // then pass the returned url on order placement). Website previously had
+  // no notes field of any kind at checkout.
+  const [voiceNoteUrl, setVoiceNoteUrl] = useState<string | null>(null);
+
   // Offer selected on /cart (the only page with the offer picker) - this
   // page only reads and displays it, and forwards offer_id on
   // POST /cart/checkout; the backend recomputes and validates the discount
@@ -291,6 +298,7 @@ export default function CheckoutPage() {
             }
           : {}),
         ...(appliedOffer ? { offer_id: appliedOffer.offer_id } : {}),
+        ...(voiceNoteUrl ? { voice_note_url: voiceNoteUrl } : {}),
       },
       idempotencyKey: generateIdempotencyKey(),
     });
@@ -875,6 +883,14 @@ export default function CheckoutPage() {
                 </div>
                 {paymentMethod === "online" && <CheckCircle2 className="text-[#b4832e]" size={20} />}
               </button>
+            </div>
+
+            <div className="mt-5">
+              <VoiceNoteRecorder
+                url={voiceNoteUrl}
+                onUploaded={setVoiceNoteUrl}
+                onRemove={() => setVoiceNoteUrl(null)}
+              />
             </div>
           </section>
         </div>
