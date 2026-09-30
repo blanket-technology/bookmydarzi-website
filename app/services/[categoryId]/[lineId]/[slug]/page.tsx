@@ -386,10 +386,11 @@ function TierCard({
       className="group flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
     >
       {tier.image_url && (
-        // aspect-[4/3], not a fixed height - see AlterationGroupPicker.tsx's
-        // matching tier-card image box for why a fixed px height crops
-        // inconsistently across screen widths.
-        <div className="relative aspect-[4/3] w-full overflow-hidden">
+        // aspect-square, not 4:3 - see AlterationGroupPicker.tsx's matching
+        // tier-card image box: the real uploaded catalog photos are all
+        // 1254x1254 (true 1:1 square), and a 4:3 landscape box was
+        // cropping the top/bottom off every one of them.
+        <div className="relative aspect-square w-full overflow-hidden">
           <Image
             src={tier.image_url}
             alt={tier.name}

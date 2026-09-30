@@ -142,15 +142,16 @@ export function TierCard({
         className="flex flex-1 flex-col text-left"
       >
         {tier.image_url && (
-          // aspect-[4/3], not a fixed height - a fixed-px height with a
-          // fluid width means the box's actual ratio changes at every
-          // breakpoint, so object-cover crops a different amount (and a
-          // different part of the image) depending on screen width. A
-          // fixed aspect ratio keeps the crop identical everywhere, as
-          // long as source photos are generated/cropped to the same 4:3
-          // ratio with the subject centered and ~10-15% margin on all
-          // sides (see catalog image guidelines).
-          <div className="relative aspect-[4/3] w-full overflow-hidden">
+          // aspect-square, not a fixed height or 4:3 - the actual uploaded
+          // catalog photos (ChatGPT-generated, via ImageKit) are all
+          // 1254x1254, a true 1:1 square. A 4:3 landscape box was cropping
+          // the top/bottom off every one of them despite being ratio-
+          // consistent across screen widths. Square matches the real
+          // source images exactly, so nothing gets cropped regardless of
+          // screen width - if a future photo is generated at a different
+          // ratio, crop/pad it to square before uploading rather than
+          // changing this box again.
+          <div className="relative aspect-square w-full overflow-hidden">
             <Image
               src={tier.image_url}
               alt={tier.name}
