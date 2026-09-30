@@ -17,6 +17,7 @@ import { getTestimonials } from "@/lib/services/testimonials";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import ScrollReveal from "@/components/ScrollReveal";
 import FeaturedHeroCard from "@/components/FeaturedHeroCard";
+import PincodeServiceabilityCheck from "@/components/PincodeServiceabilityCheck";
 
 export const metadata: Metadata = {
   title: "Doorstep Tailoring & Alterations in Delhi NCR",
@@ -114,6 +115,7 @@ export default async function Home() {
                 Secure booking
               </span>
             </div>
+            <PincodeServiceabilityCheck />
           </div>
           <FeaturedHeroCard featured={featured} />
         </div>
