@@ -67,6 +67,15 @@ export interface CustomerDetailsOrder {
   image_references: string[] | null;
   customization_notes: string | null;
   voice_note_url: string | null;
+  /** The most recent post-delivery inspection-window issue report on this
+   * order, if any - shown so a customer can see their own report was
+   * received, not just that the status changed. */
+  latest_repair_request: {
+    issue_description: string;
+    issue_photo_urls?: string[] | null;
+    reported_at: string;
+    resolved_at?: string | null;
+  } | null;
   pickup_partner: CustomerPickupPartner | null;
   delivery_partner: CustomerDeliveryPartner | null;
   return_partner: CustomerReturnPartner | null;

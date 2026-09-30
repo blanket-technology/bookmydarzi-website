@@ -420,7 +420,22 @@ function ReportIssueModal({
   );
 }
 
-function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: string }) {
+function StatusTimeline({
+  orderId,
+  refreshOn,
+  onOrderChanged,
+}: {
+  orderId: number;
+  refreshOn?: string;
+  /** Called after a successful report-issue submission, on top of this
+   * component's own `load()` - reporting an issue changes the order's
+   * top-level status (INSPECTION_WINDOW -> IN_REPAIR), which the PARENT
+   * page's own order object drives (header badge, etc.), not just this
+   * timeline sub-component's local tracking state. Without this, only the
+   * timeline visibly updated; the rest of the page stayed stale until an
+   * unrelated WS event arrived or the page was manually reloaded. */
+  onOrderChanged?: () => void;
+}) {
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -548,7 +563,10 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
         <ReportIssueModal
           orderId={orderId}
           onClose={() => setReportModalOpen(false)}
-          onReported={load}
+          onReported={() => {
+            load();
+            onOrderChanged?.();
+          }}
         />
       )}
     </div>
@@ -1318,14 +1336,29 @@ export default function OrderDetailPage() {
 
   useEffect(() => loadOrder(), [loadOrder]);
 
+  // Silent background refetch - no setLoading/setError, a background
+  // refresh shouldn't flash the page's loading spinner or clobber a good
+  // render with a transient network hiccup. Shared by the WS listener
+  // below and by ReportIssueModal's onReported (see StatusTimeline usage
+  // further down) - reporting an issue is the customer's OWN action, so
+  // its own screen shouldn't have to wait for a round-trip WS event to
+  // show the result.
+  const refetchOrderSilently = useCallback(() => {
+    if (!orderId) return;
+    apiClient<CustomerOrderDetailsResponse>(`/customer/orders/${orderId}/details`)
+      .then((res) => setOrder(res))
+      .catch(() => {
+        // Silent - the next live event or a manual refresh will retry; no
+        // need to surface a background-refresh failure to the customer.
+      });
+  }, [orderId]);
+
   // Live status updates: the admin panel changing this order's status fires
   // a WS "NOTIFICATION" event (type="order_update", data.order_id=<id>) to
   // this customer's own user:{id} room (see
   // app/services/notifications/policy.py's per-status handlers) - previously
   // nothing on this page listened for it, so a status change only ever
-  // showed up after a manual refresh. Re-fetches silently (no setLoading/
-  // setError - a background refresh shouldn't flash the page's loading
-  // spinner or clobber a good render with a transient network hiccup).
+  // showed up after a manual refresh.
   useNotificationsWS(
     !!orderId,
     useCallback(
@@ -1334,14 +1367,9 @@ export default function OrderDetailPage() {
         if (n.type !== "order_update") return;
         const eventOrderId = n.data?.order_id;
         if (eventOrderId == null || String(eventOrderId) !== String(orderId)) return;
-        apiClient<CustomerOrderDetailsResponse>(`/customer/orders/${orderId}/details`)
-          .then((res) => setOrder(res))
-          .catch(() => {
-            // Silent - the next live event or a manual refresh will retry;
-            // no need to surface a background-refresh failure to the customer.
-          });
+        refetchOrderSilently();
       },
-      [orderId],
+      [orderId, refetchOrderSilently],
     ),
   );
 
@@ -1691,7 +1719,11 @@ export default function OrderDetailPage() {
             <p className="mt-1 text-sm text-gray-500">{meta.nextStep}</p>
           )}
           <div className="mt-6">
-            <StatusTimeline orderId={order.order.order_id} refreshOn={order.order.status} />
+            <StatusTimeline
+              orderId={order.order.order_id}
+              refreshOn={order.order.status}
+              onOrderChanged={refetchOrderSilently}
+            />
           </div>
           <ProgressPhotoGallery orderId={order.order.order_id} refreshOn={order.order.status} />
           {!["delivered", "cancelled", "completed"].includes(order.order.status) && (
@@ -1883,6 +1915,26 @@ export default function OrderDetailPage() {
               className="mt-3 h-9 w-full max-w-xs"
             />
           )}
+        </section>
+      )}
+
+      {order.order.latest_repair_request && (
+        <section className="mt-6 rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+          <h2 className="text-sm font-black uppercase tracking-wide text-gray-500">
+            {order.order.latest_repair_request.resolved_at ? "Issue Reported (Repair Completed)" : "Issue Reported"}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-gray-600">
+            {order.order.latest_repair_request.issue_description}
+          </p>
+          <p className="mt-2 text-xs text-gray-400">
+            Reported{" "}
+            {new Date(order.order.latest_repair_request.reported_at).toLocaleString("en-IN", {
+              day: "numeric",
+              month: "short",
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </p>
         </section>
       )}
 
