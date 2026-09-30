@@ -23,6 +23,9 @@ export type OrderStatus =
   | "ready_for_dispatch"
   | "out_for_delivery"
   | "delivered"
+  | "inspection_window"
+  | "in_repair"
+  | "repair_completed"
   | "completed"
   | "cancelled"
   | "return_pending"
@@ -257,6 +260,50 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
     title: "Delivered",
     description: "Your order has been delivered. We hope it fits perfectly.",
     nextStep: "Your order will be marked complete shortly.",
+    tone: "success",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Delivered",
+    terminal: false,
+  },
+  // The 3 statuses below form the post-delivery inspection/repair loop
+  // (DELIVERED -> INSPECTION_WINDOW -> [COMPLETED | IN_REPAIR] ->
+  // REPAIR_COMPLETED -> INSPECTION_WINDOW -> ...). Matches the backend's
+  // own customer-label choice (app/constants/order_status.py
+  // CUSTOMER_STATUS_MAP) and react_app's identical entries: inspection_
+  // window/repair_completed both still read as "Delivered" - there's no
+  // new visible timeline milestone for them, the 2-hour report-an-issue
+  // window is a time-boxed action (can_report_issue/
+  // inspection_window_expires_at on the tracking payload), not a new named
+  // stage. Only in_repair gets its own label. Excluded from
+  // ORDER_STATUS_SEQUENCE for the same reason return_* is.
+  inspection_window: {
+    status: "inspection_window",
+    title: "Delivered",
+    description: "Your order has been delivered. We hope it fits perfectly.",
+    nextStep: "You can report an issue within the inspection window, or it'll be marked complete automatically.",
+    tone: "success",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Delivered",
+    terminal: false,
+  },
+  in_repair: {
+    status: "in_repair",
+    title: "Repair in progress",
+    description: "You reported an issue with this order. Your tailor is fixing it now.",
+    nextStep: "We'll notify you once the repair is complete.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Repair In Progress",
+    terminal: false,
+  },
+  repair_completed: {
+    status: "repair_completed",
+    title: "Delivered",
+    description: "Your repair is complete. Your order has been delivered.",
+    nextStep: "You can report another issue within the inspection window, or it'll be marked complete automatically.",
     tone: "success",
     progress: 14,
     customerFacing: true,
