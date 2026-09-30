@@ -79,10 +79,20 @@ export default function PincodeServiceabilityCheck() {
           {interestState === "done" ? "Thanks - you're on the list!" : "We're not in your area yet"}
         </h2>
         <p className="mt-1.5 text-sm leading-6 text-gray-500">
-          {interestState === "done"
-            ? "We'll notify you the moment BookMyDarzi launches near you."
-            : (location.serviceability?.message ??
-                "We don't currently serve your area, but we're expanding soon!")}
+          {interestState === "done" ? (
+            "We'll notify you the moment BookMyDarzi launches near you."
+          ) : location.serviceability?.nearest_city && location.serviceability?.distance_km != null ? (
+            <>
+              We&apos;re not quite there yet, but we&apos;re close! The nearest area we currently
+              serve is{" "}
+              <span className="font-bold text-ink">{location.serviceability.nearest_city}</span>,
+              about {Math.round(location.serviceability.distance_km)} km away. We&apos;re
+              expanding fast - leave your details and we&apos;ll let you know the moment we reach
+              you.
+            </>
+          ) : (
+            "We're still growing our doorstep tailoring network and haven't reached your area just yet. Leave your details and we'll let you know the moment we do."
+          )}
         </p>
         {interestState !== "done" && (
           <button
