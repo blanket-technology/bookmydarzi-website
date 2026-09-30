@@ -163,7 +163,12 @@ export function TierCard({
         )}
         <div className="flex flex-1 flex-col p-6">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-lg font-black">{tier.name}</h3>
+            {/* line-clamp-2 - same reservation reasoning as the
+                description below: a longer title (e.g. "Volume Reduction
+                (Can-Can/Tulle Removal)") wraps to 2 lines and pushes
+                everything after it down relative to a 1-line-title
+                sibling. */}
+            <h3 className="line-clamp-2 text-lg font-black">{tier.name}</h3>
             {tier.is_premium && (
               <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
                 <Sparkles size={11} /> Premium
@@ -171,7 +176,16 @@ export function TierCard({
             )}
           </div>
 
-          <p className="mt-2 flex-1 text-sm leading-6 text-gray-500">
+          {/* line-clamp-3 + min-h (3 lines at leading-6/text-sm = 4.5rem) -
+              siblings in this grid use items-start (not stretch), so each
+              card sizes to its own content height rather than matching the
+              tallest one; without a fixed reservation here, a card with a
+              one-line description (e.g. "Volume Reduction...") sits with
+              its price/button row noticeably higher than a neighboring
+              card whose description wraps to 3 lines. Clamping to a
+              consistent 3-line box keeps every card's price/button row
+              lined up regardless of description length. */}
+          <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-gray-500">
             {tier.description && tier.description.trim().length >= 20
               ? tier.description
               : fallbackTierDescription({
