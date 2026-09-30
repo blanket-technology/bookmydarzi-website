@@ -103,3 +103,32 @@ export async function getServiceRatings(serviceId: number): Promise<ServiceRatin
     return null;
   }
 }
+
+export interface CancellationPolicyStage {
+  Id: number;
+  OrderStage: string;
+  DisplayStage: string;
+  PenaltyPct: number | null;
+  CancellationAllowed: boolean;
+  PolicyDescription: string | null;
+  SortOrder: number;
+}
+
+/**
+ * Stage-by-stage cancellation/refund terms - public, no auth
+ * (GET /cancellation-policy). Same data admin manages and the order-scoped
+ * cancel dialog already reads via /orders/{id}/cancellation-preview, but
+ * surfaced pre-purchase so a customer can see the terms before paying, not
+ * only after ordering. Returns [] on failure so checkout still renders
+ * without the policy block, same non-fatal-degrade convention as the other
+ * public catalog fetches above.
+ */
+export async function getCancellationPolicy(): Promise<CancellationPolicyStage[]> {
+  try {
+    return await bmdFetch<CancellationPolicyStage[]>(`/cancellation-policy`, {
+      skipAuth: true,
+    });
+  } catch {
+    return [];
+  }
+}

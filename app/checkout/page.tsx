@@ -21,6 +21,7 @@ import {
   type PaymentSessionResponse,
 } from "@/lib/razorpayPayment";
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
+import type { CancellationPolicyStage } from "@/lib/services/catalog";
 
 // Address already linked to the cart server-side via PUT /cart/address
 // (done on /cart, the only page with the actual address picker). Mirrors
@@ -146,6 +147,19 @@ export default function CheckoutPage() {
     } else {
       setPickupSummary({ type: "instant" });
     }
+  }, []);
+
+  // Cancellation/refund terms shown pre-purchase so a customer can see them
+  // before paying, not only after ordering via the order-scoped cancel
+  // dialog. Public endpoint (GET /cancellation-policy), fetched through the
+  // proxy like everything else on this client page - failure just means the
+  // policy block doesn't render, same non-fatal-degrade as the rest of the
+  // page's optional data.
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicyStage[]>([]);
+  useEffect(() => {
+    apiClient<CancellationPolicyStage[]>("/cancellation-policy")
+      .then(setCancellationPolicy)
+      .catch(() => setCancellationPolicy([]));
   }, []);
 
   // Offer selected on /cart (the only page with the offer picker) - this
@@ -971,6 +985,37 @@ export default function CheckoutPage() {
             <ChevronRight className="ml-1 inline" size={15} />
           </button>
           <p className="mt-4 text-center text-[10px] text-gray-400">By placing this order, you agree to our terms.</p>
+
+          {cancellationPolicy.length > 0 && (
+            <details className="mt-4 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600 [&_summary]:cursor-pointer">
+              <summary className="font-bold uppercase tracking-wide text-gray-400">
+                Cancellation &amp; refund policy
+              </summary>
+              <ul className="mt-3 space-y-2.5">
+                {cancellationPolicy.map((stage) => (
+                  <li key={stage.Id}>
+                    <p className="font-semibold text-gray-700">
+                      {stage.DisplayStage}
+                      {stage.CancellationAllowed ? (
+                        stage.PenaltyPct ? (
+                          <span className="ml-1.5 font-normal text-gray-500">
+                            &mdash; {stage.PenaltyPct}% cancellation charge
+                          </span>
+                        ) : (
+                          <span className="ml-1.5 font-normal text-green-700">&mdash; free to cancel</span>
+                        )
+                      ) : (
+                        <span className="ml-1.5 font-normal text-red-500">&mdash; cannot be cancelled</span>
+                      )}
+                    </p>
+                    {stage.PolicyDescription && (
+                      <p className="mt-0.5 text-gray-500">{stage.PolicyDescription}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </aside>
       </div>
     </main>
