@@ -131,7 +131,25 @@ export function TierCard({
   categoryId: number;
   lineId: number;
 }) {
+  // Add-ons only ever exist under Custom Alterations - every other
+  // category (Home Decor, Pet Clothing, etc.) has none, ever. Gating the
+  // whole booking panel behind an expand/collapse click for those tiers
+  // was misleading (the "Hide options"/chevron affordance implied there
+  // was something to reveal, when opening it just re-showed the same
+  // price + Add to Cart/Book Now with an empty add-ons section) and pure
+  // friction - one extra click to reach a total that never changes.
+  // Those tiers skip the toggle entirely and show the full panel always.
+  const hasPossibleAddons = tier.category_name === "Custom Alterations";
   const [open, setOpen] = useState(false);
+
+  if (!hasPossibleAddons) {
+    return (
+      <div className="flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:shadow-lg md:col-span-1 lg:col-span-1">
+        <TierCardHeader tier={tier} open={false} showToggle={false} />
+        <TierBookingPanel tier={tier} categoryId={categoryId} lineId={lineId} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:shadow-lg md:col-span-1 lg:col-span-1">
@@ -141,67 +159,94 @@ export function TierCard({
         aria-expanded={open}
         className="flex flex-1 flex-col text-left"
       >
-        {tier.image_url && (
-          // aspect-square, not a fixed height or 4:3 - the actual uploaded
-          // catalog photos (ChatGPT-generated, via ImageKit) are all
-          // 1254x1254, a true 1:1 square. A 4:3 landscape box was cropping
-          // the top/bottom off every one of them despite being ratio-
-          // consistent across screen widths. Square matches the real
-          // source images exactly, so nothing gets cropped regardless of
-          // screen width - if a future photo is generated at a different
-          // ratio, crop/pad it to square before uploading rather than
-          // changing this box again.
-          <div className="relative aspect-square w-full overflow-hidden">
-            <Image
-              src={tier.image_url}
-              alt={tier.name}
-              fill
-              sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover"
-            />
-          </div>
-        )}
-        <div className="flex flex-1 flex-col p-6">
-          <div className="flex items-start justify-between gap-2">
-            {/* line-clamp-2 - same reservation reasoning as the
-                description below: a longer title (e.g. "Volume Reduction
-                (Can-Can/Tulle Removal)") wraps to 2 lines and pushes
-                everything after it down relative to a 1-line-title
-                sibling. */}
-            <h3 className="line-clamp-2 text-lg font-black">{tier.name}</h3>
-            {tier.is_premium && (
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
-                <Sparkles size={11} /> Premium
-              </span>
-            )}
-          </div>
+        <TierCardHeader tier={tier} open={open} showToggle />
+      </button>
 
-          {/* line-clamp-3 + min-h (3 lines at leading-6/text-sm = 4.5rem) -
-              siblings in this grid use items-start (not stretch), so each
-              card sizes to its own content height rather than matching the
-              tallest one; without a fixed reservation here, a card with a
-              one-line description (e.g. "Volume Reduction...") sits with
-              its price/button row noticeably higher than a neighboring
-              card whose description wraps to 3 lines. Clamping to a
-              consistent 3-line box keeps every card's price/button row
-              lined up regardless of description length. */}
-          <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-gray-500">
-            {tier.description && tier.description.trim().length >= 20
-              ? tier.description
-              : fallbackTierDescription({
-                  name: tier.name,
-                  basePrice: tier.base_price,
-                  estimatedDeliveryDays: tier.estimated_delivery_days,
-                  estimatedDeliveryHours: tier.estimated_delivery_hours,
-                  categoryName: tier.category_name,
-                })}
-          </p>
+      {open && <TierBookingPanel tier={tier} categoryId={categoryId} lineId={lineId} />}
+    </div>
+  );
+}
 
-          <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
-            <Clock3 size={13} />
-            Delivery in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
-          </p>
+/** Image/title/description/delivery/price row shared by both TierCard
+ * shapes: the expand-to-reveal-add-ons version (Custom Alterations, wraps
+ * this in a <button>) and the always-shown version (every other category,
+ * which has no add-ons ever - see hasPossibleAddons above). showToggle
+ * controls whether the bottom row reads as a real expand/collapse
+ * affordance ("Book this"/"Hide options" + chevron) or a plain "View" cue
+ * with no chevron, since there's nothing to expand/collapse in that case. */
+function TierCardHeader({
+  tier,
+  open,
+  showToggle,
+}: {
+  tier: CatalogStitchingType;
+  open: boolean;
+  showToggle: boolean;
+}) {
+  return (
+    <>
+      {tier.image_url && (
+        // aspect-square, not a fixed height or 4:3 - the actual uploaded
+        // catalog photos (ChatGPT-generated, via ImageKit) are all
+        // 1254x1254, a true 1:1 square. A 4:3 landscape box was cropping
+        // the top/bottom off every one of them despite being ratio-
+        // consistent across screen widths. Square matches the real
+        // source images exactly, so nothing gets cropped regardless of
+        // screen width - if a future photo is generated at a different
+        // ratio, crop/pad it to square before uploading rather than
+        // changing this box again.
+        <div className="relative aspect-square w-full overflow-hidden">
+          <Image
+            src={tier.image_url}
+            alt={tier.name}
+            fill
+            sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-6">
+        <div className="flex items-start justify-between gap-2">
+          {/* line-clamp-2 - same reservation reasoning as the
+              description below: a longer title (e.g. "Volume Reduction
+              (Can-Can/Tulle Removal)") wraps to 2 lines and pushes
+              everything after it down relative to a 1-line-title
+              sibling. */}
+          <h3 className="line-clamp-2 text-lg font-black">{tier.name}</h3>
+          {tier.is_premium && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-gold">
+              <Sparkles size={11} /> Premium
+            </span>
+          )}
+        </div>
 
+        {/* line-clamp-3 + min-h (3 lines at leading-6/text-sm = 4.5rem) -
+            siblings in this grid use items-start (not stretch), so each
+            card sizes to its own content height rather than matching the
+            tallest one; without a fixed reservation here, a card with a
+            one-line description (e.g. "Volume Reduction...") sits with
+            its price/button row noticeably higher than a neighboring
+            card whose description wraps to 3 lines. Clamping to a
+            consistent 3-line box keeps every card's price/button row
+            lined up regardless of description length. */}
+        <p className="mt-2 line-clamp-3 min-h-[4.5rem] text-sm leading-6 text-gray-500">
+          {tier.description && tier.description.trim().length >= 20
+            ? tier.description
+            : fallbackTierDescription({
+                name: tier.name,
+                basePrice: tier.base_price,
+                estimatedDeliveryDays: tier.estimated_delivery_days,
+                estimatedDeliveryHours: tier.estimated_delivery_hours,
+                categoryName: tier.category_name,
+              })}
+        </p>
+
+        <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+          <Clock3 size={13} />
+          Delivery in {formatDeliveryEta(tier.estimated_delivery_days, tier.estimated_delivery_hours)}
+        </p>
+
+        {showToggle && (
           <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
             {open ? (
               <span className="text-sm font-bold text-gray-400">Options below</span>
@@ -220,11 +265,9 @@ export function TierCard({
               />
             </span>
           </div>
-        </div>
-      </button>
-
-      {open && <TierBookingPanel tier={tier} categoryId={categoryId} lineId={lineId} />}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -245,7 +288,12 @@ function TierBookingPanel({
   categoryId: number;
   lineId: number;
 }) {
-  const [addons, setAddons] = useState<ServiceAddon[] | null>(null);
+  // Add-ons only ever exist under Custom Alterations - skip the fetch
+  // entirely for every other category rather than round-tripping to
+  // confirm what's already known to be an empty list (see TierCard's
+  // hasPossibleAddons for the same check).
+  const canHaveAddons = tier.category_name === "Custom Alterations";
+  const [addons, setAddons] = useState<ServiceAddon[] | null>(canHaveAddons ? null : []);
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [justAdded, setJustAdded] = useState(false);
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -254,6 +302,7 @@ function TierBookingPanel({
   const billing = useBillingEstimate();
 
   useEffect(() => {
+    if (!canHaveAddons) return;
     let cancelled = false;
     fetch(`/api/catalog/addons/${tier.service_id}`)
       .then((res) => res.json())
@@ -266,7 +315,7 @@ function TierBookingPanel({
     return () => {
       cancelled = true;
     };
-  }, [tier.service_id]);
+  }, [tier.service_id, canHaveAddons]);
 
   const addonsTotal = selectedAddonsTotal(selectedAddons);
   // Mirrors backend's compute_billing (app/services/orders/billing_breakdown.py)
