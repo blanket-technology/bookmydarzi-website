@@ -69,3 +69,37 @@ export async function getBillingEstimate(): Promise<BillingEstimate | null> {
     return null;
   }
 }
+
+export interface ServiceReview {
+  rating: number;
+  comment: string | null;
+  created_at: string | null;
+}
+
+export interface ServiceRatings {
+  service_id: number;
+  avg_rating: number;
+  total_reviews: number;
+  star_counts: Record<string, number>;
+  recent_reviews: ServiceReview[];
+}
+
+/**
+ * Aggregate star rating + recent reviews for one service - public, no
+ * auth (GET /catalog/services/{id}/ratings, computed from ORDER_RATINGS).
+ * Mirrors react_app/src/services/catalogService.ts's fetchServiceRatings
+ * exactly (same endpoint, same shape) - the app already surfaces this on
+ * its service detail screen; the website never did until now. Returns
+ * null on failure so a tier detail page still renders without a reviews
+ * section rather than erroring, same non-fatal-degrade convention as
+ * getServiceAddons/getBillingEstimate above.
+ */
+export async function getServiceRatings(serviceId: number): Promise<ServiceRatings | null> {
+  try {
+    return await bmdFetch<ServiceRatings>(`/catalog/services/${serviceId}/ratings`, {
+      skipAuth: true,
+    });
+  } catch {
+    return null;
+  }
+}
