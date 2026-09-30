@@ -7,7 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   BadgeCheck,
   Camera,
+  CheckCircle2,
   ChevronRight,
+  Copy,
+  Gift,
   Loader2,
   LogOut,
   MapPin,
@@ -43,13 +46,14 @@ import type {
   UserProfile,
 } from "@/lib/types/account";
 
-type Tab = "orders" | "overview" | "addresses" | "measurements";
+type Tab = "orders" | "overview" | "addresses" | "measurements" | "referral";
 
 const TABS: { key: Tab; label: string; description: string; icon: typeof UserIcon }[] = [
   { key: "overview", label: "Account details", description: "Name, email & mobile", icon: UserIcon },
   { key: "orders", label: "My orders", description: "Track & view order history", icon: ShoppingBag },
   { key: "addresses", label: "Saved addresses", description: "Pickup & delivery locations", icon: MapPin },
   { key: "measurements", label: "My measurements", description: "Review & update your fit", icon: Ruler },
+  { key: "referral", label: "Refer & earn", description: "Get ₹100, give ₹100", icon: Gift },
 ];
 
 const EMPTY_ADDRESS_FORM: AddressPayload = {
@@ -620,6 +624,144 @@ function ChangeMobileFlow({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Refer-a-friend: fetches (or lazily creates, server-side) the user's own
+ * code, lets them share it, and lets them redeem a friend's code if they
+ * haven't already. Both reward Offers are created automatically once the
+ * REFEREE's first order completes (see referral_service.py's
+ * maybe_reward_referral) - nothing for either side to "claim" here beyond
+ * applying the code itself.
+ */
+function ReferralTab() {
+  const [code, setCode] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [applyCode, setApplyCode] = useState("");
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applySuccess, setApplySuccess] = useState(false);
+
+  useEffect(() => {
+    apiClient<{ code: string; status: string }>("/users/me/referral-code")
+      .then((res) => {
+        setCode(res.code);
+        setStatus(res.status);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const shareUrl = code ? `https://bookmydarzi.com/signup?ref=${code}` : "";
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access can fail (older browsers, some in-app webviews) -
+      // the code/link is still shown as plain selectable text either way.
+    }
+  };
+
+  const handleApply = async () => {
+    if (!applyCode.trim()) return;
+    setApplying(true);
+    setApplyError(null);
+    try {
+      await apiClient("/users/me/apply-referral-code", {
+        method: "POST",
+        body: { code: applyCode.trim().toUpperCase() },
+      });
+      setApplySuccess(true);
+      setApplyCode("");
+    } catch (err) {
+      setApplyError(err instanceof ClientApiError ? err.message : "Couldn't apply this code.");
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  if (loading) return <div className="h-48 animate-pulse rounded-3xl bg-gray-100" />;
+
+  return (
+    <div className="space-y-6">
+      <div className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm">
+        <div className="bg-[#171717] p-6 text-white">
+          <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/10">
+            <Gift size={20} />
+          </span>
+          <h2 className="mt-4 text-xl font-black">Give ₹100, get ₹100</h2>
+          <p className="mt-1.5 text-sm leading-6 text-white/70">
+            Share your code with a friend. When they complete their first order, you both get ₹100
+            off your next one.
+          </p>
+        </div>
+
+        <div className="p-6">
+          <p className="text-xs font-bold uppercase tracking-wide text-gray-400">Your referral code</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <span className="rounded-xl border-2 border-dashed border-[#171717]/20 bg-[#f8f6f1] px-5 py-3 text-xl font-black tracking-widest">
+              {code}
+            </span>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5"
+            >
+              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+              {copied ? "Copied!" : "Copy share link"}
+            </button>
+          </div>
+          {status === "pending" && (
+            <p className="mt-3 text-xs font-semibold text-amber-700">
+              A friend has used your code - you&apos;ll both get ₹100 off once they complete their
+              first order.
+            </p>
+          )}
+          {status === "rewarded" && (
+            <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-green-700">
+              <CheckCircle2 size={14} /> Rewarded! Check your offers at checkout.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+        <h3 className="text-sm font-black">Have a friend&apos;s code?</h3>
+        <p className="mt-1 text-xs text-gray-500">Apply it once to get ₹100 off your first order.</p>
+        {applySuccess ? (
+          <p className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-green-700">
+            <CheckCircle2 size={15} /> Code applied! Complete your first order to get ₹100 off.
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input
+              value={applyCode}
+              onChange={(e) => setApplyCode(e.target.value.toUpperCase())}
+              placeholder="Enter code"
+              maxLength={20}
+              className="w-40 rounded-xl border border-black/10 px-3.5 py-2.5 text-sm uppercase tracking-widest focus:border-[#171717] focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={handleApply}
+              disabled={applying || !applyCode.trim()}
+              className="flex items-center gap-1.5 rounded-xl bg-[#171717] px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {applying && <Loader2 size={14} className="animate-spin" />} Apply
+            </button>
+          </div>
+        )}
+        {applyError && <p className="mt-2 text-xs font-semibold text-red-600">{applyError}</p>}
+      </div>
     </div>
   );
 }
@@ -1472,13 +1614,15 @@ function ProfileContent() {
   const [tab, setTab] = useState<Tab>("overview");
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Deep link from checkout's "needs a precise location" error:
-  // /profile?tab=addresses&editAddress=<id> opens straight to that
-  // address's edit form instead of dropping the customer on the generic
-  // Orders tab with no idea which saved address needs fixing.
+  // Deep link support - /profile?tab=addresses&editAddress=<id> opens
+  // straight to that address's edit form (from checkout's "needs a
+  // precise location" error); /profile?tab=referral opens the referral
+  // tab directly (from the post-order success screen's "Get my referral
+  // code" link) - generalized to any valid Tab key rather than
+  // special-casing "addresses" alone.
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam === "addresses") setTab("addresses");
+    if (tabParam && TABS.some((t) => t.key === tabParam)) setTab(tabParam as Tab);
   }, [searchParams]);
 
   const editAddressParam = searchParams.get("editAddress");
@@ -1534,6 +1678,7 @@ function ProfileContent() {
           {tab === "overview" && <OverviewTab />}
           {tab === "addresses" && <AddressesTab initialEditId={initialEditAddressId} />}
           {tab === "measurements" && <MeasurementsTab />}
+          {tab === "referral" && <ReferralTab />}
         </div>
       </div>
     </main>
