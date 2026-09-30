@@ -9,10 +9,11 @@ import {
   RefreshCcw,
   ShieldCheck,
   Sparkles,
+  Star,
   Truck,
 } from "lucide-react";
 import HoverZoomImage from "@/components/HoverZoomImage";
-import { getCatalogTree, getServiceAddons } from "@/lib/services/catalog";
+import { getCatalogTree, getServiceAddons, getServiceRatings } from "@/lib/services/catalog";
 import { breadcrumbJsonLd, jsonLdScript, serviceJsonLd } from "@/lib/seo";
 import { fallbackTierDescription, formatDeliveryEta } from "@/lib/services/fallbackDescription";
 import {
@@ -199,6 +200,7 @@ async function TierDetailPage({
   }
 
   const addons = await getServiceAddons(tier.service_id);
+  const ratings = await getServiceRatings(tier.service_id);
 
   const otherTiers = line.stitching_types
     .filter((t) => t.service_id !== tier.service_id)
@@ -336,6 +338,81 @@ async function TierDetailPage({
           </div>
         </div>
       </div>
+
+      {ratings && ratings.total_reviews > 0 && (
+        <section className="mt-16">
+          <h2 className="text-xl font-black tracking-tight">Customer reviews</h2>
+          <div className="mt-6 flex flex-col gap-8 sm:flex-row">
+            <div className="flex shrink-0 flex-col items-center sm:items-start">
+              <p className="text-4xl font-black tracking-tight">{ratings.avg_rating.toFixed(1)}</p>
+              <div className="mt-1.5 flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={16}
+                    className={
+                      ratings.avg_rating >= star
+                        ? "fill-gold-deep text-gold-deep"
+                        : ratings.avg_rating >= star - 0.5
+                          ? "fill-gold-deep/50 text-gold-deep"
+                          : "text-gray-200"
+                    }
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs font-semibold text-gray-400">
+                {ratings.total_reviews} review{ratings.total_reviews === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div className="flex-1 space-y-1.5">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = ratings.star_counts[String(star)] ?? 0;
+                const pct = ratings.total_reviews > 0 ? (count / ratings.total_reviews) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-2 text-xs">
+                    <span className="w-3 font-semibold text-gray-500">{star}</span>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-gold-deep" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {ratings.recent_reviews.length > 0 && (
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {ratings.recent_reviews.slice(0, 3).map((review, i) => (
+                <div key={i} className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          size={12}
+                          className={s <= review.rating ? "fill-gold-deep text-gold-deep" : "text-gray-200"}
+                        />
+                      ))}
+                    </div>
+                    {review.created_at && (
+                      <p className="text-[11px] text-gray-400">
+                        {new Date(review.created_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  {review.comment && (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">{review.comment}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {otherTiers.length > 0 && (
         <section className="mt-16">
