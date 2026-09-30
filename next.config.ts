@@ -26,7 +26,11 @@ const CSP = [
   // 'unsafe-inline' is required for Next.js's own hydration/RSC bootstrap
   // scripts (no nonce plumbing exists yet); Razorpay's checkout.js is
   // loaded on the checkout/book-now/order-detail payment screens.
-  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com`,
+  // checkout.js itself loads a second script from cdn.razorpay.com (its
+  // risk-detection/fraud-check bundle) once the widget opens - without
+  // this, that load is silently CSP-blocked and only shows up as a console
+  // warning, not a visible payment failure, so it's easy to miss.
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com https://cdn.razorpay.com`,
   // Next.js injects some critical CSS inline; nothing else does.
   "style-src 'self' 'unsafe-inline'",
   // Catalog/lookbook photos (ImageKit), the backend's built-in category
@@ -41,7 +45,11 @@ const CSP = [
   // API calls to the backend, plus the site's own WebSocket connection for
   // live order-status updates (wss: covers both same-origin and the
   // backend's own ws endpoint since Next rewrites/proxies aren't used here).
-  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app",
+  // https://*.razorpay.com covers the risk-detection bundle's own beacon
+  // calls (exact subdomain isn't documented/stable) - narrower than
+  // wildcarding every host, and this is Razorpay's own checkout widget
+  // making calls under its own control, not arbitrary third-party script.
+  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app https://*.razorpay.com",
   // Razorpay's checkout renders inside an iframe it injects itself; the
   // Contact page embeds a Google Maps iframe for the office location.
   "frame-src https://checkout.razorpay.com https://api.razorpay.com https://www.google.com",
