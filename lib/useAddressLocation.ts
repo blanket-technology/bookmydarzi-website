@@ -30,7 +30,14 @@ interface ReverseGeocodeResult {
 
 export interface ServiceabilityResult {
   serviceable: boolean;
+  // Only populated when serviceable: true (the area actually covering
+  // this location). For serviceable: false, the backend instead returns
+  // nearest_city - a DIFFERENT field name for "closest area we cover,
+  // which isn't this one" (see check_serviceability in
+  // serviceability_service.py) - conflating the two would silently show
+  // the wrong copy on an unserviceable result.
   city?: string;
+  nearest_city?: string;
   distance_km?: number;
   estimated_pickup_hours?: number;
   message: string;
