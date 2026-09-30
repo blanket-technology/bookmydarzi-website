@@ -870,6 +870,38 @@ function AddressForm({
             className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
           />
         </label>
+        {/* State before City, both before Pincode - matches the mobile
+            app's field order (address.tsx) exactly, even though the
+            underlying behavior differs (the app uses manual State->City
+            dropdowns with no pincode lookup; this form still auto-fills
+            City/State from Pincode and locks them - only the visual order
+            changed, not the lookup logic below). */}
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">State</span>
+          <input
+            value={form.state}
+            onChange={(e) => set("state", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 focus:border-[#171717]"
+            }`}
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">City</span>
+          <input
+            value={form.city}
+            onChange={(e) => set("city", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 focus:border-[#171717]"
+            }`}
+          />
+        </label>
         <div className="sm:col-span-2">
           <label className="block">
             <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Pincode</span>
@@ -897,32 +929,6 @@ function AddressForm({
             </p>
           )}
         </div>
-        <label className="block">
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">City</span>
-          <input
-            value={form.city}
-            onChange={(e) => set("city", e.target.value)}
-            readOnly={cityStateLocked}
-            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
-              cityStateLocked
-                ? "border-black/5 bg-gray-50 text-gray-600"
-                : "border-black/10 focus:border-[#171717]"
-            }`}
-          />
-        </label>
-        <label className="block">
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-400">State</span>
-          <input
-            value={form.state}
-            onChange={(e) => set("state", e.target.value)}
-            readOnly={cityStateLocked}
-            className={`mt-1.5 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:outline-none ${
-              cityStateLocked
-                ? "border-black/5 bg-gray-50 text-gray-600"
-                : "border-black/10 focus:border-[#171717]"
-            }`}
-          />
-        </label>
         {cityStateLocked && (
           <button
             type="button"

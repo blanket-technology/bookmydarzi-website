@@ -165,6 +165,36 @@ export function InlineAddressForm({
           onChange={(e) => set("address_line_2", e.target.value)}
           className="sm:col-span-2 rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-ink"
         />
+        {/* State before City, both before Pincode - matches the mobile
+            app's field order (react_app/app/address.tsx) and profile's
+            AddressForm on this site; the pincode-driven auto-fill/lock
+            logic below is unchanged, only the visual order moved. */}
+        <div>
+          <input
+            placeholder="State"
+            value={form.state}
+            onChange={(e) => set("state", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 bg-white focus:border-ink"
+            }`}
+          />
+        </div>
+        <div>
+          <input
+            placeholder="City"
+            value={form.city}
+            onChange={(e) => set("city", e.target.value)}
+            readOnly={cityStateLocked}
+            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
+              cityStateLocked
+                ? "border-black/5 bg-gray-50 text-gray-600"
+                : "border-black/10 bg-white focus:border-ink"
+            }`}
+          />
+        </div>
         <div className="sm:col-span-2">
           <input
             placeholder="Pincode"
@@ -189,32 +219,6 @@ export function InlineAddressForm({
               Couldn&apos;t look this up right now - please enter city/state manually.
             </p>
           )}
-        </div>
-        <div>
-          <input
-            placeholder="City"
-            value={form.city}
-            onChange={(e) => set("city", e.target.value)}
-            readOnly={cityStateLocked}
-            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
-              cityStateLocked
-                ? "border-black/5 bg-gray-50 text-gray-600"
-                : "border-black/10 bg-white focus:border-ink"
-            }`}
-          />
-        </div>
-        <div>
-          <input
-            placeholder="State"
-            value={form.state}
-            onChange={(e) => set("state", e.target.value)}
-            readOnly={cityStateLocked}
-            className={`w-full rounded-xl border px-3.5 py-2.5 text-sm outline-none ${
-              cityStateLocked
-                ? "border-black/5 bg-gray-50 text-gray-600"
-                : "border-black/10 bg-white focus:border-ink"
-            }`}
-          />
         </div>
         {cityStateLocked && (
           <button
