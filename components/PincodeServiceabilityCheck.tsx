@@ -1,149 +1,107 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, MapPin } from "lucide-react";
-import { apiClient, ClientApiError } from "@/lib/apiClient";
-import { usePincodeLookup } from "@/lib/usePincodeLookup";
+import { MapPin, X } from "lucide-react";
+import { useAddressLocation } from "@/lib/useAddressLocation";
 import { registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 
-interface ServiceabilityResult {
-  serviceable: boolean;
-  city?: string;
-  message?: string;
-}
-
 /**
- * Homepage-only "do you serve my area?" check - deliberately upfront,
- * before a visitor invests any time picking services. Previously the
- * unserviceable-area warning only ever fired deep in checkout/address-add
- * (see UNSERVICEABLE_ERROR_PATTERN's other call sites), meaning acquisition
- * spend/organic traffic could land, browse, and only discover they can't
- * actually book at the very last step - wasted effort on both sides.
+ * Homepage-only "do you serve my area?" check - silent by default, only
+ * interrupts with a popup when the area is genuinely unserviceable.
+ * Previously this was a pincode-entry box a visitor had to notice and use
+ * (real friction for something meant to remove friction); auto-detecting
+ * GPS location on page load and staying invisible unless there's actually
+ * bad news to deliver is far less intrusive, matching the ask directly.
  *
- * Chains two existing public endpoints, no new backend surface:
- * GET /location/pincode-lookup (pincode -> city/state) then
- * GET /location/check-serviceability-by-address (city/state/pincode ->
- * serviceable true/false), exactly the same pair the address form's own
- * pincode lookup + assert_serviceable_for_address flow already use.
+ * Browser's own geolocation permission prompt is the only UI shown for a
+ * serviceable area or a denied/unavailable location - no fallback pincode
+ * box, no nagging banner either way (per explicit product decision - see
+ * useAddressLocation's identical "leave serviceability null, badge simply
+ * won't render" non-fatal-degrade convention).
  */
 export default function PincodeServiceabilityCheck() {
-  const [pincode, setPincode] = useState("");
-  const [checking, setChecking] = useState(false);
-  const [result, setResult] = useState<ServiceabilityResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const location = useAddressLocation();
+  const [dismissed, setDismissed] = useState(false);
   const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
-  const pincodeLookup = usePincodeLookup();
 
-  const handleCheck = () => {
-    const digits = pincode.trim();
-    if (!/^\d{6}$/.test(digits)) {
-      setError("Enter a valid 6-digit pincode.");
-      return;
-    }
-    setError(null);
-    setResult(null);
-    setInterestState("idle");
-    setChecking(true);
-
-    // usePincodeLookup takes a found-callback, not a promise - a lookup
-    // failure (not-found/error) resolves via its own `status` instead of
-    // ever calling this callback, so failure is handled in the effect
-    // below rather than a try/catch here.
-    void pincodeLookup.lookup(digits, async ({ city, state }) => {
-      try {
-        const serviceability = await apiClient<ServiceabilityResult>(
-          `/location/check-serviceability-by-address?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&pincode=${digits}`,
-        );
-        setResult(serviceability);
-      } catch (err) {
-        setError(err instanceof ClientApiError ? err.message : "Couldn't check this pincode right now.");
-      } finally {
-        setChecking(false);
-      }
-    });
-  };
-
-  // Surfaces a pincode-lookup failure (the city/state resolution step,
-  // before serviceability is even checked) - the success path clears
-  // `checking` itself once the serviceability call resolves, in
-  // handleCheck's callback above.
   useEffect(() => {
-    if (!checking) return;
-    if (pincodeLookup.status === "not-found") {
-      setError("Pincode not found.");
-      setChecking(false);
-    } else if (pincodeLookup.status === "error") {
-      setError("Couldn't check this pincode right now.");
-      setChecking(false);
-    }
-  }, [checking, pincodeLookup.status]);
+    // Fire once on mount - triggers the browser's native permission
+    // prompt if location access hasn't been granted/denied yet; if it's
+    // already been decided (previously granted or denied), this resolves
+    // silently with no visible prompt at all.
+    void location.detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRegisterInterest = async () => {
     setInterestState("submitting");
     try {
-      await registerServiceAreaInterest({ pincode: pincode.trim() });
+      await registerServiceAreaInterest({
+        latitude: location.coords?.latitude ?? null,
+        longitude: location.coords?.longitude ?? null,
+      });
       setInterestState("done");
     } catch {
       setInterestState("idle");
     }
   };
 
+  const showPopup =
+    !dismissed && location.serviceability != null && location.serviceability.serviceable === false;
+
+  if (!showPopup) return null;
+
   return (
-    <div className="mt-6 max-w-md rounded-2xl border border-black/10 bg-white/70 p-4 backdrop-blur">
-      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-gray-500">
-        <MapPin size={13} className="text-[#b4832e]" />
-        Check if we deliver to you
-      </p>
-      <div className="mt-2 flex gap-2">
-        <input
-          inputMode="numeric"
-          maxLength={6}
-          value={pincode}
-          onChange={(e) => {
-            setPincode(e.target.value.replace(/\D/g, "").slice(0, 6));
-            setResult(null);
-            setError(null);
-          }}
-          onKeyDown={(e) => e.key === "Enter" && handleCheck()}
-          placeholder="Enter your pincode"
-          className="w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={handleCheck}
-          disabled={checking}
-          className="shrink-0 rounded-xl bg-[#171717] px-4 py-2.5 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {checking ? <Loader2 size={15} className="animate-spin" /> : "Check"}
-        </button>
-      </div>
-
-      {error && <p className="mt-2 text-xs font-semibold text-red-600">{error}</p>}
-
-      {result?.serviceable && (
-        <p className="mt-2 flex items-center gap-1.5 text-xs font-bold text-green-700">
-          <CheckCircle2 size={14} />
-          Yes! We deliver to {result.city ?? "your area"}.
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      onClick={() => setDismissed(true)}
+    >
+      <div
+        className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-700">
+            <MapPin size={20} />
+          </span>
+          <button
+            type="button"
+            onClick={() => setDismissed(true)}
+            aria-label="Close"
+            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <h2 className="mt-4 text-lg font-black">
+          {interestState === "done" ? "Thanks - you're on the list!" : "We're not in your area yet"}
+        </h2>
+        <p className="mt-1.5 text-sm leading-6 text-gray-500">
+          {interestState === "done"
+            ? "We'll notify you the moment BookMyDarzi launches near you."
+            : (location.serviceability?.message ??
+                "We don't currently serve your area, but we're expanding soon!")}
         </p>
-      )}
-
-      {result && !result.serviceable && (
-        <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800">
-          <p>{result.message ?? "We don't currently serve this area yet."}</p>
+        {interestState !== "done" && (
           <button
             type="button"
             onClick={handleRegisterInterest}
-            disabled={interestState === "submitting" || interestState === "done"}
-            className="mt-2 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={interestState === "submitting"}
+            className="mt-5 w-full rounded-xl bg-[#171717] px-4 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {interestState === "done"
-              ? "Thanks! We'll notify you 🎉"
-              : interestState === "submitting"
-                ? "Submitting..."
-                : "Notify me when you launch here"}
+            {interestState === "submitting" ? "Submitting..." : "Notify me when you launch here"}
           </button>
-        </div>
-      )}
+        )}
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="mt-3 w-full rounded-xl border border-black/10 px-4 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-50"
+        >
+          {interestState === "done" ? "Close" : "Maybe later"}
+        </button>
+      </div>
     </div>
   );
 }
