@@ -621,6 +621,22 @@ export default function CheckoutPage() {
         >
           View my orders
         </Link>
+
+        {/* Right after a successful order is when satisfaction is
+            highest - the best moment to ask for a referral, rather than
+            burying it in profile where it's easy to never see. */}
+        <div className="mx-auto mt-10 max-w-sm rounded-2xl border border-black/10 bg-[#f8f6f1] p-5">
+          <p className="text-sm font-bold">Loved the experience?</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            Refer a friend - you both get ₹100 off your next order.
+          </p>
+          <Link
+            href="/profile?tab=referral"
+            className="mt-3 inline-block rounded-xl bg-white px-4 py-2 text-xs font-bold shadow-sm transition hover:-translate-y-0.5"
+          >
+            Get my referral code
+          </Link>
+        </div>
       </main>
     );
   }
