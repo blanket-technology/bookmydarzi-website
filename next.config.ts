@@ -32,6 +32,12 @@ const CSP = [
   // Catalog/lookbook photos (ImageKit), the backend's built-in category
   // icons, and data: URIs for small inline assets (e.g. blur placeholders).
   "img-src 'self' data: https://ik.imagekit.io https://web-production-efff7.up.railway.app",
+  // Voice notes recorded at checkout are uploaded to ImageKit and played
+  // back on the order detail page's <audio> element - without an explicit
+  // media-src, this falls back to default-src 'self' and the browser
+  // silently blocks the file entirely (no error surfaced to the user,
+  // just a stuck 0:00/0:00 player).
+  "media-src 'self' https://ik.imagekit.io https://web-production-efff7.up.railway.app",
   // API calls to the backend, plus the site's own WebSocket connection for
   // live order-status updates (wss: covers both same-origin and the
   // backend's own ws endpoint since Next rewrites/proxies aren't used here).
