@@ -6,6 +6,7 @@ import Script from "next/script";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
+  AlertCircle,
   ArrowLeft,
   CalendarClock,
   CheckCircle2,
@@ -180,6 +181,13 @@ interface TrackingResponse {
   order_code: string | null;
   status: string;
   timeline: TrackingStep[];
+  /** True only while the order is in the 2-hour post-delivery inspection
+   * window - controls whether the "Report an issue" action renders.
+   * Matches react_app's OrderTrackingPayload.can_report_issue exactly. */
+  can_report_issue?: boolean;
+  /** ISO datetime the current inspection window closes, present only when
+   * can_report_issue is true. */
+  inspection_window_expires_at?: string | null;
 }
 
 function formatTimelineTimestamp(iso: string): string {
@@ -291,33 +299,163 @@ function BridgePartnerCard({
   );
 }
 
+// Live "Xh Ym left" countdown for the inspection window, ported from
+// react_app's OrderTimeline/index.tsx useCountdown hook (same 30s tick,
+// same null-once-expired behavior) so the two clients show the same
+// urgency signal, not just the same deadline.
+function useInspectionCountdown(expiresAt: string | null | undefined): string | null {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) {
+      setLabel(null);
+      return;
+    }
+    const target = new Date(expiresAt).getTime();
+    const tick = () => {
+      const diffMs = target - Date.now();
+      if (diffMs <= 0) {
+        setLabel(null);
+        return;
+      }
+      const mins = Math.floor(diffMs / 60000);
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      setLabel(h > 0 ? `${h}h ${m}m left` : `${m}m left`);
+    };
+    tick();
+    const interval = setInterval(tick, 30000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  return label;
+}
+
+// Post-delivery inspection-window "Report an issue" form - only ever
+// rendered while TrackingResponse.can_report_issue is true. Routes the
+// order back to the same tailor already assigned (no fresh broadcast), see
+// POST /orders/{id}/report-issue on the backend. Mirrors react_app's
+// ReportIssueSheet.tsx (same endpoint, same min-length validation) and
+// CancelOrderModal's modal shape above, so this feels native to the site.
+function ReportIssueModal({
+  orderId,
+  onClose,
+  onReported,
+}: {
+  orderId: number;
+  onClose: () => void;
+  onReported: () => void;
+}) {
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = useCallback(async () => {
+    if (description.trim().length < 5) {
+      setError("Please describe the issue in a bit more detail.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiClient(`/orders/${orderId}/report-issue`, {
+        method: "POST",
+        body: { description: description.trim() },
+      });
+      onReported();
+      onClose();
+    } catch (err) {
+      setError(err instanceof ClientApiError ? err.message : "Couldn't submit your report. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [description, orderId, onReported, onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-red-50">
+            <AlertCircle size={18} className="text-red-600" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-black">Report an issue</h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Your tailor will be notified directly and will fix it - no need to place a new order.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-gray-400 hover:bg-gray-100 disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What's wrong? e.g. 'The sleeve length is off' or 'A seam came loose'"
+          maxLength={1000}
+          rows={4}
+          disabled={submitting}
+          className="mt-4 w-full resize-none rounded-2xl border border-black/10 p-3 text-sm outline-none focus:border-[#171717] disabled:opacity-60"
+        />
+
+        {error && (
+          <p className="mt-3 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
+        >
+          {submitting ? <Loader2 size={16} className="animate-spin" /> : "Submit Report"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: string }) {
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
+  const load = useCallback(() => {
+    let cancelledRef = false;
     apiClient<TrackingResponse>(`/orders/${orderId}/tracking`)
       .then((res) => {
-        if (!cancelled) setTracking(res);
+        if (!cancelledRef) setTracking(res);
       })
       .catch((err) => {
-        if (!cancelled) {
+        if (!cancelledRef) {
           setError(err instanceof ClientApiError ? err.message : "Could not load order tracking.");
         }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelledRef) setLoading(false);
       });
     return () => {
-      cancelled = true;
+      cancelledRef = true;
     };
+  }, [orderId]);
+
+  useEffect(() => {
     // refreshOn is the parent's own order.status - it changes whenever the
     // page's WebSocket-triggered refetch (useNotificationsWS below) lands a
     // new status, so this timeline re-fetches in lockstep instead of
     // staying stale until the customer manually reloads the page.
-  }, [orderId, refreshOn]);
+    return load();
+  }, [load, refreshOn]);
+
+  const countdown = useInspectionCountdown(
+    tracking?.can_report_issue ? tracking.inspection_window_expires_at : null,
+  );
 
   if (loading) {
     return (
@@ -394,6 +532,25 @@ function StatusTimeline({ orderId, refreshOn }: { orderId: number; refreshOn?: s
           </div>
         );
       })}
+
+      {tracking.can_report_issue && (
+        <button
+          onClick={() => setReportModalOpen(true)}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-bold text-red-700 hover:bg-red-100"
+        >
+          <AlertCircle size={16} />
+          Report an issue
+          {countdown && <span className="text-xs font-semibold text-red-500">({countdown})</span>}
+        </button>
+      )}
+
+      {reportModalOpen && (
+        <ReportIssueModal
+          orderId={orderId}
+          onClose={() => setReportModalOpen(false)}
+          onReported={load}
+        />
+      )}
     </div>
   );
 }
@@ -1465,7 +1622,14 @@ export default function OrderDetailPage() {
 
   const canCancel = CUSTOMER_CANCELLABLE_STATUSES.has(meta.status as OrderStatus);
   const canReschedule = RESCHEDULABLE_STATUSES.has(meta.status as OrderStatus);
-  const invoiceAvailable = meta.status === "delivered";
+  // Same post-delivery-loop reasoning as RATEABLE_STATUSES above - an order
+  // mid-repair has genuinely been delivered and billed, so its invoice
+  // should still be available.
+  const invoiceAvailable =
+    meta.status === "delivered" ||
+    meta.status === "inspection_window" ||
+    meta.status === "in_repair" ||
+    meta.status === "repair_completed";
   const canRate = RATEABLE_STATUSES.has(meta.status as OrderStatus);
   const canPayNow =
     order.payment.payment_method !== "cod" &&

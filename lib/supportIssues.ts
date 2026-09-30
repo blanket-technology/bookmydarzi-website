@@ -78,7 +78,18 @@ const AFTER_PICKUP_STATUSES = new Set([
   "picked_up", "cloth_received_by_tailor", "stitching_started", "in_progress", "final_check",
 ]);
 const READY_OR_OUT_STATUSES = new Set(["ready_for_dispatch", "out_for_delivery"]);
-const DELIVERED_STATUSES = new Set(["delivered", "completed"]);
+// inspection_window/in_repair/repair_completed are all part of the
+// post-delivery loop - without these an order sitting in that loop would
+// fall through to an earlier bucket and show support options like "pickup
+// not scheduled"/"cancel order" for an order that's actually already been
+// delivered. Mirrors react_app/src/constants/supportIssues.ts's identical fix.
+const DELIVERED_STATUSES = new Set([
+  "delivered",
+  "completed",
+  "inspection_window",
+  "in_repair",
+  "repair_completed",
+]);
 const CLOSED_STATUSES = new Set(["cancelled", "order_rejected"]);
 
 function bucketForStatus(status: string): OrderStageBucket {
