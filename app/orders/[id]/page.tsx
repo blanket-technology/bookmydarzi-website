@@ -174,6 +174,14 @@ interface TrackingStep {
   /** Extra context for this step - currently only set on the "cancelled"
    * step, carrying the real cancellation reason. */
   note?: string;
+  /** Who was assigned - only set on the "pickup_partner_assigned"/
+   * "delivery_partner_assigned" pseudo-stages, when a Bridge employee was
+   * actually assigned at that point in the timeline. */
+  partner?: {
+    name: string;
+    photo_url: string | null;
+    mobile: string | null;
+  } | null;
 }
 
 interface TrackingResponse {
@@ -542,6 +550,34 @@ function StatusTimeline({
               )}
               {step.note && (
                 <p className="mt-1 text-xs leading-5 text-red-700">{step.note}</p>
+              )}
+              {/* Who was assigned - only present on "Pickup/Delivery
+                  Partner Assigned" pseudo-stages. Previously this entry
+                  carried only a bare title/timestamp with no identity,
+                  reading as an unexplained duplicate of the next real
+                  stage (e.g. "Pickup Completed") right after it. */}
+              {step.partner && (
+                <div className="mt-2 flex items-center gap-2.5 rounded-xl bg-[#f8f6f1] p-2.5">
+                  {step.partner.photo_url ? (
+                    <Image
+                      src={step.partner.photo_url}
+                      alt={step.partner.name}
+                      width={28}
+                      height={28}
+                      className="h-7 w-7 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#171717] text-xs font-black text-white">
+                      {step.partner.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-gray-700">{step.partner.name}</p>
+                    {step.partner.mobile && (
+                      <p className="text-[11px] text-gray-400">{step.partner.mobile}</p>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
