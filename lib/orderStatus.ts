@@ -25,7 +25,14 @@ export type OrderStatus =
   | "delivered"
   | "inspection_window"
   | "in_repair"
+  | "repair_pickup_pending"
+  | "repair_pickup_scheduled"
+  | "repair_pickup_in_transit"
+  | "at_tailor_for_repair"
   | "repair_completed"
+  | "repair_delivery_pending"
+  | "repair_delivery_scheduled"
+  | "repair_delivery_in_transit"
   | "completed"
   | "cancelled"
   | "return_pending"
@@ -291,7 +298,55 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   in_repair: {
     status: "in_repair",
     title: "Repair in progress",
-    description: "You reported an issue with this order. Your tailor is fixing it now.",
+    description: "You reported an issue with this order. We're arranging a pickup to get it to your tailor.",
+    nextStep: "We'll notify you once a Bridge partner is on the way.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Repair In Progress",
+    terminal: false,
+  },
+  // The 3 repair-pickup statuses collapse to one customer concept - same
+  // reasoning inspection_window/repair_completed already apply above.
+  // Matches the backend's CUSTOMER_STATUS_MAP collapsing decision and
+  // react_app's identical entries.
+  repair_pickup_pending: {
+    status: "repair_pickup_pending",
+    title: "Picking up for repair",
+    description: "We're arranging a pickup to take your order back to the tailor for repair.",
+    nextStep: "We'll notify you once a Bridge partner is on the way.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Picking Up For Repair",
+    terminal: false,
+  },
+  repair_pickup_scheduled: {
+    status: "repair_pickup_scheduled",
+    title: "Picking up for repair",
+    description: "A pickup has been scheduled to take your order back to the tailor for repair.",
+    nextStep: "Keep your item ready - they'll collect it shortly.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Picking Up For Repair",
+    terminal: false,
+  },
+  repair_pickup_in_transit: {
+    status: "repair_pickup_in_transit",
+    title: "On its way to the tailor",
+    description: "Your order has been picked up and is on its way to your tailor for repair.",
+    nextStep: "We'll notify you once it reaches the tailor.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Picking Up For Repair",
+    terminal: false,
+  },
+  at_tailor_for_repair: {
+    status: "at_tailor_for_repair",
+    title: "Repair in progress",
+    description: "Your order has reached the tailor and the repair is underway.",
     nextStep: "We'll notify you once the repair is complete.",
     tone: "warning",
     progress: 14,
@@ -301,13 +356,48 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   },
   repair_completed: {
     status: "repair_completed",
-    title: "Delivered",
-    description: "Your repair is complete. Your order has been delivered.",
-    nextStep: "You can report another issue within the inspection window, or it'll be marked complete automatically.",
+    title: "Repair completed",
+    description: "Your repair is complete. We're arranging delivery back to you.",
+    nextStep: "We'll notify you once a Bridge partner is on the way.",
     tone: "success",
     progress: 14,
     customerFacing: true,
-    customerLabel: "Delivered",
+    customerLabel: "Delivering Your Repaired Item",
+    terminal: false,
+  },
+  // The 3 repair-delivery statuses collapse to one customer concept, same
+  // reasoning as repair-pickup above.
+  repair_delivery_pending: {
+    status: "repair_delivery_pending",
+    title: "Delivering your repaired item",
+    description: "We're arranging delivery of your repaired order back to you.",
+    nextStep: "We'll notify you once a Bridge partner is on the way.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Delivering Your Repaired Item",
+    terminal: false,
+  },
+  repair_delivery_scheduled: {
+    status: "repair_delivery_scheduled",
+    title: "Delivering your repaired item",
+    description: "A delivery has been scheduled to bring your repaired order back to you.",
+    nextStep: "Keep your phone handy - the delivery partner may call before arriving.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Delivering Your Repaired Item",
+    terminal: false,
+  },
+  repair_delivery_in_transit: {
+    status: "repair_delivery_in_transit",
+    title: "Repaired item on its way",
+    description: "Your repaired order is on its way back to you.",
+    nextStep: "Keep your phone handy - the delivery partner may call before arriving.",
+    tone: "warning",
+    progress: 14,
+    customerFacing: true,
+    customerLabel: "Delivering Your Repaired Item",
     terminal: false,
   },
   completed: {

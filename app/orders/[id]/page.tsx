@@ -1652,12 +1652,20 @@ export default function OrderDetailPage() {
   const canReschedule = RESCHEDULABLE_STATUSES.has(meta.status as OrderStatus);
   // Same post-delivery-loop reasoning as RATEABLE_STATUSES above - an order
   // mid-repair has genuinely been delivered and billed, so its invoice
-  // should still be available.
+  // should still be available. Every repair-pickup/repair-delivery leg
+  // status is part of this same loop.
   const invoiceAvailable =
     meta.status === "delivered" ||
     meta.status === "inspection_window" ||
     meta.status === "in_repair" ||
-    meta.status === "repair_completed";
+    meta.status === "repair_pickup_pending" ||
+    meta.status === "repair_pickup_scheduled" ||
+    meta.status === "repair_pickup_in_transit" ||
+    meta.status === "at_tailor_for_repair" ||
+    meta.status === "repair_completed" ||
+    meta.status === "repair_delivery_pending" ||
+    meta.status === "repair_delivery_scheduled" ||
+    meta.status === "repair_delivery_in_transit";
   const canRate = RATEABLE_STATUSES.has(meta.status as OrderStatus);
   const canPayNow =
     order.payment.payment_method !== "cod" &&
@@ -1739,6 +1747,18 @@ export default function OrderDetailPage() {
           )}
           {order.order.return_partner && (
             <BridgePartnerCard partner={order.order.return_partner} subtitle="Your return partner" />
+          )}
+          {order.order.repair_pickup_partner && (
+            <BridgePartnerCard
+              partner={order.order.repair_pickup_partner}
+              subtitle="Collecting your order for repair"
+            />
+          )}
+          {order.order.repair_delivery_partner && (
+            <BridgePartnerCard
+              partner={order.order.repair_delivery_partner}
+              subtitle="Bringing your repaired order back"
+            />
           )}
         </section>
 

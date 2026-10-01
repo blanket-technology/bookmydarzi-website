@@ -55,6 +55,16 @@ export type CustomerDeliveryPartner = CustomerPickupPartner;
  * person as pickup_partner/delivery_partner. */
 export type CustomerReturnPartner = CustomerPickupPartner;
 
+/** Repair-pickup-leg equivalent of CustomerPickupPartner - who's
+ * collecting the garment after an issue is reported, to take it back to
+ * the tailor. Never assumed to be the same person as any other leg. */
+export type CustomerRepairPickupPartner = CustomerPickupPartner;
+
+/** Repair-delivery-leg equivalent of CustomerPickupPartner - who's
+ * bringing the repaired garment back. Never assumed to be the same person
+ * as any other leg. */
+export type CustomerRepairDeliveryPartner = CustomerPickupPartner;
+
 export interface CustomerDetailsOrder {
   order_id: number;
   order_code: string | null;
@@ -79,6 +89,8 @@ export interface CustomerDetailsOrder {
   pickup_partner: CustomerPickupPartner | null;
   delivery_partner: CustomerDeliveryPartner | null;
   return_partner: CustomerReturnPartner | null;
+  repair_pickup_partner: CustomerRepairPickupPartner | null;
+  repair_delivery_partner: CustomerRepairDeliveryPartner | null;
 }
 
 export interface CustomerDetailsService {
