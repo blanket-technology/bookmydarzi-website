@@ -5,7 +5,6 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import GarmentSceneLazy from "./GarmentSceneLazy";
 import PincodeServiceabilityCheck from "@/components/PincodeServiceabilityCheck";
 import FeaturedHeroCard, { type FeaturedLine } from "@/components/FeaturedHeroCard";
 
@@ -13,17 +12,16 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-/** Replaces the static two-column hero with a pinned one: the garment scene
- * stays centered and gently rotating while the headline/CTA column fades
- * and lifts out as the visitor scrolls past, revealing the page underneath
- * - the actual Apple-marketing-page mechanic (pin a visual, scrub text past
- * it) rather than a generic parallax. On prefers-reduced-motion, GSAP's own
+/** Replaces the static two-column hero with a pinned one: the featured
+ * product card stays centered while the headline/CTA column fades and lifts
+ * out as the visitor scrolls past, revealing the page underneath - the
+ * actual Apple-marketing-page mechanic (pin a visual, scrub text past it)
+ * rather than a generic parallax. On prefers-reduced-motion, GSAP's own
  * matchMedia guard below skips the pin/scrub entirely and the section just
  * sits static, same as before this redesign. */
 export default function HeroPinned({ featured }: { featured: FeaturedLine[] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
-  const progressRef = useRef(0);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -51,9 +49,6 @@ export default function HeroPinned({ featured }: { featured: FeaturedLine[] }) {
             end: isMobile ? "+=60%" : "+=120%",
             pin: !isMobile,
             scrub: 1,
-            onUpdate: (self) => {
-              progressRef.current = self.progress;
-            },
           },
         });
 
@@ -110,14 +105,6 @@ export default function HeroPinned({ featured }: { featured: FeaturedLine[] }) {
         </div>
 
         <div className="relative mx-auto h-[420px] w-full max-w-[520px] md:h-[560px]">
-          {/* Ambient 3D cloth layer, sized wider than the product card so it
-              shows at the edges rather than being fully hidden behind it -
-              gives the hero motion/depth without displacing the actual
-              featured service (real photo, real price, real "Book now"
-              link), which is what the hero's job actually is. */}
-          <div className="absolute -inset-x-16 -inset-y-10 -z-10 md:-inset-x-24 md:-inset-y-16">
-            <GarmentSceneLazy progress={progressRef} className="h-full w-full" />
-          </div>
           <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#c99a3d]/20 blur-2xl" />
           <FeaturedHeroCard featured={featured} />
         </div>

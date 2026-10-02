@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { LucideIcon } from "lucide-react";
 import { Clock3, PackageCheck, Ruler, ShoppingBag, Truck } from "lucide-react";
-import GarmentSceneLazy from "./GarmentSceneLazy";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -45,16 +45,21 @@ const STEPS: Step[] = [
   },
 ];
 
-/** The process section, redone as scrollytelling: the garment scene pins on
- * the left (desktop) and its fold-state scrubs from "relaxed drape" to
- * "finished/taut" as the visitor scrolls through the 5 steps on the right,
- * each step highlighting in turn. Mobile drops the pin (same reasoning as
- * HeroPinned) and shows a lighter per-step reveal instead, still with the
- * scene scrubbing in the background. */
-export default function ProcessScrollytelling() {
+interface StepImage {
+  url: string;
+  alt: string;
+}
+
+/** The process section as scrollytelling: a crossfading stack of real
+ * catalog photos pins on the left while the 5 real steps highlight in turn
+ * on the right as the visitor scrolls. Real photography (next/image
+ * opacity-crossfade, the same reliable pattern FeaturedHeroCard already
+ * uses) rather than a generated visual - no rendering risk, and it's actual
+ * product imagery instead of an abstract shape. */
+export default function ProcessScrollytelling({ images }: { images: StepImage[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const progressRef = useRef(0);
+  const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -64,9 +69,11 @@ export default function ProcessScrollytelling() {
 
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const steps = stepRefs.current.filter(Boolean) as HTMLDivElement[];
+      const photos = imageRefs.current.filter(Boolean) as HTMLDivElement[];
       if (steps.length === 0) return;
 
       gsap.set(steps.slice(1), { opacity: 0.35 });
+      gsap.set(photos.slice(1), { opacity: 0 });
 
       const trigger = gsap.timeline({
         scrollTrigger: {
@@ -75,9 +82,6 @@ export default function ProcessScrollytelling() {
           end: `+=${steps.length * 50}%`,
           pin: true,
           scrub: 1,
-          onUpdate: (self) => {
-            progressRef.current = self.progress;
-          },
         },
       });
 
@@ -85,6 +89,10 @@ export default function ProcessScrollytelling() {
         if (i > 0) {
           trigger.to(step, { opacity: 1, duration: 0.15 }, i * 0.2);
           trigger.to(steps[i - 1], { opacity: 0.35, duration: 0.15 }, i * 0.2);
+          if (photos[i] && photos[i - 1]) {
+            trigger.to(photos[i], { opacity: 1, duration: 0.15 }, i * 0.2);
+            trigger.to(photos[i - 1], { opacity: 0, duration: 0.15 }, i * 0.2);
+          }
         }
       });
 
@@ -97,8 +105,26 @@ export default function ProcessScrollytelling() {
   return (
     <section ref={sectionRef} className="relative bg-[#171717] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:min-h-screen md:grid-cols-2 md:items-center md:px-8">
-        <div className="relative order-2 h-[320px] md:order-1 md:h-[460px]">
-          <GarmentSceneLazy progress={progressRef} className="h-full w-full opacity-80" />
+        <div className="relative order-2 h-[320px] overflow-hidden rounded-3xl bg-white/5 md:order-1 md:h-[460px]">
+          {images.map((img, i) => (
+            <div
+              key={img.url}
+              ref={(el) => {
+                imageRefs.current[i] = el;
+              }}
+              className="absolute inset-0"
+            >
+              <Image
+                src={img.url}
+                alt={img.alt}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+                priority={i === 0}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            </div>
+          ))}
         </div>
 
         <div className="order-1 md:order-2">
