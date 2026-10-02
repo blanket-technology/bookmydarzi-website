@@ -11,6 +11,7 @@ import { uploadChatAttachment } from "@/lib/chat/chatService";
 import { groupMessagesForDisplay } from "@/lib/chat/groupMessages";
 import type { LocalChatMessage } from "@/lib/chat/types";
 import StatusBanner from "./StatusBanner";
+import StarterChips from "./StarterChips";
 import ChatOrderCard, { type ChatOrderCardData } from "./ChatOrderCard";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
@@ -354,6 +355,7 @@ export default function ChatWidget() {
                       Ask us anything about your order, payment, or our services - we&apos;re
                       here to help instantly.
                     </p>
+                    <StarterChips hasOrderContext={!!session?.order_id} onSelect={handleSend} />
                   </div>
                 ) : (
                   <div className="flex flex-col gap-0.5">
