@@ -1,23 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  PackageCheck,
-  Ruler,
-  ShieldCheck,
-  ShoppingBag,
-  Truck,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getCatalogTree } from "@/lib/services/catalog";
 import type { CatalogServiceLine } from "@/lib/types/catalog";
 import { getTestimonials } from "@/lib/services/testimonials";
 import { TRUST_SIGNALS } from "@/lib/trustContent";
 import ScrollReveal from "@/components/ScrollReveal";
-import FeaturedHeroCard from "@/components/FeaturedHeroCard";
-import PincodeServiceabilityCheck from "@/components/PincodeServiceabilityCheck";
+import HeroPinned from "@/components/homepage-motion/HeroPinned";
+import ProcessScrollytelling from "@/components/homepage-motion/ProcessScrollytelling";
+import ParallaxImage from "@/components/homepage-motion/ParallaxImage";
 
 export const metadata: Metadata = {
   title: "Doorstep Tailoring & Alterations in Delhi NCR",
@@ -76,50 +68,7 @@ export default async function Home() {
 
   return (
     <main>
-      <section className="overflow-hidden bg-[#f8f6f1]">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 md:grid-cols-2 md:items-center md:px-8 md:py-24">
-          <div>
-            <h1 className="max-w-xl text-5xl font-black leading-[1.03] tracking-[-.05em] md:text-7xl">
-              The perfect fit starts <span className="text-[#b4832e]">here.</span>
-            </h1>
-            <p className="mt-6 max-w-lg text-base leading-7 text-gray-600 md:text-lg">
-              Get professionally tailored clothes without the hassle. Pick a service, book in
-              minutes and let our experts handle the rest.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/services"
-                className="group rounded-xl bg-[#171717] px-6 py-3.5 text-sm font-bold text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
-              >
-                Book a Service{" "}
-                <ArrowRight className="ml-2 inline transition-transform duration-300 group-hover:translate-x-1" size={16} />
-              </Link>
-              <Link
-                href="/orders"
-                className="rounded-xl border border-black/10 bg-white px-6 py-3.5 text-sm font-bold transition-all duration-300 hover:-translate-y-0.5 hover:bg-gray-50 hover:shadow-md"
-              >
-                Track Order
-              </Link>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-5 text-xs font-semibold text-gray-500">
-              <span>
-                <CheckCircle2 className="mr-1 inline text-[#b4832e]" size={15} />
-                Verified tailors
-              </span>
-              <span>
-                <Clock3 className="mr-1 inline text-[#b4832e]" size={15} />
-                On-time service
-              </span>
-              <span>
-                <ShieldCheck className="mr-1 inline text-[#b4832e]" size={15} />
-                Secure booking
-              </span>
-            </div>
-            <PincodeServiceabilityCheck />
-          </div>
-          <FeaturedHeroCard featured={featured} />
-        </div>
-      </section>
+      <HeroPinned featured={featured} />
 
       <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <div className="flex items-end justify-between">
@@ -150,13 +99,15 @@ export default async function Home() {
                   across that mix, same fix already applied on /services. */}
               {line.image_url ? (
                 <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
-                  <Image
-                    src={line.image_url}
-                    alt={line.name}
-                    fill
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                    className="object-cover"
-                  />
+                  <ParallaxImage strength={14} className="absolute inset-0 scale-110">
+                    <Image
+                      src={line.image_url}
+                      alt={line.name}
+                      fill
+                      sizes="(min-width: 768px) 33vw, 100vw"
+                      className="object-cover"
+                    />
+                  </ParallaxImage>
                 </div>
               ) : (
                 <div
@@ -186,60 +137,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section className="bg-[#171717] text-white">
-        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-          <div className="max-w-xl">
-            <p className="text-xs font-black uppercase tracking-[.2em] text-[#d2aa5c]">
-              How it works
-            </p>
-            <h2 className="mt-2 text-3xl font-black md:text-4xl">
-              From browsing to your doorstep.
-            </h2>
-          </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-            {[
-              {
-                icon: ShoppingBag,
-                title: "Browse & choose",
-                desc: "Pick your garment, finish and quantity from our services.",
-              },
-              {
-                icon: Ruler,
-                title: "Share measurements",
-                desc: "Use saved measurements, or book a home measurement at pickup.",
-              },
-              {
-                icon: Truck,
-                title: "Schedule pickup",
-                desc: "Choose a doorstep pickup slot that suits you - instant or scheduled.",
-              },
-              {
-                icon: Clock3,
-                title: "We craft your order",
-                desc: "A verified tailor gets to work while you track every stage in real time.",
-              },
-              {
-                icon: PackageCheck,
-                title: "Delivered to you",
-                desc: "Your perfectly-stitched garment is delivered straight back to your door.",
-              },
-            ].map((step, i) => (
-              <ScrollReveal key={step.title} delay={i * 80} className="border-t border-white/15 pt-5">
-                <div className="flex items-center gap-2">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#c99a3d] text-[#171717] transition-transform duration-300 hover:scale-110">
-                    <step.icon size={16} />
-                  </span>
-                  <span className="text-sm font-black uppercase tracking-wide text-[#d2aa5c]">
-                    Step {i + 1}
-                  </span>
-                </div>
-                <h3 className="mt-3 text-lg font-bold">{step.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-white/50">{step.desc}</p>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ProcessScrollytelling />
 
       <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <p className="text-xs font-black uppercase tracking-[.2em] text-[#b4832e]">

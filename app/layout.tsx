@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
 import Toast from "@/components/Toast";
+import SmoothScrollProvider from "@/components/homepage-motion/SmoothScrollProvider";
 import { DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE, SITE_URL, jsonLdScript, localBusinessJsonLd } from "@/lib/seo";
 
 // metadataBase makes every relative openGraph/twitter image URL in every
@@ -69,11 +70,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <Header />
-        {children}
-        <Footer />
-        <ChatWidget />
-        <Toast />
+        <SmoothScrollProvider>
+          <Header />
+          {children}
+          <Footer />
+          <ChatWidget />
+          <Toast />
+        </SmoothScrollProvider>
       </body>
     </html>
   );
