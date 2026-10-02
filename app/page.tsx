@@ -66,6 +66,21 @@ export default async function Home() {
   const featured = alterationLines.slice(0, 3);
   const testimonials = await getTestimonials();
 
+  // ProcessScrollytelling crossfades through 5 real photos, one per step -
+  // reuses the same image-bearing lines already fetched for the hero/grid
+  // rather than a second catalog query. Cycles through whatever
+  // image-bearing lines exist if there are fewer than 5 (always true today
+  // given the current catalog), so the section never shows fewer photos
+  // than steps.
+  const imageBearing = alterationLines.filter((l) => l.line.image_url);
+  const processImages =
+    imageBearing.length > 0
+      ? Array.from({ length: 5 }, (_, i) => {
+          const l = imageBearing[i % imageBearing.length];
+          return { url: l.line.image_url!, alt: l.line.name };
+        })
+      : [];
+
   return (
     <main>
       <HeroPinned featured={featured} />
@@ -137,7 +152,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <ProcessScrollytelling />
+      <ProcessScrollytelling images={processImages} />
 
       <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <p className="text-xs font-black uppercase tracking-[.2em] text-[#b4832e]">
