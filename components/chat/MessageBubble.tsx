@@ -24,6 +24,7 @@ export default function MessageBubble({
   isRead,
   onRetry,
   showSenderLabel = true,
+  onQuickReply,
 }: {
   message: LocalChatMessage;
   isOwn: boolean;
@@ -32,6 +33,9 @@ export default function MessageBubble({
   /** False for a message that's grouped under a preceding one from the same
    * sender within the grouping window - see groupMessagesForDisplay. */
   showSenderLabel?: boolean;
+  /** Called with a chip's `value` when the customer clicks a quick-reply
+   * chip under this message - sent exactly like a typed message. */
+  onQuickReply?: (value: string) => void;
 }) {
   const [zoomed, setZoomed] = useState(false);
 
@@ -112,6 +116,20 @@ export default function MessageBubble({
           </>
         )}
       </div>
+      {!isOwn && message.sender_type === "ai" && onQuickReply && Array.isArray(message.metadata?.quick_replies) && (
+        <div className="flex flex-wrap gap-1.5 px-1">
+          {(message.metadata!.quick_replies as { label: string; value: string }[]).map((chip, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onQuickReply(chip.value)}
+              className="rounded-full border-2 border-ink/20 px-3 py-1 text-xs font-bold text-ink transition hover:border-ink/40 hover:bg-gray-50"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
