@@ -11,6 +11,7 @@ import { uploadChatAttachment } from "@/lib/chat/chatService";
 import { groupMessagesForDisplay } from "@/lib/chat/groupMessages";
 import type { LocalChatMessage } from "@/lib/chat/types";
 import StatusBanner from "./StatusBanner";
+import ChatOrderCard, { type ChatOrderCardData } from "./ChatOrderCard";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import ChatInput from "./ChatInput";
@@ -365,12 +366,16 @@ export default function ChatWidget() {
                             </span>
                           </div>
                         )}
+                        {m.sender_type === "ai" && m.metadata?.order_card ? (
+                          <ChatOrderCard data={m.metadata.order_card as ChatOrderCardData} />
+                        ) : null}
                         <MessageBubble
                           message={m}
                           isOwn={m.sender_type === "customer"}
                           isRead={m.sender_type === "customer" && m.seq <= peerReadUpToSeq}
                           onRetry={m.deliveryStatus === "failed" ? () => handleRetry(m) : undefined}
                           showSenderLabel={showSenderLabel}
+                          onQuickReply={handleSend}
                         />
                       </div>
                     ))}
