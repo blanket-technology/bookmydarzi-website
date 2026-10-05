@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Check, CheckCheck, RotateCw, ZoomIn } from "lucide-react";
+import { AlertCircle, Check, CheckCheck, RotateCw, ThumbsDown, ThumbsUp, ZoomIn } from "lucide-react";
 import type { LocalChatMessage } from "@/lib/chat/types";
 import { formatMessageBody } from "./formatMessageBody";
 import ImageLightbox from "./ImageLightbox";
@@ -25,6 +25,7 @@ export default function MessageBubble({
   onRetry,
   showSenderLabel = true,
   onQuickReply,
+  onFeedback,
 }: {
   message: LocalChatMessage;
   isOwn: boolean;
@@ -36,6 +37,10 @@ export default function MessageBubble({
   /** Called with a chip's `value` when the customer clicks a quick-reply
    * chip under this message - sent exactly like a typed message. */
   onQuickReply?: (value: string) => void;
+  /** Called when the customer clicks thumbs up/down on an AI or agent
+   * reply. Omitted (no feedback UI rendered) for the customer's own and
+   * system messages. */
+  onFeedback?: (isHelpful: boolean) => void;
 }) {
   const [zoomed, setZoomed] = useState(false);
 
@@ -116,6 +121,26 @@ export default function MessageBubble({
           </>
         )}
       </div>
+      {!isOwn && (message.sender_type === "ai" || message.sender_type === "agent") && onFeedback && !isPending && !isFailed && (
+        <div className="flex items-center gap-2.5 px-1">
+          <button
+            type="button"
+            onClick={() => onFeedback(true)}
+            aria-label="Mark this reply as helpful"
+            className={message.my_feedback === true ? "text-ink" : "text-gray-300 hover:text-gray-400"}
+          >
+            <ThumbsUp size={13} fill={message.my_feedback === true ? "currentColor" : "none"} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onFeedback(false)}
+            aria-label="Mark this reply as not helpful"
+            className={message.my_feedback === false ? "text-red-600" : "text-gray-300 hover:text-gray-400"}
+          >
+            <ThumbsDown size={13} fill={message.my_feedback === false ? "currentColor" : "none"} />
+          </button>
+        </div>
+      )}
       {!isOwn && message.sender_type === "ai" && onQuickReply && Array.isArray(message.metadata?.quick_replies) && (
         <div className="flex flex-wrap gap-1.5 px-1">
           {(message.metadata!.quick_replies as { label: string; value: string }[]).map((chip, i) => (

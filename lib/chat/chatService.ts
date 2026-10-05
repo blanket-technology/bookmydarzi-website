@@ -55,6 +55,17 @@ export async function rateSession(sessionUuid: string, score: number): Promise<v
   await apiClient(`${BASE}/sessions/${sessionUuid}/rate?score=${score}`, { method: "POST" });
 }
 
+export async function rateMessage(
+  sessionUuid: string,
+  messageId: number,
+  isHelpful: boolean,
+): Promise<void> {
+  await apiClient(
+    `${BASE}/sessions/${sessionUuid}/messages/${messageId}/feedback?is_helpful=${isHelpful}`,
+    { method: "POST" },
+  );
+}
+
 /**
  * Uploads an image via this site's dedicated multipart route (see
  * app/api/chat/upload/route.ts - the generic /api/proxy pass-through can't
