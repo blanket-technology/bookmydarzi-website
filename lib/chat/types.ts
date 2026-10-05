@@ -46,6 +46,9 @@ export interface ChatMessage {
   client_id: string | null;
   metadata: ChatMessageMetadata | null;
   created_at: string;
+  // Only meaningful for ai/agent messages - true/false if this user already
+  // voted on this message, null/undefined if they haven't.
+  my_feedback?: boolean | null;
 }
 
 export interface ChatMessagesResponse {

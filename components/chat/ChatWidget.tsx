@@ -44,6 +44,7 @@ export default function ChatWidget() {
     appendMessage,
     setCsatPrompt,
     submitCsat,
+    submitMessageFeedback,
     requestHuman,
     reset,
   } = useChatStore();
@@ -378,6 +379,7 @@ export default function ChatWidget() {
                           onRetry={m.deliveryStatus === "failed" ? () => handleRetry(m) : undefined}
                           showSenderLabel={showSenderLabel}
                           onQuickReply={handleSend}
+                          onFeedback={(isHelpful) => submitMessageFeedback(m.id, isHelpful)}
                         />
                       </div>
                     ))}

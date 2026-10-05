@@ -36,6 +36,9 @@ interface ChatState {
   setPeerReadUpToSeq: (seq: number) => void;
   requestHuman: () => Promise<void>;
   submitCsat: (score: number) => Promise<void>;
+  /** Thumbs up/down on an individual AI/agent message - optimistic local
+   * update, reverted if the request fails. */
+  submitMessageFeedback: (messageId: number, isHelpful: boolean) => Promise<void>;
   clearError: () => void;
   reset: () => void;
 }
@@ -139,6 +142,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ csatPrompt: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Failed to submit rating" });
+    }
+  },
+
+  submitMessageFeedback: async (messageId, isHelpful) => {
+    const { session, messages } = get();
+    if (!session) return;
+    const previous = messages.find((m) => m.id === messageId)?.my_feedback ?? null;
+    set((state) => ({
+      messages: state.messages.map((m) =>
+        m.id === messageId ? { ...m, my_feedback: isHelpful } : m,
+      ),
+    }));
+    try {
+      await chatService.rateMessage(session.uuid, messageId, isHelpful);
+    } catch (err) {
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.id === messageId ? { ...m, my_feedback: previous } : m,
+        ),
+        error: err instanceof Error ? err.message : "Failed to submit feedback",
+      }));
     }
   },
 
