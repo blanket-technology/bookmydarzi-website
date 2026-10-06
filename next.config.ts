@@ -30,7 +30,12 @@ const CSP = [
   // risk-detection/fraud-check bundle) once the widget opens - without
   // this, that load is silently CSP-blocked and only shows up as a console
   // warning, not a visible payment failure, so it's easy to miss.
-  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com https://cdn.razorpay.com`,
+  // googletagmanager.com is @next/third-parties' GoogleAnalytics component
+  // (app/layout.tsx) - same silent-block risk as Razorpay's bundle above
+  // if omitted here: GA_MEASUREMENT_ID being set would still render the
+  // script tag, but gtag.js itself would never actually load, so
+  // analytics would look "wired up" yet silently collect zero data.
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com https://cdn.razorpay.com https://www.googletagmanager.com`,
   // Next.js injects some critical CSS inline; nothing else does.
   "style-src 'self' 'unsafe-inline'",
   // Catalog/lookbook photos (ImageKit), the backend's built-in category
@@ -49,7 +54,11 @@ const CSP = [
   // calls (exact subdomain isn't documented/stable) - narrower than
   // wildcarding every host, and this is Razorpay's own checkout widget
   // making calls under its own control, not arbitrary third-party script.
-  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app https://*.razorpay.com",
+  // https://*.google-analytics.com and https://*.analytics.google.com
+  // cover GA4's event/beacon calls (gtag.js posts to a regional subdomain
+  // like region1.google-analytics.com, not a fixed one - same reasoning
+  // as the Razorpay wildcard above).
+  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app https://*.razorpay.com https://*.google-analytics.com https://*.analytics.google.com",
   // Razorpay's checkout renders inside an iframe it injects itself; the
   // Contact page embeds a Google Maps iframe for the office location.
   "frame-src https://checkout.razorpay.com https://api.razorpay.com https://www.google.com",
