@@ -1156,6 +1156,7 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Address | null>(null);
+  const [settingDefaultId, setSettingDefaultId] = useState<number | null>(null);
   const appliedInitialEditRef = useRef(false);
 
   const load = () => {
@@ -1207,6 +1208,22 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
     }
   };
 
+  // BUG-113: direct "Set as default" action on the address list itself -
+  // the capability already existed end-to-end (backend PATCH + the toggle
+  // inside AddressForm), it just wasn't surfaced as a one-click action
+  // without opening the full edit form first.
+  const handleSetDefault = async (id: number) => {
+    setSettingDefaultId(id);
+    try {
+      await apiClient(`/users/addresses/${id}`, { method: "PATCH", body: { is_default: true } });
+      load();
+    } catch {
+      setError("Couldn't set this address as default.");
+    } finally {
+      setSettingDefaultId(null);
+    }
+  };
+
   if (error && !addresses)
     return <div className="rounded-3xl bg-red-50 p-6 text-sm font-semibold text-red-700">{error}</div>;
   if (!addresses) return <div className="h-48 animate-pulse rounded-3xl bg-gray-100" />;
@@ -1243,10 +1260,18 @@ function AddressesTab({ initialEditId }: { initialEditId?: number | null }) {
                   <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-gray-600">
                     {addr.address_type}
                   </span>
-                  {addr.is_default && (
+                  {addr.is_default ? (
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#b4832e]">
                       Default
                     </span>
+                  ) : (
+                    <button
+                      onClick={() => handleSetDefault(addr.id)}
+                      disabled={settingDefaultId === addr.id}
+                      className="rounded-full border border-black/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-gray-500 hover:border-black/20 hover:text-[#171717] disabled:opacity-50"
+                    >
+                      {settingDefaultId === addr.id ? "Setting…" : "Set as default"}
+                    </button>
                   )}
                 </div>
                 <p className="mt-2 text-sm font-bold">{addr.full_name}</p>
