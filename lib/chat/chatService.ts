@@ -10,6 +10,7 @@ import type {
   ChatMessagesResponse,
   ChatSession,
   ChatUploadResult,
+  CloseSessionResponse,
   RequestAgentResponse,
 } from "./types";
 
@@ -53,6 +54,16 @@ export async function requestHuman(sessionUuid: string): Promise<RequestAgentRes
 
 export async function rateSession(sessionUuid: string, score: number): Promise<void> {
   await apiClient(`${BASE}/sessions/${sessionUuid}/rate?score=${score}`, { method: "POST" });
+}
+
+// Customer-initiated close (BUG-111) - lets the customer end a
+// conversation themselves instead of only an agent being able to resolve
+// it. Idempotent server-side; triggers the same session_resolved/
+// csat_prompt WS event the agent-resolve path already sends.
+export async function closeSession(sessionUuid: string): Promise<CloseSessionResponse> {
+  return apiClient<CloseSessionResponse>(`${BASE}/sessions/${sessionUuid}/close`, {
+    method: "POST",
+  });
 }
 
 export async function rateMessage(

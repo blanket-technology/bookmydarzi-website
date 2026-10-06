@@ -68,6 +68,11 @@ export interface RequestAgentResponse {
   session_status: ChatSessionStatus;
 }
 
+export interface CloseSessionResponse {
+  status: "resolved" | "already_closed";
+  session_status: ChatSessionStatus;
+}
+
 /** Local-only delivery state for an optimistically-appended message. Never
  * sent by the backend - set/cleared entirely on the client, mirroring
  * react_app's useSupportChatStore. */

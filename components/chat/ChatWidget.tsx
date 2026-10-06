@@ -46,6 +46,7 @@ export default function ChatWidget() {
     submitCsat,
     submitMessageFeedback,
     requestHuman,
+    closeSession,
     reset,
   } = useChatStore();
 
@@ -291,6 +292,21 @@ export default function ChatWidget() {
                 {user ? statusLabel : "Sign in to chat with us"}
               </p>
             </div>
+            {user && session && !isClosed && (
+              // BUG-111: previously only an agent could end a conversation -
+              // the customer had no way to close one themselves. One-way
+              // action (no "reopen"), so confirm first.
+              <button
+                onClick={() => {
+                  if (window.confirm("End this conversation? You can always start a new chat later.")) {
+                    closeSession();
+                  }
+                }}
+                className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold text-white/70 transition hover:bg-white/10 hover:text-white"
+              >
+                End chat
+              </button>
+            )}
             <button
               onClick={() => setOpen(false)}
               aria-label="Close chat"
