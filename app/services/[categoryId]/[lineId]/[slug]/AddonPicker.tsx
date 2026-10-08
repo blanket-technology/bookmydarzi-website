@@ -107,11 +107,6 @@ export default function AddonPicker({
                   </span>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-bold">{addon.name}</p>
-                    {addon.description && (
-                      <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-gray-500">
-                        {addon.description}
-                      </p>
-                    )}
                   </div>
                 </div>
                 <span
