@@ -41,7 +41,21 @@ export function InlineAddressForm({
   onSaved: (addr: Address) => Promise<void>;
   showCancel: boolean;
 }) {
-  const [form, setForm] = useState<AddressPayload>(EMPTY_ADDRESS_FORM);
+  // Survives an accidental refresh/navigation while filling this out -
+  // previously pure component state, so any reload silently lost
+  // everything typed. sessionStorage (not localStorage): per-tab, clears
+  // on tab close, and we explicitly clear it on cancel/successful save
+  // below so a stale draft never resurfaces on a later, unrelated visit.
+  const DRAFT_KEY = "bmd_address_draft";
+  const [form, setForm] = useState<AddressPayload>(() => {
+    if (typeof window === "undefined") return EMPTY_ADDRESS_FORM;
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      return saved ? { ...EMPTY_ADDRESS_FORM, ...JSON.parse(saved) } : EMPTY_ADDRESS_FORM;
+    } catch {
+      return EMPTY_ADDRESS_FORM;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const location = useAddressLocation();
@@ -52,7 +66,23 @@ export function InlineAddressForm({
   const [cityStateLocked, setCityStateLocked] = useState(false);
 
   const set = <K extends keyof AddressPayload>(key: K, value: AddressPayload[K]) =>
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((f) => {
+      const next = { ...f, [key]: value };
+      try {
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+      } catch {
+        // storage unavailable/full - draft recovery is a nice-to-have, never block typing over it
+      }
+      return next;
+    });
+
+  const clearDraft = () => {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const handlePincodeChange = (value: string) => {
     const digitsOnly = value.replace(/\D/g, "").slice(0, 6);
@@ -124,6 +154,7 @@ export function InlineAddressForm({
       });
       await onSaved(created);
       setForm(EMPTY_ADDRESS_FORM);
+      clearDraft();
       location.reset();
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Couldn't save this address.");
@@ -275,7 +306,10 @@ export function InlineAddressForm({
         </button>
         {showCancel && (
           <button
-            onClick={onCancel}
+            onClick={() => {
+              clearDraft();
+              onCancel();
+            }}
             className="rounded-xl border border-black/10 px-5 py-2.5 text-sm font-bold hover:bg-white"
           >
             Cancel
