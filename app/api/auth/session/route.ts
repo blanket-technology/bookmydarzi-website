@@ -35,11 +35,11 @@ export async function GET() {
   }
 
   try {
-    // bmdFetch reads the (possibly just-refreshed) access-token cookie
-    // itself and still retries once through its own 401->refresh path if
-    // the token we just obtained is somehow rejected (e.g. revoked
-    // concurrently) - this call doesn't need the token passed explicitly.
-    const user = await bmdFetch("/users/profile");
+    // Pass the token explicitly: when this request piggybacked on another
+    // in-flight refresh of the same session, its own cookie store still holds
+    // the stale/absent token. bmdFetch still retries once through its own
+    // 401->refresh path if this token is somehow rejected.
+    const user = await bmdFetch("/users/profile", { accessToken: token });
     return NextResponse.json({ user });
   } catch {
     return NextResponse.json({ user: null });
