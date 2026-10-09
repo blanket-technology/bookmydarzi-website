@@ -1,4 +1,5 @@
 import "server-only";
+import { headers as requestHeaders } from "next/headers";
 import { BMD_API_V1 } from "./config";
 import { clearSessionCookies, getAccessToken, getRefreshToken, setSessionCookies } from "./session";
 import { extractApiErrorMessage } from "./apiErrorMessage";
@@ -27,19 +28,30 @@ interface RequestOptions {
   /** Extra headers to forward as-is, e.g. Idempotency-Key on order/cart
    * mutations - see lib/idempotency.ts. */
   extraHeaders?: Record<string, string>;
+  /** Use this access token instead of the cookie. Set after a refresh: a
+   * request that piggybacked on another request's in-flight refresh never
+   * got the new cookie written to ITS cookie store, so re-reading the cookie
+   * would resend the stale token. */
+  accessToken?: string;
   /** Internal - marks a request as already retried after a 401 refresh. */
   _retried?: boolean;
 }
 
 // The backend rotates refresh tokens on every use (old one is revoked, reuse
 // is treated as a stolen-token replay and revokes the whole session family -
-// see app/services/auth/refresh_service.py). If two requests hit a 401
-// around the same moment and both call this independently, the second one's
-// refresh token is already revoked by the first's rotation, which nukes the
-// session instead of just refreshing it. Sharing one in-flight promise per
-// server instance keeps concurrent 401s on the same request-response cycle
-// from racing each other.
-let refreshInFlight: Promise<string | null> | null = null;
+// see app/services/auth/refresh_service.py). If two requests of the SAME
+// session hit a 401 around the same moment and both call this independently,
+// the second one's refresh token is already revoked by the first's rotation,
+// which nukes the session instead of just refreshing it. Sharing one in-flight
+// promise keeps concurrent 401s of one session from racing each other.
+//
+// The map is keyed by the caller's refresh token. A single module-level
+// promise (the previous implementation) is shared by EVERY visitor hitting
+// this server instance, so while user A's refresh was in flight, user B's
+// concurrent refresh returned A's promise - and routes that hand the result to
+// the browser (app/api/chat/ws-token, app/api/auth/session) gave B user A's
+// freshly minted access token.
+const refreshInFlight = new Map<string, Promise<string | null>>();
 
 // Exported so callers outside the normal 401-triggered retry path (e.g. the
 // WS auth-token route, which hands a token to the browser for a raw socket
@@ -48,15 +60,16 @@ let refreshInFlight: Promise<string | null> | null = null;
 // instead of duplicating refresh logic or handing back a token guaranteed
 // to be rejected by the backend.
 export async function doRefresh(): Promise<string | null> {
-  if (refreshInFlight) return refreshInFlight;
+  const refreshToken = await getRefreshToken();
+  if (!refreshToken) return null;
 
-  refreshInFlight = (async () => {
-    const refreshToken = await getRefreshToken();
-    if (!refreshToken) return null;
+  const existing = refreshInFlight.get(refreshToken);
+  if (existing) return existing;
 
+  const attempt = (async () => {
     const res = await fetch(`${BMD_API_V1}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await visitorIpHeader("/auth/refresh")) },
       body: JSON.stringify({ refresh_token: refreshToken }),
       cache: "no-store",
     });
@@ -71,10 +84,28 @@ export async function doRefresh(): Promise<string | null> {
     return accessToken;
   })();
 
+  refreshInFlight.set(refreshToken, attempt);
   try {
-    return await refreshInFlight;
+    return await attempt;
   } finally {
-    refreshInFlight = null;
+    refreshInFlight.delete(refreshToken);
+  }
+}
+
+// The backend rate-limits /auth/* (OTP request 5/min, login 5/min, ...) per
+// source IP. Every website visitor reaches it through this server, so without
+// forwarding the visitor's address they all share one bucket: a handful of
+// logins per minute site-wide, then 429 for everybody. Only /auth/* calls
+// read request headers - touching headers() opts a route into dynamic
+// rendering, which public catalog fetches must not pay for.
+async function visitorIpHeader(endpoint: string): Promise<Record<string, string>> {
+  if (!endpoint.startsWith("/auth/")) return {};
+  try {
+    const h = await requestHeaders();
+    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
+    return ip ? { "X-Forwarded-For": ip } : {};
+  } catch {
+    return {}; // outside a request scope
   }
 }
 
@@ -82,16 +113,24 @@ export async function bmdFetch<T = unknown>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = "GET", body, skipAuth = false, extraHeaders, _retried = false } = options;
+  const {
+    method = "GET",
+    body,
+    skipAuth = false,
+    extraHeaders,
+    accessToken,
+    _retried = false,
+  } = options;
 
   const headers: Record<string, string> = {
     Accept: "application/json",
+    ...(await visitorIpHeader(endpoint)),
     ...extraHeaders,
   };
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
   if (!skipAuth) {
-    const token = await getAccessToken();
+    const token = accessToken ?? (await getAccessToken());
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
@@ -105,7 +144,7 @@ export async function bmdFetch<T = unknown>(
   if (res.status === 401 && !skipAuth && !_retried) {
     const refreshed = await doRefresh();
     if (refreshed) {
-      return bmdFetch<T>(endpoint, { ...options, _retried: true });
+      return bmdFetch<T>(endpoint, { ...options, accessToken: refreshed, _retried: true });
     }
     await clearSessionCookies();
   }
