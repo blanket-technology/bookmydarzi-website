@@ -1061,8 +1061,8 @@ function AddressForm({
             </p>
           )}
           {pincodeLookup.status === "not-found" && (
-            <p className="mt-1 text-xs font-semibold text-red-600">
-              Pincode not found - enter city/state manually.
+            <p className="mt-1 text-xs font-semibold text-amber-700">
+              Couldn&apos;t auto-fill city/state for this pincode - please enter them below.
             </p>
           )}
           {pincodeLookup.status === "error" && (
