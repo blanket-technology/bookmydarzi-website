@@ -103,7 +103,16 @@ async function visitorIpHeader(endpoint: string): Promise<Record<string, string>
   try {
     const h = await requestHeaders();
     const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "";
-    return ip ? { "X-Forwarded-For": ip } : {};
+    if (!ip) return {};
+    // The backend only trusts the right-most X-Forwarded-For entry (the one its
+    // own proxy added - a client can forge everything to the left), which for
+    // this server-side caller is the same address for every visitor. When the
+    // shared secret is configured, assert the real visitor address explicitly;
+    // the backend checks the secret in constant time (TRUSTED_CLIENT_IP_SECRET).
+    const secret = process.env.BMD_CLIENT_IP_SECRET;
+    return secret
+      ? { "X-Forwarded-For": ip, "X-BMD-Client-IP": ip, "X-BMD-Client-IP-Secret": secret }
+      : { "X-Forwarded-For": ip };
   } catch {
     return {}; // outside a request scope
   }
