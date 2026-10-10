@@ -40,6 +40,7 @@ export async function POST(request: Request) {
     if (err instanceof ApiError) {
       return NextResponse.json({ message: err.message }, { status: err.status });
     }
+    console.error("[mobile-otp-verify] unexpected failure:", err);
     return NextResponse.json({ message: "OTP verification failed. Please try again." }, { status: 500 });
   }
 }

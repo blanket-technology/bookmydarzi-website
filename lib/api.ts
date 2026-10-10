@@ -143,12 +143,18 @@ export async function bmdFetch<T = unknown>(
     if (token) headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${BMD_API_V1}${endpoint}`, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BMD_API_V1}${endpoint}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: "no-store",
+    });
+  } catch (err) {
+    console.error(`[bmdFetch] ${method} ${endpoint} network failure:`, err);
+    throw new ApiError(503, "We couldn't reach our servers. Please try again in a moment.");
+  }
 
   if (res.status === 401 && !skipAuth && !_retried) {
     const refreshed = await doRefresh();
@@ -159,9 +165,24 @@ export async function bmdFetch<T = unknown>(
   }
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Proxy/gateway error pages (e.g. a Railway 502) are HTML, not JSON.
+      console.error(`[bmdFetch] ${method} ${endpoint} returned non-JSON (HTTP ${res.status}): ${text.slice(0, 200)}`);
+      throw new ApiError(
+        res.ok ? 502 : res.status,
+        "Our servers are having trouble right now. Please try again in a moment.",
+      );
+    }
+  }
 
   if (!res.ok) {
+    if (res.status >= 500) {
+      console.error(`[bmdFetch] ${method} ${endpoint} -> HTTP ${res.status}`, data);
+    }
     throw new ApiError(res.status, extractApiErrorMessage(res.status, data), data);
   }
 
