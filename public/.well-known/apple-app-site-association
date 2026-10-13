@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["TODO_APPLE_TEAM_ID.com.darziapp.mobile"],
+        "appIDs": ["92DBZ498Y3.com.darziapp.mobile"],
         "components": [
           { "/": "/app/*" }
         ]
