@@ -99,14 +99,17 @@ function SearchResults() {
                 href={entry.href}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
               >
-                <div className="relative aspect-square w-full overflow-hidden bg-gradient-to-br from-stone-200 to-stone-300">
+                {/* aspect-[3/2]: matches the real catalog image shape (see
+                    ServicesGrid.tsx's fix) - square previously cropped the
+                    wider/infographic-style images. */}
+                <div className="relative aspect-[3/2] w-full overflow-hidden bg-gradient-to-br from-stone-200 to-stone-300">
                   {entry.imageUrl && (
                     <Image
                       src={entry.imageUrl}
                       alt={entry.name}
                       fill
                       sizes="(min-width: 1024px) 25vw, 50vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
                     />
                   )}
                 </div>

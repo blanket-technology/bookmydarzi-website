@@ -160,20 +160,28 @@ function ServiceCard({
       className="group flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl"
     >
       {showImage ? (
-        <div className="relative aspect-square w-full overflow-hidden">
+        // aspect-[3/2]: every catalog image uploaded so far (old product
+        // photos and the newer infographic-style banners alike) is a 3:2
+        // source image, not square - aspect-square previously center-cropped
+        // all of them, which only looked visibly broken on the banners
+        // since their important content (product photo + text) isn't
+        // centered. Matching the card to the real image shape means nothing
+        // is ever cropped, on this card or any future upload at the same
+        // ratio.
+        <div className="relative aspect-[3/2] w-full overflow-hidden">
           <Image
             src={line.image_url!}
             alt={line.name}
             fill
             sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 50vw"
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-300 group-hover:scale-110"
             loading={index < 4 ? "eager" : "lazy"}
             onError={() => setImgError(true)}
           />
         </div>
       ) : (
         <div
-          className={`flex aspect-square w-full items-end bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-3 sm:p-4`}
+          className={`flex aspect-[3/2] w-full items-end bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-3 sm:p-4`}
         >
           <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider sm:px-3 sm:py-1.5 sm:text-[10px]">
             {categoryName}

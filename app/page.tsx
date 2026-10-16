@@ -106,14 +106,15 @@ export default async function Home() {
               href={`/services/${categoryId}/${line.id}`}
               className="hover-lift group block rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:shadow-xl"
             >
-              {/* aspect-square + object-cover, not a fixed h-64 - the
-                  catalog's photos are a genuine mix of portrait/landscape
-                  shots (checked across the real data), so a fixed-height
-                  wide box crops some of them oddly (e.g. a pair of trousers
-                  shot portrait). Square is the best universal crop target
-                  across that mix, same fix already applied on /services. */}
+              {/* aspect-[3/2], not square: every catalog image uploaded so
+                  far is actually 3:2, not square - forcing a square crop
+                  here cut off real content on wider/infographic-style
+                  images elsewhere in the catalog (see the matching fix on
+                  /services' ServicesGrid.tsx). Kept in sync with that page's
+                  ratio rather than reintroducing a second, different crop
+                  target for the same image source. */}
               {line.image_url ? (
-                <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl">
                   <ParallaxImage strength={14} className="absolute inset-0 scale-110">
                     <Image
                       src={line.image_url}
@@ -126,7 +127,7 @@ export default async function Home() {
                 </div>
               ) : (
                 <div
-                  className={`flex aspect-square items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
+                  className={`flex aspect-[3/2] items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
                 >
                   <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
                     Popular
