@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { MapPin, X } from "lucide-react";
 import { useAddressLocation } from "@/lib/useAddressLocation";
+import { useAuth } from "@/lib/useAuth";
 import { registerServiceAreaInterest } from "@/lib/serviceAreaInterest";
 
 // Bug fix: this used to re-show on every page load/refresh with no
@@ -56,6 +57,20 @@ export default function PincodeServiceabilityCheck() {
   const location = useAddressLocation();
   const [dismissed, setDismissed] = useState(false);
   const [interestState, setInterestState] = useState<"idle" | "submitting" | "done">("idle");
+  // Bug fix: this used to show the "not in your area" interruption popup
+  // off a live browser GPS read for EVERY visitor, including a LOGGED-IN
+  // customer with an already-saved, already-serviceable address. Browser/
+  // OS geolocation is frequently wrong or wildly imprecise (VMs, desktops
+  // with no GPS hardware, IP-based fallback location) - a customer whose
+  // real saved address is genuinely in the service area was being told
+  // "we don't serve your area" based on an unrelated, inaccurate detected
+  // position. GPS detection itself still runs the same as before (other
+  // code may still want location.coords/serviceability) - only the popup
+  // is now suppressed once we know the visitor is logged in, since a
+  // logged-in customer's real serviceability is already a solved, known
+  // question that a fresh unrelated GPS read must never contradict.
+  const { user, checked } = useAuth();
+  const isLoggedIn = checked && !!user;
 
   useEffect(() => {
     if (wasRecentlyDismissed()) return;
@@ -87,7 +102,10 @@ export default function PincodeServiceabilityCheck() {
   };
 
   const showPopup =
-    !dismissed && location.serviceability != null && location.serviceability.serviceable === false;
+    !dismissed &&
+    !isLoggedIn &&
+    location.serviceability != null &&
+    location.serviceability.serviceable === false;
 
   if (!showPopup) return null;
 
