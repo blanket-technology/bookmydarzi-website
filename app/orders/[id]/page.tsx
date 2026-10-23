@@ -1075,37 +1075,21 @@ function CancelOrderItemModal({
 
         {!loadingPreview && preview && preview.cancellation_allowed && (
           <>
-            <p className="mt-4 text-sm text-gray-500">This can&apos;t be undone.</p>
+            <p className="mt-4 text-sm text-gray-500">
+              This can&apos;t be undone. Cancelling a single item is always free - no cancellation charge.
+            </p>
 
             {preview.payment_type === "prepaid" ? (
               <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Item price</span>
-                  <span className="font-semibold">{money(preview.item_price)}</span>
-                </div>
-                {preview.penalty_amount > 0 && (
-                  <div className="mt-2 flex justify-between text-red-600">
-                    <span>Cancellation charges</span>
-                    <span className="font-semibold">-{money(preview.penalty_amount)}</span>
-                  </div>
-                )}
-                <div className="mt-2 flex justify-between border-t border-black/5 pt-2 text-base">
+                <div className="flex justify-between border-b border-black/5 pb-2 text-base">
                   <span className="font-black">Refund amount</span>
                   <span className="font-black text-green-700">{money(preview.refund_amount)}</span>
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  Refund will be processed to your original payment method within 5-7 business days.
+                  Full item price, refunded to your original payment method within 5-7 business days.
                 </p>
               </div>
-            ) : preview.penalty_amount > 0 ? (
-              <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                A cancellation charge of {money(preview.penalty_amount)} will be applicable on your next order.
-              </div>
             ) : null}
-
-            {preview.policy_description && (
-              <p className="mt-4 text-xs leading-5 text-gray-400">{preview.policy_description}</p>
-            )}
 
             <div className="mt-5">
               <p className="text-xs font-bold uppercase tracking-wide text-gray-400">

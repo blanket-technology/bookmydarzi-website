@@ -1003,34 +1003,55 @@ export default function CheckoutPage() {
           <p className="mt-4 text-center text-[10px] text-gray-400">By placing this order, you agree to our terms.</p>
 
           {cancellationPolicy.length > 0 && (
-            <details className="mt-4 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600 [&_summary]:cursor-pointer">
-              <summary className="font-bold uppercase tracking-wide text-gray-400">
-                Cancellation &amp; refund policy
-              </summary>
-              <ul className="mt-3 space-y-2.5">
-                {cancellationPolicy.map((stage) => (
-                  <li key={stage.Id}>
-                    <p className="font-semibold text-gray-700">
-                      {stage.DisplayStage}
-                      {stage.CancellationAllowed ? (
-                        stage.PenaltyPct ? (
-                          <span className="ml-1.5 font-normal text-gray-500">
-                            &mdash; {stage.PenaltyPct}% cancellation charge
-                          </span>
-                        ) : (
-                          <span className="ml-1.5 font-normal text-green-700">&mdash; free to cancel</span>
-                        )
-                      ) : (
-                        <span className="ml-1.5 font-normal text-red-500">&mdash; cannot be cancelled</span>
-                      )}
-                    </p>
-                    {stage.PolicyDescription && (
-                      <p className="mt-0.5 text-gray-500">{stage.PolicyDescription}</p>
-                    )}
-                  </li>
-                ))}
+            <div className="mt-4 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600">
+              <p className="font-bold uppercase tracking-wide text-gray-400">Cancellation &amp; refund policy</p>
+              <ul className="mt-2.5 space-y-1.5">
+                <li className="flex items-start gap-1.5">
+                  <span className="mt-0.5 text-green-600">&bull;</span>
+                  <span>Free to cancel an individual item at any time, no charge.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="mt-0.5 text-green-600">&bull;</span>
+                  <span>Free to cancel the whole order before a tailor is assigned.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="mt-0.5 text-amber-600">&bull;</span>
+                  <span>Once a tailor is searching or assigned, a small cancellation charge may apply.</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="mt-0.5 text-red-500">&bull;</span>
+                  <span>Once stitching has started, contact support to cancel.</span>
+                </li>
               </ul>
-            </details>
+              <details className="mt-3 [&_summary]:cursor-pointer">
+                <summary className="text-[11px] font-semibold text-gray-400 hover:text-gray-600">
+                  View full stage-by-stage policy
+                </summary>
+                <ul className="mt-2.5 space-y-2.5 border-t border-black/5 pt-2.5">
+                  {cancellationPolicy.map((stage) => (
+                    <li key={stage.Id}>
+                      <p className="font-semibold text-gray-700">
+                        {stage.DisplayStage}
+                        {stage.CancellationAllowed ? (
+                          stage.PenaltyPct ? (
+                            <span className="ml-1.5 font-normal text-gray-500">
+                              &mdash; {stage.PenaltyPct}% cancellation charge
+                            </span>
+                          ) : (
+                            <span className="ml-1.5 font-normal text-green-700">&mdash; free to cancel</span>
+                          )
+                        ) : (
+                          <span className="ml-1.5 font-normal text-red-500">&mdash; cannot be cancelled</span>
+                        )}
+                      </p>
+                      {stage.PolicyDescription && (
+                        <p className="mt-0.5 text-gray-500">{stage.PolicyDescription}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </div>
           )}
         </aside>
       </div>
