@@ -165,6 +165,30 @@ interface CancellationPreview {
   policy_description: string | null;
 }
 
+// Per-item sibling of CancellationPreview above - cancel ONE line item
+// within a multi-item order, without cancelling the whole order. See
+// app/services/cancellation/item_cancellation_service.py.
+interface ItemCancellationPreview {
+  order_id: number;
+  order_item_id: number;
+  order_code: string;
+  service_name: string | null;
+  current_stage: string;
+  display_stage: string;
+  payment_type: "prepaid" | "postpaid";
+  cancellation_allowed: boolean;
+  contact_support: boolean;
+  is_last_active_item: boolean;
+  item_price: number;
+  paid_amount: number;
+  penalty_pct: number;
+  penalty_amount: number;
+  refund_pct: number;
+  refund_amount: number;
+  policy_description: string | null;
+  cancel_reason: string | null;
+}
+
 interface TrackingStep {
   status: string;
   title: string;
@@ -931,6 +955,150 @@ function CancelOrderModal({
   );
 }
 
+// Per-item sibling of CancelOrderModal above - cancels ONE line item
+// within a multi-item order, without cancelling the whole order.
+function CancelOrderItemModal({
+  orderId,
+  itemId,
+  itemLabel,
+  onClose,
+  onCancelled,
+}: {
+  orderId: number;
+  itemId: number;
+  itemLabel?: string | null;
+  onClose: () => void;
+  onCancelled: () => void;
+}) {
+  const [preview, setPreview] = useState<ItemCancellationPreview | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(true);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient<ItemCancellationPreview>(`/orders/${orderId}/items/${itemId}/cancellation-preview`)
+      .then((res) => {
+        if (!cancelled) setPreview(res);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setPreviewError(
+            err instanceof ClientApiError ? err.message : "Could not load cancellation details.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPreview(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, itemId]);
+
+  const confirmCancel = useCallback(async () => {
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await apiClient(`/orders/${orderId}/items/${itemId}/cancel`, { method: "POST", body: { reason: null } });
+      onCancelled();
+    } catch (err) {
+      setCancelError(err instanceof ClientApiError ? err.message : "Cancellation failed. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  }, [orderId, itemId, onCancelled]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
+      <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-black">Cancel item?</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-gray-400 hover:bg-gray-100" aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+
+        {loadingPreview && (
+          <div className="mt-6 flex items-center justify-center py-8">
+            <Loader2 size={24} className="animate-spin text-gray-400" />
+          </div>
+        )}
+
+        {!loadingPreview && previewError && (
+          <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-700">{previewError}</p>
+        )}
+
+        {!loadingPreview && preview && !preview.cancellation_allowed && (
+          <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+            {preview.cancel_reason ?? "This item can no longer be cancelled from here."}
+          </p>
+        )}
+
+        {!loadingPreview && preview && preview.cancellation_allowed && (
+          <>
+            <p className="mt-3 text-sm text-gray-500">
+              {itemLabel ?? preview.service_name ?? "This item"} will be removed from your order. This can&apos;t be undone.
+            </p>
+
+            {preview.payment_type === "prepaid" ? (
+              <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Item price</span>
+                  <span className="font-semibold">{money(preview.item_price)}</span>
+                </div>
+                {preview.penalty_amount > 0 && (
+                  <div className="mt-2 flex justify-between text-red-600">
+                    <span>Cancellation charges</span>
+                    <span className="font-semibold">-{money(preview.penalty_amount)}</span>
+                  </div>
+                )}
+                <div className="mt-2 flex justify-between border-t border-black/5 pt-2 text-base">
+                  <span className="font-black">Refund amount</span>
+                  <span className="font-black text-green-700">{money(preview.refund_amount)}</span>
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  Refund will be processed to your original payment method within 5-7 business days.
+                </p>
+              </div>
+            ) : preview.penalty_amount > 0 ? (
+              <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                A cancellation charge of {money(preview.penalty_amount)} will be applicable on your next order.
+              </div>
+            ) : null}
+
+            {preview.policy_description && (
+              <p className="mt-4 text-xs leading-5 text-gray-400">{preview.policy_description}</p>
+            )}
+
+            {cancelError && (
+              <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{cancelError}</p>
+            )}
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={onClose}
+                disabled={cancelling}
+                className="flex-1 rounded-xl border border-black/10 py-3 text-sm font-bold hover:bg-gray-50 disabled:opacity-50"
+              >
+                Keep item
+              </button>
+              <button
+                onClick={confirmCancel}
+                disabled={cancelling}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {cancelling ? <Loader2 size={16} className="animate-spin" /> : "Yes, cancel"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Direct self-service reschedule, replacing the previous "open chat and type
 // a date" flow for the one case it's actually safe: PATCH
 // /customer/orders/{id}/reschedule-pickup only succeeds while the order is
@@ -1267,6 +1435,7 @@ export default function OrderDetailPage() {
   const [imageMap, setImageMap] = useState<Map<number, string | null>>(new Map());
 
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelItemTarget, setCancelItemTarget] = useState<{ id: number; label: string | null } | null>(null);
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [showIssueSelector, setShowIssueSelector] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
@@ -1898,7 +2067,10 @@ export default function OrderDetailPage() {
           <h2 className="text-lg font-black">Items in this order</h2>
           <div className="mt-4 divide-y divide-black/5">
             {lineItems.map((item, i) => (
-              <div key={item.order_item_id ?? i} className="flex flex-wrap items-start justify-between gap-4 py-4">
+              <div
+                key={item.order_item_id ?? i}
+                className={`flex flex-wrap items-start justify-between gap-4 py-4 ${item.is_cancelled ? "opacity-50" : ""}`}
+              >
                 <div className="flex items-start gap-4">
                   <ItemImage
                     imageUrl={item.service_id != null ? imageMap.get(item.service_id) : null}
@@ -1906,8 +2078,12 @@ export default function OrderDetailPage() {
                     className="h-14 w-14 shrink-0 rounded-xl"
                   />
                   <div>
-                    <p className="font-bold">{item.service_name ?? "Service"}</p>
-                    {item.category_name && <p className="text-xs text-gray-500">{item.category_name}</p>}
+                    <p className={`font-bold ${item.is_cancelled ? "line-through" : ""}`}>{item.service_name ?? "Service"}</p>
+                    {item.is_cancelled ? (
+                      <p className="text-xs font-semibold text-red-600">Cancelled</p>
+                    ) : (
+                      item.category_name && <p className="text-xs text-gray-500">{item.category_name}</p>
+                    )}
                     {item.person_name && (
                       <p className="mt-1 text-xs text-gray-400">For {item.person_name}</p>
                     )}
@@ -1945,12 +2121,38 @@ export default function OrderDetailPage() {
                     )}
                   </div>
                 </div>
-                <div className="text-right text-sm">
-                  <p className="text-gray-400">Qty {item.quantity}</p>
-                  <p className="font-black">{money(item.line_total)}</p>
-                  {item.addons.length > 0 && (
-                    <p className="text-[11px] text-gray-400">incl. add-ons</p>
-                  )}
+                <div className="flex items-start gap-3">
+                  <div className="text-right text-sm">
+                    <p className="text-gray-400">Qty {item.quantity}</p>
+                    <p className="font-black">{money(item.line_total)}</p>
+                    {item.addons.length > 0 && (
+                      <p className="text-[11px] text-gray-400">incl. add-ons</p>
+                    )}
+                  </div>
+                  {/* Per-item cancel - only on real multi-item orders, only
+                      while the order is still customer-cancellable, never
+                      on an already-cancelled item, and never when this
+                      would be the LAST active item (that's a whole-order
+                      cancel instead - see item_cancellation_service.py's
+                      is_last_active_item guard, re-validated server-side
+                      regardless of this client-side check). */}
+                  {canCancel &&
+                    lineItems.length > 1 &&
+                    item.order_item_id != null &&
+                    !item.is_cancelled &&
+                    lineItems.filter((x) => !x.is_cancelled).length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCancelItemTarget({ id: item.order_item_id as number, label: item.service_name })
+                        }
+                        title="Cancel this item"
+                        aria-label="Cancel this item"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
                 </div>
               </div>
             ))}
@@ -2114,6 +2316,19 @@ export default function OrderDetailPage() {
           onClose={() => setShowCancelModal(false)}
           onCancelled={() => {
             setShowCancelModal(false);
+            loadOrder();
+          }}
+        />
+      )}
+
+      {cancelItemTarget && (
+        <CancelOrderItemModal
+          orderId={order.order.order_id}
+          itemId={cancelItemTarget.id}
+          itemLabel={cancelItemTarget.label}
+          onClose={() => setCancelItemTarget(null)}
+          onCancelled={() => {
+            setCancelItemTarget(null);
             loadOrder();
           }}
         />

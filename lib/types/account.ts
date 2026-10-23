@@ -141,6 +141,10 @@ export interface CustomerOrderLineItem {
    * pickup (e.g. Button Replacement) - see SelectedAddonSummary on the
    * backend. */
   addons: CustomerOrderLineItemAddon[];
+  /** True once this item has been individually cancelled - see
+   * item_cancellation_service.py. The order stays active with its
+   * remaining items; only this one line is dropped. */
+  is_cancelled?: boolean;
 }
 
 export interface CustomerDetailsAddress {
