@@ -955,6 +955,21 @@ function CancelOrderModal({
   );
 }
 
+// Common reasons a customer drops a single item, shown as quick-pick chips
+// before confirming - "Other" reveals a free-text field. Mirrors the kind
+// of reason picker most e-commerce cancel flows use instead of a blank
+// textbox nobody fills in, while staying optional (backend's
+// CancelOrderRequest.reason is Optional[str], never required for a
+// customer self-cancel).
+const CANCEL_ITEM_REASONS = [
+  "Ordered by mistake",
+  "Found a better price elsewhere",
+  "No longer needed",
+  "Taking too long",
+  "Wrong size or measurement",
+  "Other",
+];
+
 // Per-item sibling of CancelOrderModal above - cancels ONE line item
 // within a multi-item order, without cancelling the whole order.
 function CancelOrderItemModal({
@@ -975,6 +990,8 @@ function CancelOrderItemModal({
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [otherReason, setOtherReason] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -997,25 +1014,45 @@ function CancelOrderItemModal({
     };
   }, [orderId, itemId]);
 
+  const resolvedReason =
+    selectedReason === "Other" ? otherReason.trim() || null : selectedReason;
+
   const confirmCancel = useCallback(async () => {
     setCancelling(true);
     setCancelError(null);
     try {
-      await apiClient(`/orders/${orderId}/items/${itemId}/cancel`, { method: "POST", body: { reason: null } });
+      await apiClient(`/orders/${orderId}/items/${itemId}/cancel`, {
+        method: "POST",
+        body: { reason: resolvedReason },
+      });
       onCancelled();
     } catch (err) {
       setCancelError(err instanceof ClientApiError ? err.message : "Cancellation failed. Please try again.");
     } finally {
       setCancelling(false);
     }
-  }, [orderId, itemId, onCancelled]);
+  }, [orderId, itemId, resolvedReason, onCancelled]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4">
       <div className="w-full max-w-md rounded-t-3xl bg-white p-6 sm:rounded-3xl">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-black">Cancel item?</h3>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full text-gray-400 hover:bg-gray-100" aria-label="Close">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-red-50 text-red-600">
+            <X size={20} />
+          </span>
+          <div className="min-w-0 flex-1 pt-1">
+            <h3 className="text-lg font-black leading-tight">Cancel this item?</h3>
+            {(itemLabel || preview?.service_name) && (
+              <p className="mt-0.5 truncate text-sm font-semibold text-gray-500">
+                {itemLabel ?? preview?.service_name}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-gray-400 hover:bg-gray-100"
+            aria-label="Close"
+          >
             <X size={18} />
           </button>
         </div>
@@ -1038,9 +1075,7 @@ function CancelOrderItemModal({
 
         {!loadingPreview && preview && preview.cancellation_allowed && (
           <>
-            <p className="mt-3 text-sm text-gray-500">
-              {itemLabel ?? preview.service_name ?? "This item"} will be removed from your order. This can&apos;t be undone.
-            </p>
+            <p className="mt-4 text-sm text-gray-500">This can&apos;t be undone.</p>
 
             {preview.payment_type === "prepaid" ? (
               <div className="mt-4 rounded-2xl bg-gray-50 p-4 text-sm">
@@ -1072,6 +1107,42 @@ function CancelOrderItemModal({
               <p className="mt-4 text-xs leading-5 text-gray-400">{preview.policy_description}</p>
             )}
 
+            <div className="mt-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                Why are you cancelling? (optional)
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                {CANCEL_ITEM_REASONS.map((reasonOption) => {
+                  const active = selectedReason === reasonOption;
+                  return (
+                    <button
+                      key={reasonOption}
+                      type="button"
+                      onClick={() => setSelectedReason(active ? null : reasonOption)}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
+                        active
+                          ? "border-[#171717] bg-[#171717] text-white"
+                          : "border-black/10 text-gray-600 hover:bg-gray-50"
+                      }`}
+                    >
+                      {reasonOption}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedReason === "Other" && (
+                <textarea
+                  rows={2}
+                  autoFocus
+                  value={otherReason}
+                  onChange={(e) => setOtherReason(e.target.value)}
+                  placeholder="Tell us a bit more..."
+                  maxLength={500}
+                  className="mt-2.5 w-full resize-none rounded-xl border border-black/10 bg-gray-50 px-3 py-2 text-sm outline-none transition focus:bg-white focus:ring-2 focus:ring-gray-300"
+                />
+              )}
+            </div>
+
             {cancelError && (
               <p className="mt-4 rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{cancelError}</p>
             )}
@@ -1089,7 +1160,7 @@ function CancelOrderItemModal({
                 disabled={cancelling}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
               >
-                {cancelling ? <Loader2 size={16} className="animate-spin" /> : "Yes, cancel"}
+                {cancelling ? <Loader2 size={16} className="animate-spin" /> : "Yes, cancel item"}
               </button>
             </div>
           </>
