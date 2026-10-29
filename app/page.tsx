@@ -106,15 +106,23 @@ export default async function Home() {
               href={`/services/${categoryId}/${line.id}`}
               className="hover-lift group block rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:shadow-xl"
             >
-              {/* aspect-[3/2], not square: every catalog image uploaded so
-                  far is actually 3:2, not square - forcing a square crop
-                  here cut off real content on wider/infographic-style
-                  images elsewhere in the catalog (see the matching fix on
-                  /services' ServicesGrid.tsx). Kept in sync with that page's
-                  ratio rather than reintroducing a second, different crop
-                  target for the same image source. */}
+              {/* Bug fix: this was changed to aspect-[3/2] on the incorrect
+                  assumption that uploaded catalog images are 3:2, not
+                  square - every image actually checked (1254x1254,
+                  1433x1433) is a clean 1:1 square, which the admin
+                  catalog-image upload tool enforces via a mandatory 1:1
+                  crop step (final/src/components/common/ImageCropModal.jsx,
+                  aspect={1}) specifically so every surface renders the same
+                  square framing. Forcing a square source into a 1.5:1-wide
+                  box with object-cover scaled it up to fill the box's
+                  height and clipped the left/right edges - on these
+                  two-panel garment-photo + numbered-instructions composite
+                  images, that cut the instructions off mid-text. Matches
+                  the admin tool's actual output instead of a guess at it;
+                  kept in sync with the same fix on /services'
+                  ServicesGrid.tsx. */}
               {line.image_url ? (
-                <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
                   <ParallaxImage strength={14} className="absolute inset-0 scale-110">
                     <Image
                       src={line.image_url}

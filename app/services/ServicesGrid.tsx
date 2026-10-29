@@ -160,15 +160,19 @@ function ServiceCard({
       className="group flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg sm:rounded-3xl"
     >
       {showImage ? (
-        // aspect-[3/2]: every catalog image uploaded so far (old product
-        // photos and the newer infographic-style banners alike) is a 3:2
-        // source image, not square - aspect-square previously center-cropped
-        // all of them, which only looked visibly broken on the banners
-        // since their important content (product photo + text) isn't
-        // centered. Matching the card to the real image shape means nothing
-        // is ever cropped, on this card or any future upload at the same
-        // ratio.
-        <div className="relative aspect-[3/2] w-full overflow-hidden">
+        // Bug fix: this was changed to aspect-[3/2] on the incorrect
+        // assumption that uploaded catalog images are 3:2, not square -
+        // every image actually checked (1254x1254, 1433x1433) is a clean
+        // 1:1 square, which the admin catalog-image upload tool enforces
+        // via a mandatory 1:1 crop step (final/src/components/common/
+        // ImageCropModal.jsx, aspect={1}) specifically so every surface
+        // renders the same square framing. Forcing a square source into a
+        // 1.5:1-wide box with object-cover scaled it up to fill the box's
+        // height and clipped the left/right edges - on these two-panel
+        // garment-photo + numbered-instructions composite images, that cut
+        // the instructions off mid-text. Matches the admin tool's actual
+        // output instead of a guess at it.
+        <div className="relative aspect-square w-full overflow-hidden">
           <Image
             src={line.image_url!}
             alt={line.name}
@@ -181,7 +185,7 @@ function ServiceCard({
         </div>
       ) : (
         <div
-          className={`flex aspect-[3/2] w-full items-end bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-3 sm:p-4`}
+          className={`flex aspect-square w-full items-end bg-gradient-to-br ${CARD_BACKGROUNDS[index % CARD_BACKGROUNDS.length]} p-3 sm:p-4`}
         >
           <span className="rounded-full bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider sm:px-3 sm:py-1.5 sm:text-[10px]">
             {categoryName}
