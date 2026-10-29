@@ -38,7 +38,17 @@ export default function FeaturedHeroCard({ featured }: { featured: FeaturedLine[
   return (
     <div className="relative mx-auto w-full max-w-[520px]">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#c99a3d]/20 blur-2xl" />
-      <div className="relative flex h-[420px] items-end overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d7d0c5] via-[#a79e91] to-[#625d56] p-5 shadow-2xl md:h-[500px] md:p-7">
+      {/* Bug fix: this was a fixed h-[420px]/h-[500px] box against a
+          max-w-[520px] width - not square, while the catalog images shown
+          here are the same 1:1 squares ImageCropModal.jsx enforces on
+          upload. object-cover scaled the square image to fill the taller-
+          than-wide box's extra height and cropped the left/right edges.
+          aspect-square matches the box to the image's real ratio so
+          nothing is cropped, with no gaps for the white info card
+          overlaid at the bottom to look broken against (unlike
+          ProcessScrollytelling's fixed-height section, nothing else
+          depends on this box's exact pixel height). */}
+      <div className="relative flex aspect-square w-full items-end overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#d7d0c5] via-[#a79e91] to-[#625d56] p-5 shadow-2xl md:p-7">
         {featured.map((f, i) => (
           f.line.image_url && (
             <Image
