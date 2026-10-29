@@ -132,7 +132,7 @@ export default async function Home() {
                     alt={line.name}
                     fill
                     sizes="(min-width: 768px) 33vw, 100vw"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
               ) : (
