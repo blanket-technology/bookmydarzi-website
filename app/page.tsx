@@ -9,7 +9,6 @@ import { TRUST_SIGNALS } from "@/lib/trustContent";
 import ScrollReveal from "@/components/ScrollReveal";
 import HeroPinned from "@/components/homepage-motion/HeroPinned";
 import ProcessScrollytelling from "@/components/homepage-motion/ProcessScrollytelling";
-import ParallaxImage from "@/components/homepage-motion/ParallaxImage";
 
 export const metadata: Metadata = {
   title: "Doorstep Tailoring & Alterations in Delhi NCR",
@@ -113,25 +112,28 @@ export default async function Home() {
                   catalog-image upload tool enforces via a mandatory 1:1
                   crop step (final/src/components/common/ImageCropModal.jsx,
                   aspect={1}) specifically so every surface renders the same
-                  square framing. Forcing a square source into a 1.5:1-wide
-                  box with object-cover scaled it up to fill the box's
-                  height and clipped the left/right edges - on these
-                  two-panel garment-photo + numbered-instructions composite
-                  images, that cut the instructions off mid-text. Matches
-                  the admin tool's actual output instead of a guess at it;
-                  kept in sync with the same fix on /services'
-                  ServicesGrid.tsx. */}
+                  square framing. Matches the admin tool's actual output
+                  instead of a guess at it; kept in sync with the same fix
+                  on /services' ServicesGrid.tsx.
+
+                  Also dropped ParallaxImage's scale-110 wrapper here: that
+                  10% overscan (headroom for the vertical parallax tween to
+                  shift the image without revealing empty space at the
+                  edges) was itself clipping these specific images, which
+                  are two-panel garment-photo + numbered-instructions
+                  composites that fill their square canvas edge to edge -
+                  unlike a typical photo, there's no slack to crop into
+                  here. A still image shows the catalog accurately; the
+                  parallax effect was never load-bearing on these cards. */}
               {line.image_url ? (
                 <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
-                  <ParallaxImage strength={14} className="absolute inset-0 scale-110">
-                    <Image
-                      src={line.image_url}
-                      alt={line.name}
-                      fill
-                      sizes="(min-width: 768px) 33vw, 100vw"
-                      className="object-cover"
-                    />
-                  </ParallaxImage>
+                  <Image
+                    src={line.image_url}
+                    alt={line.name}
+                    fill
+                    sizes="(min-width: 768px) 33vw, 100vw"
+                    className="object-cover"
+                  />
                 </div>
               ) : (
                 <div
