@@ -84,12 +84,29 @@ export default function ChatWidget() {
 
   // Bootstrap the session the first time the panel is opened by a logged-in
   // user - general support, no order_id.
+  //
+  // Bug fix: hasInitialized only ever reset on true component unmount (the
+  // widget lives for the whole app lifetime, so that's effectively never),
+  // so once a session was resolved via "End chat", simply closing and
+  // reopening the bubble in the same tab/page load re-rendered the exact
+  // same resolved session with its full old history instead of asking for
+  // a new one - initSession() was never called again at all. Re-arming
+  // here whenever the panel reopens on an already-closed session (mirrors
+  // the Retry button's own reset-then-reinit pattern below) means the next
+  // open gets a fresh session, same as a logged-in user expects from
+  // "End chat" on the website.
   useEffect(() => {
+    const currentlyClosed = session?.status === "resolved" || session?.status === "closed";
     if (open && user && !hasInitialized.current) {
       hasInitialized.current = true;
       initSession();
+    } else if (open && user && currentlyClosed) {
+      hasInitialized.current = false;
+      reset();
+      hasInitialized.current = true;
+      initSession();
     }
-  }, [open, user, initSession]);
+  }, [open, user, session?.status, initSession, reset]);
 
   // An order-scoped entry point (e.g. an order-detail page's "Reschedule
   // pickup" button, or the Contact page's "Start a chat") requested the

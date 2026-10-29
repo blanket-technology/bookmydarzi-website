@@ -145,6 +145,19 @@ export const useChatStore = create<ChatState>((set, get) => ({
     if (!session) return;
     try {
       await chatService.closeSession(session.uuid);
+      // Bug fix: nothing here ever cleared this flag, so the *next* time
+      // initSession() ran (any reason - reopening the bubble, a reload)
+      // it always saw "already started this tab" and asked for the same
+      // kind of session again, not a fresh one - get_or_create_session
+      // correctly excludes resolved sessions server-side, so a reload DID
+      // get a new session, but simply reopening the panel without a
+      // reload never even called initSession() again (see ChatWidget.tsx's
+      // hasInitialized guard) and just kept showing this now-resolved
+      // session's old history. Clearing the flag here means whichever path
+      // re-triggers next asks for fresh=true.
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("bmd_chat_started");
+      }
     } catch (err) {
       set({ error: err instanceof Error ? err.message : "Could not close this conversation" });
     }
