@@ -114,26 +114,12 @@ export default function ProcessScrollytelling({ images }: { images: StepImage[] 
               }}
               className="absolute inset-0"
             >
-              {/* Bug fix: these are the same square (1:1), two-panel
-                  composite catalog images the homepage grid uses - a
-                  garment photo on the left half, numbered-instructions
-                  text on the right half (same ones ImageCropModal.jsx
-                  enforces as 1:1 on upload). object-cover centered was
-                  cropping that right-half text mid-sentence; a plain
-                  object-contain fix avoided the crop but left ugly empty
-                  letterbox bars either side, since this wide hero-style
-                  box was never going to suit a square source. Anchoring
-                  object-cover to the LEFT edge instead shows only the
-                  garment-photo half at a clean wide ratio, filling the box
-                  completely - the instructions text simply isn't part of
-                  this crop, which is fine here since the section already
-                  explains each step in writing next to it. */}
               <Image
                 src={img.url}
                 alt={img.alt}
                 fill
                 sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover object-left"
+                className="object-cover"
                 priority={i === 0}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
