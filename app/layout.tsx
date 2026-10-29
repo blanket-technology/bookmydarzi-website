@@ -5,7 +5,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
 import Toast from "@/components/Toast";
-import SmoothScrollProvider from "@/components/homepage-motion/SmoothScrollProvider";
 import { DEFAULT_OG_IMAGE, SITE_NAME, SITE_TAGLINE, SITE_URL, jsonLdScript, localBusinessJsonLd } from "@/lib/seo";
 
 // Both read from env so nothing breaks (or sends fake/placeholder data to
@@ -85,13 +84,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <SmoothScrollProvider>
-          <Header />
-          {children}
-          <Footer />
-          <ChatWidget />
-          <Toast />
-        </SmoothScrollProvider>
+        {/* Bug fix: site-wide Lenis inertial smooth-scroll (previously
+            mounted here via SmoothScrollProvider) decoupled visual scroll
+            position from native wheel/trackpad input, adding lag/overshoot
+            to every scroll tick on every page - the classic cause of a
+            site "feeling stuck" while scrolling. Removed in favor of
+            native browser scroll, which GSAP's ScrollTrigger (used by
+            ParallaxImage/ProcessScrollytelling) already falls back to
+            automatically once no custom scroller is configured - no
+            change needed in those components. */}
+        <Header />
+        {children}
+        <Footer />
+        <ChatWidget />
+        <Toast />
         {/* @next/third-parties' GoogleAnalytics lazy-loads gtag.js via
             next/script's "afterInteractive" strategy under the hood - it
             doesn't block initial page render/LCP the way a naive <script>
