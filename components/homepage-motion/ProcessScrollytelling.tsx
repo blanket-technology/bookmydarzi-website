@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { LucideIcon } from "lucide-react";
@@ -45,21 +44,24 @@ const STEPS: Step[] = [
   },
 ];
 
-interface StepImage {
-  url: string;
-  alt: string;
-}
-
-/** The process section as scrollytelling: a crossfading stack of real
- * catalog photos pins on the left while the 5 real steps highlight in turn
- * on the right as the visitor scrolls. Real photography (next/image
- * opacity-crossfade, the same reliable pattern FeaturedHeroCard already
- * uses) rather than a generated visual - no rendering risk, and it's actual
- * product imagery instead of an abstract shape. */
-export default function ProcessScrollytelling({ images }: { images: StepImage[] }) {
+/** The process section as scrollytelling: a large crossfading step icon
+ * pins on the left while the 5 real steps highlight in turn on the right as
+ * the visitor scrolls.
+ *
+ * Bug fix: this used to crossfade real catalog photos here (square,
+ * two-panel garment-photo + numbered-instructions composites meant for the
+ * homepage's square catalog cards). This panel is a wide ~1.3:1 box, and no
+ * CSS crop/position of a square source into it looked right - object-cover
+ * centered clipped the instructions text mid-sentence, object-contain left
+ * ugly empty letterbox bars, and anchoring the crop to one edge still
+ * leaked a sliver of the wrong content at some viewport widths. A plain
+ * gradient panel with a large per-step icon has zero crop risk at any box
+ * shape, matches the section's own dark/gold palette, and doesn't depend on
+ * the catalog's own image assets being any particular shape. */
+export default function ProcessScrollytelling() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const imageRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const iconRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -69,11 +71,11 @@ export default function ProcessScrollytelling({ images }: { images: StepImage[] 
 
     mm.add("(prefers-reduced-motion: no-preference)", () => {
       const steps = stepRefs.current.filter(Boolean) as HTMLDivElement[];
-      const photos = imageRefs.current.filter(Boolean) as HTMLDivElement[];
+      const icons = iconRefs.current.filter(Boolean) as HTMLDivElement[];
       if (steps.length === 0) return;
 
       gsap.set(steps.slice(1), { opacity: 0.35 });
-      gsap.set(photos.slice(1), { opacity: 0 });
+      gsap.set(icons.slice(1), { opacity: 0 });
 
       const trigger = gsap.timeline({
         scrollTrigger: {
@@ -89,9 +91,9 @@ export default function ProcessScrollytelling({ images }: { images: StepImage[] 
         if (i > 0) {
           trigger.to(step, { opacity: 1, duration: 0.15 }, i * 0.2);
           trigger.to(steps[i - 1], { opacity: 0.35, duration: 0.15 }, i * 0.2);
-          if (photos[i] && photos[i - 1]) {
-            trigger.to(photos[i], { opacity: 1, duration: 0.15 }, i * 0.2);
-            trigger.to(photos[i - 1], { opacity: 0, duration: 0.15 }, i * 0.2);
+          if (icons[i] && icons[i - 1]) {
+            trigger.to(icons[i], { opacity: 1, duration: 0.15 }, i * 0.2);
+            trigger.to(icons[i - 1], { opacity: 0, duration: 0.15 }, i * 0.2);
           }
         }
       });
@@ -105,24 +107,19 @@ export default function ProcessScrollytelling({ images }: { images: StepImage[] 
   return (
     <section ref={sectionRef} className="relative bg-[#171717] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 md:min-h-screen md:grid-cols-2 md:items-center md:px-8">
-        <div className="relative order-2 h-[320px] overflow-hidden rounded-3xl bg-white/5 md:order-1 md:h-[460px]">
-          {images.map((img, i) => (
+        <div className="relative order-2 h-[320px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#241c0f] via-[#171717] to-[#171717] md:order-1 md:h-[460px]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(201,154,61,0.12),transparent_60%)]" />
+          {STEPS.map((step, i) => (
             <div
-              key={img.url}
+              key={step.title}
               ref={(el) => {
-                imageRefs.current[i] = el;
+                iconRefs.current[i] = el;
               }}
-              className="absolute inset-0"
+              className="absolute inset-0 flex items-center justify-center"
             >
-              <Image
-                src={img.url}
-                alt={img.alt}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover"
-                priority={i === 0}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <span className="grid h-28 w-28 place-items-center rounded-full border border-[#c99a3d]/30 bg-[#c99a3d]/10 md:h-36 md:w-36">
+                <step.icon size={56} className="text-[#d2aa5c]" strokeWidth={1.5} />
+              </span>
             </div>
           ))}
         </div>
