@@ -50,7 +50,8 @@ export type LocationStatus =
   | "denied"
   | "unavailable"
   | "timeout"
-  | "unsupported";
+  | "unsupported"
+  | "imprecise";
 
 interface UseAddressLocationResult {
   coords: GpsCoords | null;
@@ -158,6 +159,26 @@ export function useAddressLocation(): UseAddressLocationResult {
         return;
       }
       if (requestId !== requestIdRef.current) return;
+
+      // Bug fix: a browser GPS fix always carries an `accuracy` field
+      // (meters of uncertainty), but this was never checked - on desktop/
+      // VPN, "GPS" frequently falls back to IP-based geolocation, which
+      // can be hundreds of km off. A real customer in Ghaziabad got "the
+      // nearest area we cover is Noida, about 444.73 km away" - Noida is
+      // genuinely ~15-20km from Ghaziabad; the Haversine math and the
+      // service area's stored coordinates were both confirmed correct, so
+      // the only explanation was a bad GPS fix silently trusted as
+      // precise. 50km is generous (genuine high-accuracy GPS is normally
+      // under 100m; this only rejects fixes bad enough to plausibly put
+      // the customer in a different city/state).
+      const MAX_ACCEPTABLE_ACCURACY_METERS = 50_000;
+      if (position.coords.accuracy > MAX_ACCEPTABLE_ACCURACY_METERS) {
+        setStatus("imprecise");
+        setStatusMessage(
+          "Couldn't get a precise location (your browser's location signal is too approximate). Please enter your address manually.",
+        );
+        return;
+      }
 
       const next: GpsCoords = {
         latitude: position.coords.latitude,

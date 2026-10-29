@@ -21,7 +21,12 @@ export function AddressLocationField({
 }) {
   const detecting = status === "detecting";
   const captured = status === "captured";
-  const isError = status === "denied" || status === "unavailable" || status === "timeout" || status === "unsupported";
+  const isError =
+    status === "denied" ||
+    status === "unavailable" ||
+    status === "timeout" ||
+    status === "unsupported" ||
+    status === "imprecise";
 
   return (
     <div className="sm:col-span-2">
