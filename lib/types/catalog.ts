@@ -35,6 +35,10 @@ export interface CatalogServiceLine {
   display_order: number;
   image_url: string | null;
   starting_price: number | null;
+  /** Display-only sub-grouping within this line's category (e.g. "Men",
+   * "Women", "Kids") - lets a flat category like Custom Alterations render
+   * as visually grouped sections. Null means ungrouped. */
+  group_label?: string | null;
   stitching_types: CatalogStitchingType[];
 }
 

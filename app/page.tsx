@@ -33,6 +33,33 @@ interface FeaturedLine {
   categoryId: number;
 }
 
+// Bug fix: Custom Alterations rendered as one undifferentiated list -
+// gender/garment-type was only ever a free-text prefix in each line's own
+// Name ("Men Shirt Alteration", "Women Blouse Alteration"), never a real
+// structural grouping the frontend could key off. GroupLabel (added on
+// ServiceLine specifically for this) gives a real field to group by -
+// ungrouped lines (group_label null) are kept together under "More
+// Services" at the end rather than silently dropped, since admin hasn't
+// necessarily labeled every line yet.
+const UNGROUPED_LABEL = "More Services";
+function groupLinesByLabel(lines: FeaturedLine[]): { label: string; lines: FeaturedLine[] }[] {
+  const order: string[] = [];
+  const byLabel = new Map<string, FeaturedLine[]>();
+  for (const item of lines) {
+    const label = item.line.group_label?.trim() || UNGROUPED_LABEL;
+    if (!byLabel.has(label)) {
+      order.push(label);
+      byLabel.set(label, []);
+    }
+    byLabel.get(label)!.push(item);
+  }
+  // Ungrouped lines render last regardless of where they first appeared in
+  // display_order, so a handful of not-yet-labeled lines don't fragment the
+  // grouped sections around them.
+  const labels = [...order.filter((l) => l !== UNGROUPED_LABEL), ...(byLabel.has(UNGROUPED_LABEL) ? [UNGROUPED_LABEL] : [])];
+  return labels.map((label) => ({ label, lines: byLabel.get(label)! }));
+}
+
 // Business is launching on Custom Alterations only - the homepage should
 // showcase that category specifically, not whatever category happens to
 // sort first in the catalog tree (same "Custom Alterations" match used to
@@ -60,6 +87,7 @@ function getCustomAlterationsLines(
 export default async function Home() {
   const { categories } = await getCatalogTree();
   const alterationLines = getCustomAlterationsLines(categories);
+  const alterationGroups = groupLinesByLabel(alterationLines);
   // Hero rotator stays small (image-crossfade + one dot per item) even
   // though the grid below now shows every Custom Alterations line.
   const featured = alterationLines.slice(0, 3);
@@ -84,69 +112,76 @@ export default async function Home() {
             View all services <ArrowRight className="ml-1 inline" size={15} />
           </Link>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {alterationLines.map(({ line, categoryId }, i) => (
-            <ScrollReveal key={line.id} delay={i * 90}>
-            <Link
-              href={`/services/${categoryId}/${line.id}`}
-              className="hover-lift group block rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:shadow-xl"
-            >
-              {/* Bug fix: this was changed to aspect-[3/2] on the incorrect
-                  assumption that uploaded catalog images are 3:2, not
-                  square - every image actually checked (1254x1254,
-                  1433x1433) is a clean 1:1 square, which the admin
-                  catalog-image upload tool enforces via a mandatory 1:1
-                  crop step (final/src/components/common/ImageCropModal.jsx,
-                  aspect={1}) specifically so every surface renders the same
-                  square framing. Matches the admin tool's actual output
-                  instead of a guess at it; kept in sync with the same fix
-                  on /services' ServicesGrid.tsx.
-
-                  Also dropped ParallaxImage's scale-110 wrapper here: that
-                  10% overscan (headroom for the vertical parallax tween to
-                  shift the image without revealing empty space at the
-                  edges) was itself clipping these specific images, which
-                  are two-panel garment-photo + numbered-instructions
-                  composites that fill their square canvas edge to edge -
-                  unlike a typical photo, there's no slack to crop into
-                  here. A still image shows the catalog accurately; the
-                  parallax effect was never load-bearing on these cards. */}
-              {line.image_url ? (
-                <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
-                  <Image
-                    src={line.image_url}
-                    alt={line.name}
-                    fill
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-              ) : (
-                <div
-                  className={`flex aspect-[3/2] items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
+        {alterationGroups.map((group, groupIndex) => (
+          <div key={group.label} className={groupIndex > 0 ? "mt-10" : "mt-8"}>
+            {alterationGroups.length > 1 ? (
+              <h3 className="mb-4 text-lg font-black text-ink">{group.label}</h3>
+            ) : null}
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {group.lines.map(({ line, categoryId }, i) => (
+                <ScrollReveal key={line.id} delay={i * 90}>
+                <Link
+                  href={`/services/${categoryId}/${line.id}`}
+                  className="hover-lift group block rounded-3xl border border-black/5 bg-white p-3 shadow-sm hover:shadow-xl"
                 >
-                  <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
-                    Popular
-                  </span>
-                </div>
-              )}
-              <div className="flex items-end justify-between p-4">
-                <div>
-                  <h3 className="text-xl font-black">{line.name}</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {line.starting_price != null
-                      ? `Starting from ₹${line.starting_price.toLocaleString("en-IN")}`
-                      : "Price on request"}
-                  </p>
-                </div>
-                <span className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 transition-colors group-hover:bg-[#171717] group-hover:text-white">
-                  <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </div>
-            </Link>
-            </ScrollReveal>
-          ))}
-        </div>
+                  {/* Bug fix: this was changed to aspect-[3/2] on the incorrect
+                      assumption that uploaded catalog images are 3:2, not
+                      square - every image actually checked (1254x1254,
+                      1433x1433) is a clean 1:1 square, which the admin
+                      catalog-image upload tool enforces via a mandatory 1:1
+                      crop step (final/src/components/common/ImageCropModal.jsx,
+                      aspect={1}) specifically so every surface renders the same
+                      square framing. Matches the admin tool's actual output
+                      instead of a guess at it; kept in sync with the same fix
+                      on /services' ServicesGrid.tsx.
+
+                      Also dropped ParallaxImage's scale-110 wrapper here: that
+                      10% overscan (headroom for the vertical parallax tween to
+                      shift the image without revealing empty space at the
+                      edges) was itself clipping these specific images, which
+                      are two-panel garment-photo + numbered-instructions
+                      composites that fill their square canvas edge to edge -
+                      unlike a typical photo, there's no slack to crop into
+                      here. A still image shows the catalog accurately; the
+                      parallax effect was never load-bearing on these cards. */}
+                  {line.image_url ? (
+                    <div className="relative aspect-square w-full overflow-hidden rounded-2xl">
+                      <Image
+                        src={line.image_url}
+                        alt={line.name}
+                        fill
+                        sizes="(min-width: 768px) 33vw, 100vw"
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex aspect-[3/2] items-end rounded-2xl bg-gradient-to-br ${CARD_BACKGROUNDS[i % CARD_BACKGROUNDS.length]} p-5`}
+                    >
+                      <span className="rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider">
+                        Popular
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-end justify-between p-4">
+                    <div>
+                      <h3 className="text-xl font-black">{line.name}</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        {line.starting_price != null
+                          ? `Starting from ₹${line.starting_price.toLocaleString("en-IN")}`
+                          : "Price on request"}
+                      </p>
+                    </div>
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 transition-colors group-hover:bg-[#171717] group-hover:text-white">
+                      <ArrowRight size={17} className="transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        ))}
       </section>
 
       <ProcessScrollytelling />

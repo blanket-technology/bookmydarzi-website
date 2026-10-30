@@ -23,6 +23,32 @@ interface FlatLine {
   categoryName: string;
 }
 
+// Bug fix: a category like Custom Alterations rendered as one
+// undifferentiated grid - gender/garment-type was only ever a free-text
+// prefix in each line's own Name, never a real structural grouping.
+// GroupLabel gives a real field to group by. Only applied when the
+// category filter is narrowed to a single category (rather than "All" or
+// a search), since mixing group sub-headers across already-distinct
+// categories (Men Clothing vs Custom Alterations) would be confusing, not
+// clarifying - those are already separated by the category filter chips
+// themselves. Ungrouped lines (group_label null) are kept together under
+// "More Services" rather than silently dropped.
+const UNGROUPED_LABEL = "More Services";
+function groupByLabel(lines: FlatLine[]): { label: string; lines: FlatLine[] }[] {
+  const order: string[] = [];
+  const byLabel = new Map<string, FlatLine[]>();
+  for (const item of lines) {
+    const label = item.line.group_label?.trim() || UNGROUPED_LABEL;
+    if (!byLabel.has(label)) {
+      order.push(label);
+      byLabel.set(label, []);
+    }
+    byLabel.get(label)!.push(item);
+  }
+  const labels = [...order.filter((l) => l !== UNGROUPED_LABEL), ...(byLabel.has(UNGROUPED_LABEL) ? [UNGROUPED_LABEL] : [])];
+  return labels.map((label) => ({ label, lines: byLabel.get(label)! }));
+}
+
 export default function ServicesGrid({ categories }: { categories: CatalogCategory[] }) {
   const searchParams = useSearchParams();
   const [q, setQ] = useState("");
@@ -71,6 +97,9 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
     return haystack.includes(normalizedQuery);
   });
 
+  const showGrouped = cat !== "All" && !normalizedQuery;
+  const groups = showGrouped ? groupByLabel(filtered) : null;
+
   return (
     <>
       <div className="mt-8 max-w-2xl">
@@ -107,6 +136,23 @@ export default function ServicesGrid({ categories }: { categories: CatalogCatego
         <p className="mt-16 text-center text-sm text-gray-500">
           No services match your search.
         </p>
+      ) : groups && groups.length > 1 ? (
+        groups.map((group, groupIndex) => (
+          <div key={group.label} className={groupIndex > 0 ? "mt-10" : "mt-8"}>
+            <h2 className="mb-4 text-lg font-black text-ink">{group.label}</h2>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+              {group.lines.map(({ line, categoryId, categoryName }, i) => (
+                <ServiceCard
+                  key={line.id}
+                  line={line}
+                  categoryId={categoryId}
+                  categoryName={categoryName}
+                  index={i}
+                />
+              ))}
+            </div>
+          </div>
+        ))
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
           {filtered.map(({ line, categoryId, categoryName }, i) => (
