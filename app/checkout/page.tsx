@@ -21,7 +21,7 @@ import {
   type PaymentSessionResponse,
 } from "@/lib/razorpayPayment";
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
-import type { CancellationPolicyStage } from "@/lib/services/catalog";
+import type { CancellationPolicyTier } from "@/lib/services/catalog";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 
@@ -157,9 +157,9 @@ export default function CheckoutPage() {
   // proxy like everything else on this client page - failure just means the
   // policy block doesn't render, same non-fatal-degrade as the rest of the
   // page's optional data.
-  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicyStage[]>([]);
+  const [cancellationPolicy, setCancellationPolicy] = useState<CancellationPolicyTier[]>([]);
   useEffect(() => {
-    apiClient<CancellationPolicyStage[]>("/cancellation-policy")
+    apiClient<CancellationPolicyTier[]>("/cancellation-policy/summary")
       .then(setCancellationPolicy)
       .catch(() => setCancellationPolicy([]));
   }, []);
@@ -1078,30 +1078,22 @@ export default function CheckoutPage() {
               </ul>
               <details className="mt-3 [&_summary]:cursor-pointer">
                 <summary className="text-[11px] font-semibold text-gray-400 hover:text-gray-600">
-                  View full stage-by-stage policy
+                  View full cancellation policy
                 </summary>
                 <ul className="mt-2.5 space-y-2.5 border-t border-black/5 pt-2.5">
-                  {cancellationPolicy.map((stage) => (
-                    <li key={stage.Id}>
-                      <p className="font-semibold text-gray-700">
-                        {stage.DisplayStage}
-                        {stage.CancellationAllowed ? (
-                          stage.PenaltyPct ? (
-                            <span className="ml-1.5 font-normal text-gray-500">
-                              &mdash; {stage.PenaltyPct}% cancellation charge
-                            </span>
-                          ) : (
-                            <span className="ml-1.5 font-normal text-green-700">&mdash; free to cancel</span>
-                          )
-                        ) : (
-                          <span className="ml-1.5 font-normal text-red-500">&mdash; cannot be cancelled</span>
-                        )}
-                      </p>
-                      {stage.PolicyDescription && (
-                        <p className="mt-0.5 text-gray-500">{stage.PolicyDescription}</p>
-                      )}
-                    </li>
-                  ))}
+                  {cancellationPolicy.map((tier) => {
+                    const color = !tier.cancellation_allowed
+                      ? "text-red-500"
+                      : tier.penalty_pct
+                        ? "text-amber-600"
+                        : "text-green-700";
+                    return (
+                      <li key={tier.group}>
+                        <p className={`font-semibold ${color}`}>{tier.group}</p>
+                        <p className="mt-0.5 text-gray-500">{tier.description}</p>
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             </div>
