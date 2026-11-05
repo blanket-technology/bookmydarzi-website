@@ -35,9 +35,18 @@ const CSP = [
   // if omitted here: GA_MEASUREMENT_ID being set would still render the
   // script tag, but gtag.js itself would never actually load, so
   // analytics would look "wired up" yet silently collect zero data.
-  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com https://cdn.razorpay.com https://www.googletagmanager.com`,
-  // Next.js injects some critical CSS inline; nothing else does.
-  "style-src 'self' 'unsafe-inline'",
+  // https://www.gstatic.com is required for public/firebase-messaging-sw.js's
+  // importScripts() calls (firebase-app-compat.js/firebase-messaging-compat.js) -
+  // without it, the service worker throws on evaluation ("ServiceWorker
+  // script evaluation failed" in the console) and web push notifications
+  // silently never register at all.
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://checkout.razorpay.com https://cdn.razorpay.com https://www.googletagmanager.com https://www.gstatic.com`,
+  // Next.js injects some critical CSS inline; Razorpay's checkout.js widget
+  // separately injects its own Google Fonts stylesheet (confirmed via
+  // browser console - not loaded by any of our own code) for the payment
+  // UI it renders - without this, that one request is silently CSP-blocked
+  // and the widget just falls back to a system font.
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Catalog/lookbook photos (ImageKit), the backend's built-in category
   // icons, and data: URIs for small inline assets (e.g. blur placeholders).
   "img-src 'self' data: https://ik.imagekit.io https://web-production-efff7.up.railway.app",
@@ -58,11 +67,17 @@ const CSP = [
   // cover GA4's event/beacon calls (gtag.js posts to a regional subdomain
   // like region1.google-analytics.com, not a fixed one - same reasoning
   // as the Razorpay wildcard above).
-  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app https://*.razorpay.com https://*.google-analytics.com https://*.analytics.google.com",
+  // fcm.googleapis.com/firebaseinstallations.googleapis.com are Firebase
+  // Cloud Messaging's own delivery + installation-id endpoints, called
+  // from firebase-messaging-sw.js once it successfully loads (see
+  // script-src's gstatic.com entry above for why it needs that too).
+  "connect-src 'self' https://web-production-efff7.up.railway.app wss://web-production-efff7.up.railway.app https://*.razorpay.com https://*.google-analytics.com https://*.analytics.google.com https://fcm.googleapis.com https://firebaseinstallations.googleapis.com",
   // Razorpay's checkout renders inside an iframe it injects itself; the
   // Contact page embeds a Google Maps iframe for the office location.
   "frame-src https://checkout.razorpay.com https://api.razorpay.com https://www.google.com",
-  "font-src 'self' data:",
+  // fonts.gstatic.com is where the actual font files the stylesheet above
+  // references are served from, not fonts.googleapis.com itself.
+  "font-src 'self' data: https://fonts.gstatic.com",
   // Nobody should be able to load this site inside a hidden iframe
   // elsewhere (clickjacking) - redundant with the X-Frame-Options header
   // below for browsers that only honor one or the other.
