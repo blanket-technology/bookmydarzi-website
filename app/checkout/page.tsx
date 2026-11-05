@@ -23,6 +23,7 @@ import {
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
 import type { CancellationPolicyStage } from "@/lib/services/catalog";
 import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
+import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 
 // Address already linked to the cart server-side via PUT /cart/address
 // (done on /cart, the only page with the actual address picker). Mirrors
@@ -169,6 +170,14 @@ export default function CheckoutPage() {
   // no notes field of any kind at checkout.
   const [voiceNoteUrl, setVoiceNoteUrl] = useState<string | null>(null);
 
+  // Pre-filled from the account's saved default (profile page), editable
+  // per-order - sent as `gstin` on checkout (app/schemas/cart.py's
+  // CartCheckoutSchema.gstin), stored on the order, printed on the invoice.
+  const [showGstinField, setShowGstinField] = useState(false);
+  const [gstin, setGstin] = useState("");
+  const [gstinTouched, setGstinTouched] = useState(false);
+  const gstinError = gstinTouched && gstin.trim() && !isValidGstin(gstin) ? "Enter a valid 15-character GSTIN" : null;
+
   // Offer selected on /cart (the only page with the offer picker) - this
   // page only reads and displays it, and forwards offer_id on
   // POST /cart/checkout; the backend recomputes and validates the discount
@@ -261,6 +270,13 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
+    if (user?.DefaultGSTIN) {
+      setGstin(user.DefaultGSTIN);
+      setShowGstinField(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (!checked || !user) return;
     let cancelled = false;
     (async () => {
@@ -299,6 +315,7 @@ export default function CheckoutPage() {
           : {}),
         ...(appliedOffer ? { offer_id: appliedOffer.offer_id } : {}),
         ...(voiceNoteUrl ? { voice_note_url: voiceNoteUrl } : {}),
+        ...(gstin.trim() && isValidGstin(gstin) ? { gstin: normalizeGstin(gstin) } : {}),
       },
       idempotencyKey: generateIdempotencyKey(),
     });
@@ -325,6 +342,11 @@ export default function CheckoutPage() {
     if (placingOrder) return;
     if (!cart?.address) {
       setError("Please select a delivery address on your cart before checking out.");
+      return;
+    }
+    if (gstin.trim() && !isValidGstin(gstin)) {
+      setGstinTouched(true);
+      setError("Please enter a valid GSTIN, or clear the field to skip it.");
       return;
     }
     if (paymentMethod === "online") {
@@ -956,6 +978,37 @@ export default function CheckoutPage() {
               Includes a ₹{billing.penalty_amount} charge carried over from a recent order cancellation.
             </p>
           )}
+          <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600">
+            {showGstinField ? (
+              <>
+                <label htmlFor="checkout-gstin" className="font-bold uppercase tracking-wide text-gray-400">
+                  GSTIN (optional)
+                </label>
+                <input
+                  id="checkout-gstin"
+                  type="text"
+                  value={gstin}
+                  onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                  onBlur={() => setGstinTouched(true)}
+                  placeholder="e.g. 09AABCT1234A1Z5"
+                  maxLength={15}
+                  className="mt-2 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 outline-none focus:border-teal-600"
+                />
+                {gstinError && <p className="mt-1 text-[11px] text-red-500">{gstinError}</p>}
+                <p className="mt-1 text-[11px] text-gray-400">
+                  Printed on this order&apos;s invoice. Can be changed until the order is invoiced.
+                </p>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowGstinField(true)}
+                className="text-xs font-semibold text-teal-700 underline-offset-2 hover:underline"
+              >
+                + Add GST details for invoice
+              </button>
+            )}
+          </div>
           {pickupSummary && (
             <div className="mt-5 rounded-2xl bg-white px-4 py-3 text-xs text-gray-600">
               <p className="font-bold uppercase tracking-wide text-gray-400">Pickup</p>

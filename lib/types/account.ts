@@ -175,6 +175,8 @@ export interface CustomerPricingSnapshot {
   gst_amount: number;
   cgst_amount: number;
   sgst_amount: number;
+  customer_gstin: string | null;
+  gstin_editable: boolean;
   penalty_amount: number;
   final_amount: number;
   advance_amount: number;
@@ -222,6 +224,7 @@ export interface UserProfile {
   SuggestedMeasurementProfileName: string | null;
   Address: string | null;
   DefaultAddressId: number | null;
+  DefaultGSTIN: string | null;
   Mobile: string | null;
   Role: string;
   IsActive: boolean;
@@ -241,6 +244,7 @@ export interface UpdateProfileRequest {
   profile_image?: string;
   gender?: string;
   email?: string;
+  default_gstin?: string | null;
 }
 
 // ─── Addresses: /users/addresses ───────────────────────────────────────────

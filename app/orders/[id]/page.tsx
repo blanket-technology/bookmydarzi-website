@@ -41,6 +41,7 @@ import {
 import { diagnoseRazorpayLoadFailure } from "@/lib/razorpayDiagnostics";
 import { buildPickupTimeSlots } from "@/lib/pickupPrefs";
 import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
+import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 
 // Mirrors react_app/app/order-details.tsx's onlineFailed/onlinePending gate
 // (lines ~764-765) - "Pay now" only makes sense for a non-COD order sitting
@@ -1495,6 +1496,10 @@ export default function OrderDetailPage() {
   const [showIssueSelector, setShowIssueSelector] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [invoiceError, setInvoiceError] = useState<string | null>(null);
+  const [editingGstin, setEditingGstin] = useState(false);
+  const [gstinDraft, setGstinDraft] = useState("");
+  const [gstinSaving, setGstinSaving] = useState(false);
+  const [gstinSaveError, setGstinSaveError] = useState<string | null>(null);
 
   const [razorpayReady, setRazorpayReady] = useState(false);
   // See app/checkout/page.tsx's identical fix: next/script's onLoad simply
@@ -1683,6 +1688,29 @@ export default function OrderDetailPage() {
       setDownloadingInvoice(false);
     }
   }, [orderId]);
+
+  const handleSaveGstin = useCallback(async () => {
+    if (!orderId) return;
+    const trimmed = gstinDraft.trim();
+    if (trimmed && !isValidGstin(trimmed)) {
+      setGstinSaveError("Enter a valid 15-character GSTIN, or clear the field to remove it.");
+      return;
+    }
+    setGstinSaving(true);
+    setGstinSaveError(null);
+    try {
+      await apiClient(`/orders/${orderId}/gstin`, {
+        method: "PATCH",
+        body: { gstin: trimmed ? normalizeGstin(trimmed) : null },
+      });
+      setEditingGstin(false);
+      refetchOrderSilently();
+    } catch (err) {
+      setGstinSaveError(err instanceof Error ? err.message : "Couldn't save GSTIN.");
+    } finally {
+      setGstinSaving(false);
+    }
+  }, [orderId, gstinDraft, refetchOrderSilently]);
 
   const heroImageUrl = useMemo(() => {
     if (!order) return null;
@@ -2074,6 +2102,67 @@ export default function OrderDetailPage() {
               <div className="flex justify-between border-t border-black/5 pt-2.5 text-base">
                 <dt className="font-black">Total</dt>
                 <dd className="font-black">{money(pricing.final_amount)}</dd>
+              </div>
+              <div className="border-t border-black/5 pt-2.5">
+                {editingGstin ? (
+                  <div>
+                    <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">GSTIN</dt>
+                    <input
+                      type="text"
+                      value={gstinDraft}
+                      onChange={(e) => setGstinDraft(e.target.value.toUpperCase())}
+                      placeholder="e.g. 09AABCT1234A1Z5"
+                      maxLength={15}
+                      className="mt-1.5 w-full rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-teal-600"
+                    />
+                    {gstinSaveError && <p className="mt-1 text-xs text-red-500">{gstinSaveError}</p>}
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveGstin}
+                        disabled={gstinSaving}
+                        className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                      >
+                        {gstinSaving ? "Saving..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingGstin(false);
+                          setGstinSaveError(null);
+                        }}
+                        className="rounded-lg border border-black/10 px-3 py-1.5 text-xs font-bold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between text-sm">
+                    <dt className="text-gray-500">GSTIN</dt>
+                    <dd className="flex items-center gap-2">
+                      <span className="font-semibold">{pricing.customer_gstin || "-"}</span>
+                      {pricing.gstin_editable && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGstinDraft(pricing.customer_gstin ?? "");
+                            setGstinSaveError(null);
+                            setEditingGstin(true);
+                          }}
+                          className="text-xs font-semibold text-teal-700 underline-offset-2 hover:underline"
+                        >
+                          {pricing.customer_gstin ? "Edit" : "Add"}
+                        </button>
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {!pricing.gstin_editable && (
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    This order has been invoiced - contact support to correct the GSTIN.
+                  </p>
+                )}
               </div>
               {/* There is no advance/remaining split for online orders anymore
                   (compute_billing sets advance_amount == final_amount always) -

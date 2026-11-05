@@ -34,6 +34,7 @@ import { AddressLocationField } from "@/components/AddressLocationField";
 import OrdersPanel from "@/components/OrdersPanel";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
+import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 import type {
   Address,
   AddressListResponse,
@@ -195,7 +196,8 @@ function OverviewTab() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ first_name: "", last_name: "", email: "" });
+  const [form, setForm] = useState({ first_name: "", last_name: "", email: "", default_gstin: "" });
+  const [gstinError, setGstinError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [changingMobile, setChangingMobile] = useState(false);
 
@@ -209,6 +211,7 @@ function OverviewTab() {
           first_name: res.FirstName ?? "",
           last_name: res.LastName ?? "",
           email: res.Email ?? "",
+          default_gstin: res.DefaultGSTIN ?? "",
         });
       })
       .catch(() => setError("Couldn't load your profile."))
@@ -218,12 +221,19 @@ function OverviewTab() {
   useEffect(load, []);
 
   const handleSave = async () => {
+    const trimmedGstin = form.default_gstin.trim();
+    if (trimmedGstin && !isValidGstin(trimmedGstin)) {
+      setGstinError("Enter a valid 15-character GSTIN, or clear the field.");
+      return;
+    }
+    setGstinError(null);
     setSaving(true);
     setSaveError(null);
     const body: UpdateProfileRequest = {
       first_name: form.first_name.trim(),
       last_name: form.last_name.trim(),
       email: form.email.trim() || undefined,
+      default_gstin: trimmedGstin ? normalizeGstin(trimmedGstin) : null,
     };
     try {
       const updated = await apiClient<UserProfile>("/users/profile", { method: "PATCH", body });
@@ -312,6 +322,10 @@ function OverviewTab() {
                 </div>
               )}
             </div>
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-wide text-gray-400">Default GSTIN</dt>
+              <dd className="mt-1 text-sm font-semibold">{profile.DefaultGSTIN || "-"}</dd>
+            </div>
           </dl>
         ) : (
           <div className="space-y-4">
@@ -357,6 +371,23 @@ function OverviewTab() {
                 Change number
               </button>
             </label>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-400">Default GSTIN</span>
+              <input
+                value={form.default_gstin}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, default_gstin: e.target.value.toUpperCase() }));
+                  setGstinError(null);
+                }}
+                placeholder="e.g. 09AABCT1234A1Z5"
+                maxLength={15}
+                className="mt-1.5 w-full rounded-xl border border-black/10 px-3.5 py-2.5 text-sm focus:border-[#171717] focus:outline-none"
+              />
+              <span className="mt-1 block text-xs text-gray-400">
+                Pre-fills checkout; you can still change it per order.
+              </span>
+              {gstinError && <span className="mt-1 block text-xs text-red-500">{gstinError}</span>}
+            </label>
             {changingMobile && (
               <ChangeMobileFlow
                 onDone={(newMobile) => {
@@ -384,6 +415,7 @@ function OverviewTab() {
                     first_name: profile.FirstName ?? "",
                     last_name: profile.LastName ?? "",
                     email: profile.Email ?? "",
+                    default_gstin: profile.DefaultGSTIN ?? "",
                   });
                 }}
                 className="rounded-xl border border-black/10 px-5 py-2.5 text-sm font-bold hover:bg-gray-50"
