@@ -31,8 +31,18 @@ async function handle(
   // with no body just rejects/resolves to undefined via the catch below,
   // so reading it unconditionally here is safe for the common bodyless
   // DELETE case too.
+  //
+  // multipart/form-data (a photo upload - e.g. a rating photo) must be
+  // read and re-sent as FormData, not JSON - request.json() on a
+  // multipart body would throw (caught -> undefined), silently dropping
+  // the uploaded file instead of forwarding it.
   if (method !== "GET") {
-    body = await request.json().catch(() => undefined);
+    const contentType = request.headers.get("content-type") ?? "";
+    if (contentType.startsWith("multipart/form-data")) {
+      body = await request.formData().catch(() => undefined);
+    } else {
+      body = await request.json().catch(() => undefined);
+    }
   }
 
   // Forward the client's Idempotency-Key as-is if present, so a duplicate

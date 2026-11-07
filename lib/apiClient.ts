@@ -20,6 +20,9 @@ export async function apiClient<T = unknown>(
   endpoint: string,
   options: {
     method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    /** Pass a FormData instance for a multipart upload (e.g. a rating
+     * photo) - sent as-is with no Content-Type set, so fetch derives its
+     * own multipart boundary header. Anything else is JSON-stringified. */
     body?: unknown;
     /** Pass a value from lib/idempotency.ts's generateIdempotencyKey() for
      * mutations where a duplicate retry would be a real problem (add to
@@ -28,14 +31,15 @@ export async function apiClient<T = unknown>(
   } = {},
 ): Promise<T> {
   const { method = "GET", body, idempotencyKey } = options;
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
   if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
 
   const res = await fetch(`/api/proxy${endpoint}`, {
     method,
     headers: Object.keys(headers).length > 0 ? headers : undefined,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
   });
 
   const text = await res.text();

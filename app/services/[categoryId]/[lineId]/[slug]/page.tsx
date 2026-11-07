@@ -22,6 +22,7 @@ import {
   type AlterationGroupKey,
 } from "@/lib/services/alterationGroups";
 import ServiceActions from "./ServiceActions";
+import ReviewCard from "./ReviewCard";
 
 type SlugPageParams = { categoryId: string; lineId: string; slug: string };
 
@@ -383,31 +384,7 @@ async function TierDetailPage({
           {ratings.recent_reviews.length > 0 && (
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {ratings.recent_reviews.slice(0, 3).map((review, i) => (
-                <div key={i} className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex gap-0.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          size={12}
-                          className={s <= review.rating ? "fill-gold-deep text-gold-deep" : "text-gray-200"}
-                        />
-                      ))}
-                    </div>
-                    {review.created_at && (
-                      <p className="text-[11px] text-gray-400">
-                        {new Date(review.created_at).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
-                    )}
-                  </div>
-                  {review.comment && (
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-gray-600">{review.comment}</p>
-                  )}
-                </div>
+                <ReviewCard key={i} review={review} />
               ))}
             </div>
           )}

@@ -3,12 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import Script from "next/script";
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
   CalendarClock,
+  Camera,
   CheckCircle2,
   CreditCard,
   Download,
@@ -138,10 +140,14 @@ interface RatingResponse {
   order_id: number;
   rating: number;
   comment: string | null;
+  photo_urls?: string[] | null;
   already_rated: boolean;
   edited: boolean;
   updated_at: string | null;
 }
+
+// Mirrors the backend's MAX_PHOTOS_PER_RATING (rating_photo_upload_service.py).
+const MAX_RATING_PHOTOS = 5;
 
 // The backend only allows rating a delivered order (see get_order_rating /
 // submit_order_rating in customer_orders.py). "delivered" and "completed"
@@ -252,6 +258,12 @@ function formatTimelineTimestamp(iso: string): string {
 // has one (BridgeProfile.Rating, rolled up from real customer ratings) -
 // doorstep trust/safety: identity confirmation plus a quick trust signal,
 // matching mobile's equivalent BridgePartnerCard.
+
+// Leaflet touches window/document at module load - ssr: false keeps it out
+// of server rendering entirely, matching the "use client" boundary this
+// whole page already runs in.
+const LiveTrackingMap = dynamic(() => import("./LiveTrackingMap"), { ssr: false });
+
 function BridgePartnerCard({
   partner,
   subtitle,
@@ -1347,6 +1359,9 @@ function RatingCard({ orderId }: { orderId: number }) {
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1370,8 +1385,39 @@ function RatingCard({ orderId }: { orderId: number }) {
   const startEdit = () => {
     setSelectedRating(existing?.rating ?? 0);
     setComment(existing?.comment ?? "");
+    setPhotoUrls(existing?.photo_urls ?? []);
     setSubmitError(null);
     setEditing(true);
+  };
+
+  const handlePickPhoto = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = ""; // allow picking the same file again later
+      if (!file || photoUrls.length >= MAX_RATING_PHOTOS) return;
+      setPhotoUploading(true);
+      setPhotoError(null);
+      try {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await apiClient<{ url: string }>(`/customer/orders/${orderId}/rating/photo`, {
+          method: "POST",
+          body: form,
+        });
+        setPhotoUrls((prev) => [...prev, res.url]);
+      } catch (err) {
+        setPhotoError(
+          err instanceof ClientApiError ? err.message : "Couldn't upload the photo. Please try again.",
+        );
+      } finally {
+        setPhotoUploading(false);
+      }
+    },
+    [orderId, photoUrls.length],
+  );
+
+  const removePhoto = (url: string) => {
+    setPhotoUrls((prev) => prev.filter((u) => u !== url));
   };
 
   const handleSubmit = useCallback(async () => {
@@ -1381,7 +1427,11 @@ function RatingCard({ orderId }: { orderId: number }) {
     try {
       const res = await apiClient<RatingResponse>(`/customer/orders/${orderId}/rating`, {
         method: existing?.already_rated ? "PATCH" : "POST",
-        body: { rating: selectedRating, comment: comment.trim() || null },
+        body: {
+          rating: selectedRating,
+          comment: comment.trim() || null,
+          photo_urls: photoUrls.length > 0 ? photoUrls : undefined,
+        },
       });
       setExisting(res);
       setEditing(false);
@@ -1392,7 +1442,7 @@ function RatingCard({ orderId }: { orderId: number }) {
     } finally {
       setSubmitting(false);
     }
-  }, [orderId, selectedRating, comment, existing?.already_rated]);
+  }, [orderId, selectedRating, comment, photoUrls, existing?.already_rated]);
 
   const showForm = editing || (!!existing && !existing.already_rated);
 
@@ -1426,6 +1476,20 @@ function RatingCard({ orderId }: { orderId: number }) {
           {existing.comment && (
             <p className="mt-3 text-sm leading-6 text-gray-600">&ldquo;{existing.comment}&rdquo;</p>
           )}
+          {existing.photo_urls && existing.photo_urls.length > 0 && (
+            <div className="mt-3 flex gap-2 overflow-x-auto">
+              {existing.photo_urls.map((url) => (
+                <Image
+                  key={url}
+                  src={url}
+                  alt=""
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          )}
           <p className="mt-3 text-xs text-gray-400">
             {existing.edited ? "Updated - thanks for your feedback!" : "Thanks for your feedback!"}
           </p>
@@ -1453,6 +1517,43 @@ function RatingCard({ orderId }: { orderId: number }) {
             placeholder="Share more about your experience (optional)"
             className="mt-4 w-full resize-none rounded-2xl border border-black/10 p-3 text-sm outline-none focus:border-black/25"
           />
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto">
+            {photoUrls.map((url) => (
+              <div key={url} className="relative shrink-0">
+                <Image src={url} alt="" width={64} height={64} className="h-16 w-16 rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(url)}
+                  aria-label="Remove photo"
+                  className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black text-white"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            {photoUrls.length < MAX_RATING_PHOTOS && (
+              <label className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-black/20 text-[10px] font-semibold text-gray-500 hover:border-black/40">
+                {photoUploading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <Camera size={18} />
+                    Add photo
+                  </>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={photoUploading}
+                  onChange={handlePickPhoto}
+                />
+              </label>
+            )}
+          </div>
+          {photoError && (
+            <p className="mt-2 text-sm font-semibold text-red-600">{photoError}</p>
+          )}
           {submitError && (
             <p className="mt-3 text-sm font-semibold text-red-600">{submitError}</p>
           )}
@@ -2028,25 +2129,46 @@ export default function OrderDetailPage() {
             </div>
           )}
           {order.order.pickup_partner && (
-            <BridgePartnerCard partner={order.order.pickup_partner} subtitle="Your pickup partner" />
+            <>
+              <LiveTrackingMap orderId={order.order.order_id} enabled={order.order.status === "pickup_pending"} />
+              <BridgePartnerCard partner={order.order.pickup_partner} subtitle="Your pickup partner" />
+            </>
           )}
           {order.order.delivery_partner && (
-            <BridgePartnerCard partner={order.order.delivery_partner} subtitle="Your delivery partner" />
+            <>
+              <LiveTrackingMap orderId={order.order.order_id} enabled={order.order.status === "out_for_delivery"} />
+              <BridgePartnerCard partner={order.order.delivery_partner} subtitle="Your delivery partner" />
+            </>
           )}
           {order.order.return_partner && (
-            <BridgePartnerCard partner={order.order.return_partner} subtitle="Your return partner" />
+            <>
+              <LiveTrackingMap orderId={order.order.order_id} enabled={order.order.status === "return_in_transit"} />
+              <BridgePartnerCard partner={order.order.return_partner} subtitle="Your return partner" />
+            </>
           )}
           {order.order.repair_pickup_partner && (
-            <BridgePartnerCard
-              partner={order.order.repair_pickup_partner}
-              subtitle="Collecting your order for repair"
-            />
+            <>
+              <LiveTrackingMap
+                orderId={order.order.order_id}
+                enabled={order.order.status === "repair_pickup_in_transit"}
+              />
+              <BridgePartnerCard
+                partner={order.order.repair_pickup_partner}
+                subtitle="Collecting your order for repair"
+              />
+            </>
           )}
           {order.order.repair_delivery_partner && (
-            <BridgePartnerCard
-              partner={order.order.repair_delivery_partner}
-              subtitle="Bringing your repaired order back"
-            />
+            <>
+              <LiveTrackingMap
+                orderId={order.order.order_id}
+                enabled={order.order.status === "repair_delivery_in_transit"}
+              />
+              <BridgePartnerCard
+                partner={order.order.repair_delivery_partner}
+                subtitle="Bringing your repaired order back"
+              />
+            </>
           )}
         </section>
 

@@ -23,6 +23,10 @@ export class ApiError extends Error {
 
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  /** A FormData body (e.g. a photo upload) is sent as-is, with no
+   * Content-Type set - fetch derives its own multipart boundary header,
+   * but only when we don't override Content-Type ourselves. Any other
+   * value is JSON-stringified. */
   body?: unknown;
   skipAuth?: boolean;
   /** Extra headers to forward as-is, e.g. Idempotency-Key on order/cart
@@ -131,12 +135,14 @@ export async function bmdFetch<T = unknown>(
     _retried = false,
   } = options;
 
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
+
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...(await visitorIpHeader(endpoint)),
     ...extraHeaders,
   };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined && !isFormData) headers["Content-Type"] = "application/json";
 
   if (!skipAuth) {
     const token = accessToken ?? (await getAccessToken());
@@ -148,7 +154,7 @@ export async function bmdFetch<T = unknown>(
     res = await fetch(`${BMD_API_V1}${endpoint}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: isFormData ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
       cache: "no-store",
     });
   } catch (err) {

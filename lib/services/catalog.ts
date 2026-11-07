@@ -73,6 +73,7 @@ export async function getBillingEstimate(): Promise<BillingEstimate | null> {
 export interface ServiceReview {
   rating: number;
   comment: string | null;
+  photo_urls?: string[] | null;
   created_at: string | null;
 }
 
