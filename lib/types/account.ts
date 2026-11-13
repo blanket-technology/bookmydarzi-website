@@ -178,6 +178,8 @@ export interface CustomerPricingSnapshot {
   customer_gstin: string | null;
   gstin_editable: boolean;
   penalty_amount: number;
+  delivery_priority?: string;
+  delivery_charge?: number;
   final_amount: number;
   advance_amount: number;
   remaining_amount: number;

@@ -112,6 +112,21 @@ interface CheckoutResult {
 
 type PaymentMethod = "cod" | "online";
 
+// Mirrors app/constants/delivery_priority.py's TIERS - fetched from the
+// public GET /catalog/delivery-priority-tiers endpoint so the three
+// options/timelines/rates are never hardcoded on the frontend. These rates
+// are public, non-sensitive, flat percentages - used here only to compute a
+// live client-side preview as the customer switches tiers; the server
+// independently recomputes and is the sole source of truth for the amount
+// actually charged at POST /cart/checkout.
+interface DeliveryPriorityTier {
+  value: string;
+  label: string;
+  timeline: string;
+  surcharge_rate: number;
+  surcharge_percent: number;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, checked, fetchSession } = useAuth();
@@ -187,6 +202,14 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [placingOrder, setPlacingOrder] = useState(false);
   const [orderResult, setOrderResult] = useState<CheckoutResult | null>(null);
+
+  const [deliveryTiers, setDeliveryTiers] = useState<DeliveryPriorityTier[]>([]);
+  const [deliveryPriority, setDeliveryPriority] = useState("regular");
+  useEffect(() => {
+    apiClient<{ tiers: DeliveryPriorityTier[] }>("/catalog/delivery-priority-tiers")
+      .then((res) => setDeliveryTiers(res.tiers ?? []))
+      .catch(() => setDeliveryTiers([]));
+  }, []);
 
   // Online-payment flow state. Distinct stages so the button/UI never looks
   // frozen during any of the three network round trips (checkout -> create
@@ -306,6 +329,7 @@ export default function CheckoutPage() {
       method: "POST",
       body: {
         payment_method: method,
+        delivery_priority: deliveryPriority,
         pickup_type: pickupPrefs?.pickup_type ?? "instant",
         ...(pickupPrefs?.pickup_type === "scheduled" && pickupPrefs.scheduled_pickup_at
           ? {
@@ -711,9 +735,23 @@ export default function CheckoutPage() {
   // recomputes and validates the real discount from offer_id server-side.
   const estimatedDiscount =
     billing?.discount && billing.discount > 0 ? 0 : estimateOfferDiscount(appliedOffer, total);
-  const displayTotal = total - estimatedDiscount;
+
+  // Client-side delivery-charge preview: the cart's own billing snapshot has
+  // no concept of delivery_priority (that's resolved only at the moment of
+  // checkout - see checkout_service.py), so the live preview as the
+  // customer switches tiers is computed here from the cart's item_total and
+  // the public, non-sensitive flat surcharge rate. The backend independently
+  // recomputes and is the sole source of truth for the amount actually
+  // charged (POST /cart/checkout always wins over this estimate).
+  const selectedTier = deliveryTiers.find((t) => t.value === deliveryPriority);
+  const itemTotalForDelivery = billing?.item_total ?? total;
+  const deliveryChargePreview = selectedTier ? Math.round(itemTotalForDelivery * selectedTier.surcharge_rate) : 0;
+
+  const displayTotal = total - estimatedDiscount + deliveryChargePreview;
   const displayTotalLabel =
-    estimatedDiscount > 0 ? `₹${displayTotal.toLocaleString("en-IN")}` : totalDisplay;
+    estimatedDiscount > 0 || deliveryChargePreview > 0
+      ? `₹${displayTotal.toLocaleString("en-IN")}`
+      : totalDisplay;
 
   if (entries.length === 0) {
     return (
@@ -915,6 +953,46 @@ export default function CheckoutPage() {
               />
             </div>
           </section>
+
+          {deliveryTiers.length > 0 && (
+            <section className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[#171717] text-white">
+                  <CheckCircle2 size={17} />
+                </span>
+                <div>
+                  <h2 className="font-black">Delivery speed</h2>
+                  <p className="text-xs text-gray-500">Choose how fast you&apos;d like this back</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {deliveryTiers.map((tier) => (
+                  <button
+                    key={tier.value}
+                    type="button"
+                    onClick={() => setDeliveryPriority(tier.value)}
+                    className={`rounded-2xl border-2 p-4 text-left transition ${
+                      deliveryPriority === tier.value
+                        ? "border-[#171717] bg-[#f8f6f1]"
+                        : "border-black/5 hover:border-black/15"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold">{tier.label}</p>
+                      {deliveryPriority === tier.value && (
+                        <CheckCircle2 className="text-[#b4832e]" size={16} />
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500">{tier.timeline}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-gray-500">
+                      {tier.surcharge_percent > 0 ? `+${tier.surcharge_percent}%` : "No extra charge"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="h-fit rounded-3xl bg-cream p-6">
@@ -970,6 +1048,14 @@ export default function CheckoutPage() {
               <div className="flex justify-between font-semibold text-red-600">
                 <span>Cancellation charge</span>
                 <span>{`₹${billing.penalty_amount}`}</span>
+              </div>
+            )}
+            {deliveryChargePreview > 0 && selectedTier && (
+              <div className="flex justify-between">
+                <span>
+                  Delivery charge <span className="text-xs text-gray-400">({selectedTier.label})</span>
+                </span>
+                <span>₹{deliveryChargePreview.toLocaleString("en-IN")}</span>
               </div>
             )}
           </div>

@@ -40,6 +40,9 @@ interface BillingEstimate {
   sgst_amount: number;
   gst_amount: number;
   penalty_amount: number;
+  delivery_priority?: string;
+  delivery_charge?: number;
+  delivery_charge_display?: string;
   total_amount: number;
   advance_amount: number;
   remaining_amount: number;
@@ -49,6 +52,21 @@ interface BillingEstimate {
   total_amount_display: string;
   advance_amount_display: string;
   remaining_amount_display: string;
+}
+
+// Mirrors app/constants/delivery_priority.py's TIERS - fetched from the
+// public GET /catalog/delivery-priority-tiers endpoint so the three
+// options/timelines/rates are never hardcoded on the frontend (requirement:
+// keep this configurable without a client code change). The server still
+// independently recomputes and is the sole source of truth for the amount
+// actually charged (see GET /orders/billing-estimate, which this page
+// already re-fetches on every delivery_priority change).
+interface DeliveryPriorityTier {
+  value: string;
+  label: string;
+  timeline: string;
+  surcharge_rate: number;
+  surcharge_percent: number;
 }
 
 interface DirectOrderResult {
@@ -112,6 +130,14 @@ function BookNowContent() {
 
   const [estimate, setEstimate] = useState<BillingEstimate | null>(null);
   const [estimateError, setEstimateError] = useState<string | null>(null);
+
+  const [deliveryTiers, setDeliveryTiers] = useState<DeliveryPriorityTier[]>([]);
+  const [deliveryPriority, setDeliveryPriority] = useState("regular");
+  useEffect(() => {
+    apiClient<{ tiers: DeliveryPriorityTier[] }>("/catalog/delivery-priority-tiers")
+      .then((res) => setDeliveryTiers(res.tiers ?? []))
+      .catch(() => setDeliveryTiers([]));
+  }, []);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
@@ -203,7 +229,10 @@ function BookNowContent() {
           ...extraItems.map((e) => ({ service_id: e.service_id, quantity: 1 })),
         ]))}`
       : "";
-    apiClient<BillingEstimate>(`/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}${itemsQuery}`)
+    const deliveryQuery = `&delivery_priority=${encodeURIComponent(deliveryPriority)}`;
+    apiClient<BillingEstimate>(
+      `/orders/billing-estimate?service_id=${serviceId}&quantity=1${addonQuery}${itemsQuery}${deliveryQuery}`,
+    )
       .then((res) => {
         if (!cancelled) setEstimate(res);
       })
@@ -218,7 +247,7 @@ function BookNowContent() {
     // extraItems is parsed fresh from params on every render - depend on a
     // stable derived key, not the array reference.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checked, user, serviceId, addonIdsParam, extraItems.map((e) => e.service_id).join(",")]);
+  }, [checked, user, serviceId, addonIdsParam, extraItems.map((e) => e.service_id).join(","), deliveryPriority]);
 
   const loadAddresses = useCallback(async () => {
     setAddressesLoading(true);
@@ -259,6 +288,7 @@ function BookNowContent() {
       service_id: serviceId,
       quantity: 1,
       address_id: selectedAddressId,
+      delivery_priority: deliveryPriority,
       pickup_type: pickupType,
       ...(pickupType === "scheduled" && scheduledPickupAt
         ? { scheduled_pickup_at: scheduledPickupAt, pickup_time_slot: scheduledSlot }
@@ -703,6 +733,44 @@ function BookNowContent() {
               </button>
             </div>
           </section>
+
+          {/* ── Delivery priority ─────────────────────────────────────────── */}
+          {deliveryTiers.length > 0 && (
+            <section className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-ink text-white">
+                  <Zap size={17} />
+                </span>
+                <div>
+                  <h2 className="font-black">Delivery speed</h2>
+                  <p className="text-xs text-muted">Choose how fast you'd like this back</p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {deliveryTiers.map((tier) => (
+                  <button
+                    key={tier.value}
+                    onClick={() => setDeliveryPriority(tier.value)}
+                    className={`rounded-2xl border-2 p-4 text-left transition ${
+                      deliveryPriority === tier.value
+                        ? "border-ink bg-cream"
+                        : "border-black/5 hover:border-black/15"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold">{tier.label}</p>
+                      {deliveryPriority === tier.value && <CheckCircle2 className="text-gold-deep" size={16} />}
+                    </div>
+                    <p className="mt-1 text-xs text-muted">{tier.timeline}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-gray-500">
+                      {tier.surcharge_percent > 0 ? `+${tier.surcharge_percent}%` : "No extra charge"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="h-fit space-y-4 lg:sticky lg:top-6">
@@ -784,6 +852,19 @@ function BookNowContent() {
                   <div className="flex justify-between text-gray-500">
                     <span>GST</span>
                     <span>{estimate.gst_display}</span>
+                  </div>
+                )}
+                {estimate && (estimate.delivery_charge ?? 0) > 0 && (
+                  <div className="flex justify-between">
+                    <span>
+                      Delivery charge
+                      {deliveryTiers.find((t) => t.value === deliveryPriority) && (
+                        <span className="ml-1 text-xs text-muted">
+                          ({deliveryTiers.find((t) => t.value === deliveryPriority)?.label})
+                        </span>
+                      )}
+                    </span>
+                    <span>{estimate.delivery_charge_display ?? formatInr(estimate.delivery_charge)}</span>
                   </div>
                 )}
                 {estimatedDiscount > 0 && (

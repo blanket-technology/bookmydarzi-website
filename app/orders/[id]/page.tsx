@@ -2215,6 +2215,19 @@ export default function OrderDetailPage() {
                   <dd className="font-semibold">{money(pricing.gst_amount)}</dd>
                 </div>
               )}
+              {(pricing.delivery_charge ?? 0) > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-gray-500">
+                    Delivery charge
+                    {pricing.delivery_priority && (
+                      <span className="ml-1 text-xs text-gray-400 capitalize">
+                        ({pricing.delivery_priority})
+                      </span>
+                    )}
+                  </dt>
+                  <dd className="font-semibold">{money(pricing.delivery_charge ?? 0)}</dd>
+                </div>
+              )}
               {pricing.penalty_amount > 0 && (
                 <div className="flex justify-between text-red-600">
                   <dt>Penalty</dt>
