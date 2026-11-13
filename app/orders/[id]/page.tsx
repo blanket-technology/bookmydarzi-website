@@ -45,6 +45,29 @@ import { buildPickupTimeSlots } from "@/lib/pickupPrefs";
 import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 import { isValidGstin, normalizeGstin } from "@/lib/gstin";
 
+// Mirrors app/constants/payment_status.py's OrderPaymentStatus values -
+// plain snake_case-to-title-case ("cod · cod pending") read as a raw enum
+// dump, not a customer-facing label, so each pairing gets its own phrase.
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cod: "Cash on Delivery",
+  online: "Online Payment",
+};
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  cod_pending: "To be collected on delivery",
+  payment_pending: "Payment pending",
+  advance_pending: "Payment pending",
+  payment_failed: "Payment failed",
+  advance_failed: "Payment failed",
+  advance_paid: "Advance paid",
+  balance_pending: "Balance due",
+  fully_paid: "Paid",
+};
+function formatPaymentSummary(method: string | null | undefined, status: string): string {
+  const methodLabel = (method && PAYMENT_METHOD_LABELS[method]) || method || "-";
+  const statusLabel = PAYMENT_STATUS_LABELS[status] ?? status.replace(/_/g, " ");
+  return `${methodLabel} · ${statusLabel}`;
+}
+
 // Mirrors react_app/app/order-details.tsx's onlineFailed/onlinePending gate
 // (lines ~764-765) - "Pay now" only makes sense for a non-COD order sitting
 // in a failed/pending online-payment state, not for COD orders (those are
@@ -2318,8 +2341,8 @@ export default function OrderDetailPage() {
             </dl>
             <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-4 text-xs">
               <span className="text-gray-400">Payment</span>
-              <span className="font-bold capitalize">
-                {order.payment.payment_method ?? "-"} · {order.payment.payment_status.replace(/_/g, " ")}
+              <span className="font-bold">
+                {formatPaymentSummary(order.payment.payment_method, order.payment.payment_status)}
               </span>
             </div>
           </section>
