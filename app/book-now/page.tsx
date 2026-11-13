@@ -764,7 +764,11 @@ function BookNowContent() {
                     </div>
                     <p className="mt-1 text-xs text-muted">{tier.timeline}</p>
                     <p className="mt-1.5 text-xs font-semibold text-gray-500">
-                      {tier.surcharge_percent > 0 ? `+${tier.surcharge_percent}%` : "No extra charge"}
+                      {tier.surcharge_rate > 0 && estimate
+                        ? `+${formatInr(Math.round(estimate.item_total * tier.surcharge_rate))}`
+                        : tier.surcharge_rate > 0
+                          ? `+${tier.surcharge_percent}%`
+                          : "No extra charge"}
                     </p>
                   </button>
                 ))}
