@@ -38,6 +38,8 @@ const SECTIONS = [
       "Biometric unlock: if you enable Face ID/fingerprint app-lock, your device's own operating system handles the biometric match - we never receive or store your fingerprint or face data ourselves.",
       "Customer data needed to do your job: depending on your role, this includes a customer's delivery address, order details, measurements, progress photos, and support chat messages for orders assigned to you.",
       "Actions you take in the app - accepting an order, updating its status, uploading a progress photo - are recorded in an audit log for support and accountability.",
+      "Photos you upload (progress photos, proof of delivery) are stored with ImageKit, our image hosting provider.",
+      "Push notification token: if notifications are enabled, your device registers with Firebase Cloud Messaging (Google) so we can send you job and order alerts.",
     ],
   },
   {
@@ -54,6 +56,7 @@ const SECTIONS = [
     body: [
       "Customer information visible in this app (address, contact number, order details) is shared only as needed within BookMyDarzi to fulfil that customer's order, and only with the staff/partner/tailor actually assigned to it.",
       "Your own location, while a job is active, is visible to dispatch/support staff coordinating that job, and - for a pickup/delivery in progress - may be shown to the customer so they can track their order.",
+      "Photos you upload are stored with ImageKit, our image hosting provider. Push notifications are delivered through Firebase Cloud Messaging, Google's notification service - it receives only your device's notification token, not your account data.",
       "We do not share staff, partner, or tailor information with advertisers or data brokers.",
     ],
   },
